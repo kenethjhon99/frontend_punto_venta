@@ -136,19 +136,20 @@ function Productos() {
         </Box>
 
         <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={abrirNuevo}
-          sx={{
-            borderRadius: 2,
-            px: 3,
-            py: 1.5,
-            fontWeight: 600,
-            boxShadow: 3,
-          }}
-        >
-          Nuevo producto
-        </Button>
+  variant="contained"
+  startIcon={<AddIcon />}
+  onClick={abrirNuevo}
+  sx={{
+    borderRadius: 2,
+    px: 3,
+    py: 1.5,
+    fontWeight: 600,
+    boxShadow: 3,
+    width: { xs: "100%", sm: "auto" },
+  }}
+>
+  Nuevo producto
+</Button>
       </Stack>
 
       <Paper
