@@ -9,6 +9,20 @@ import {
   desactivarProducto,
 } from "../services/productoService";
 
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  TextField,
+  Alert,
+  CircularProgress,
+  Stack,
+} from "@mui/material";
+
+import AddIcon from "@mui/icons-material/Add";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+
 function Productos() {
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -100,49 +114,97 @@ function Productos() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Productos</h1>
-          <p className="text-gray-500">
+    <Box>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "flex-start", md: "center" }}
+        spacing={2}
+        mb={3}
+      >
+        <Box>
+          <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
+            <Inventory2Icon color="primary" />
+            <Typography variant="h4" fontWeight="bold">
+              Productos
+            </Typography>
+          </Stack>
+
+          <Typography variant="body1" color="text.secondary">
             Administra el catálogo de productos de tu punto de venta
-          </p>
-        </div>
+          </Typography>
+        </Box>
 
-        <button
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={abrirNuevo}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-medium"
+          sx={{
+            borderRadius: 2,
+            px: 3,
+            py: 1.5,
+            fontWeight: 600,
+            boxShadow: 3,
+          }}
         >
-          + Nuevo producto
-        </button>
-      </div>
+          Nuevo producto
+        </Button>
+      </Stack>
 
-      <div className="bg-white rounded-2xl shadow p-4">
-        <input
-          type="text"
+      <Paper
+        elevation={2}
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 3,
+        }}
+      >
+        <TextField
+          fullWidth
+          label="Buscar producto"
           placeholder="Buscar por nombre, descripción o código..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-      </div>
+      </Paper>
 
       {error && (
-        <div className="bg-red-100 text-red-700 px-4 py-3 rounded-xl">
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
           {error}
-        </div>
+        </Alert>
       )}
 
       {loadingLista ? (
-        <div className="bg-white rounded-2xl shadow p-6 text-center text-gray-500">
-          Cargando productos...
-        </div>
+        <Paper
+          elevation={2}
+          sx={{
+            p: 5,
+            borderRadius: 3,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          <CircularProgress />
+          <Typography color="text.secondary">
+            Cargando productos...
+          </Typography>
+        </Paper>
       ) : (
-        <ProductoTable
-          productos={productosFiltrados}
-          onEdit={abrirEditar}
-          onDelete={eliminarProducto}
-        />
+        <Paper
+          elevation={2}
+          sx={{
+            borderRadius: 3,
+            overflow: "hidden",
+          }}
+        >
+          <ProductoTable
+            productos={productosFiltrados}
+            onEdit={abrirEditar}
+            onDelete={eliminarProducto}
+          />
+        </Paper>
       )}
 
       <ProductoFormModal
@@ -152,7 +214,7 @@ function Productos() {
         productoEditando={productoEditando}
         loading={loading}
       />
-    </div>
+    </Box>
   );
 }
 

@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
 
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Grid,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
+
 const initialState = {
   codigo_barras: "",
   nombre: "",
@@ -11,7 +23,13 @@ const initialState = {
   ubicacion: "",
 };
 
-function ProductoFormModal({ open, onClose, onSave, productoEditando, loading }) {
+function ProductoFormModal({
+  open,
+  onClose,
+  onSave,
+  productoEditando,
+  loading,
+}) {
   const [form, setForm] = useState(initialState);
 
   useEffect(() => {
@@ -55,166 +73,139 @@ function ProductoFormModal({ open, onClose, onSave, productoEditando, loading })
     });
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-xl font-semibold text-gray-800">
-            {productoEditando ? "Editar producto" : "Nuevo producto"}
-          </h2>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        <Typography variant="h6" fontWeight="bold">
+          {productoEditando ? "Editar producto" : "Nuevo producto"}
+        </Typography>
+      </DialogTitle>
 
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Código de barras
-            </label>
-            <input
-              type="text"
+      <DialogContent dividers>
+        <Grid container spacing={2} mt={1}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Código de barras"
               name="codigo_barras"
               value={form.codigo_barras}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              fullWidth
               placeholder="Ej. 7501234567890"
             />
-          </div>
+          </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre
-            </label>
-            <input
-              type="text"
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Nombre"
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nombre del producto"
+              fullWidth
               required
             />
-          </div>
+          </Grid>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción
-            </label>
-            <textarea
+          <Grid item xs={12}>
+            <TextField
+              label="Descripción"
               name="descripcion"
               value={form.descripcion}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Descripción del producto"
-              rows="3"
+              fullWidth
+              multiline
+              rows={3}
             />
-          </div>
+          </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Precio compra
-            </label>
-            <input
-              type="number"
-              step="0.01"
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Precio compra"
               name="precio_compra"
+              type="number"
               value={form.precio_compra}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0.00"
+              fullWidth
+              inputProps={{ step: "0.01" }}
               required
             />
-          </div>
+          </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Precio venta
-            </label>
-            <input
-              type="number"
-              step="0.01"
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Precio venta"
               name="precio_venta"
+              type="number"
               value={form.precio_venta}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0.00"
+              fullWidth
+              inputProps={{ step: "0.01" }}
               required
             />
-          </div>
+          </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {productoEditando ? "Stock" : "Stock inicial"}
-            </label>
-            <input
-              type="number"
-              min="0"
+          <Grid item xs={12} md={6}>
+            <TextField
+              label={productoEditando ? "Stock" : "Stock inicial"}
               name="existencia_inicial"
+              type="number"
               value={form.existencia_inicial}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0"
+              fullWidth
+              inputProps={{ min: 0 }}
               required
             />
-          </div>
+          </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Stock mínimo
-            </label>
-            <input
-              type="number"
-              min="0"
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Stock mínimo"
               name="stock_minimo"
+              type="number"
               value={form.stock_minimo}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0"
+              fullWidth
+              inputProps={{ min: 0 }}
             />
-          </div>
+          </Grid>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ubicación
-            </label>
-            <input
-              type="text"
+          <Grid item xs={12}>
+            <TextField
+              label="Ubicación"
               name="ubicacion"
               value={form.ubicacion}
               onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              fullWidth
               placeholder="Ej. Estante A-1"
             />
-          </div>
+          </Grid>
+        </Grid>
+      </DialogContent>
 
-          <div className="md:col-span-2 flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} color="inherit">
+          Cancelar
+        </Button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? "Guardando..." : productoEditando ? "Actualizar" : "Guardar"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : productoEditando ? (
+            "Actualizar"
+          ) : (
+            "Guardar"
+          )}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

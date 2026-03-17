@@ -1,76 +1,135 @@
+import {
+  Box,
+  Typography,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  IconButton,
+  TextField,
+  Paper,
+  Chip,
+  Stack,
+  Tooltip,
+} from "@mui/material";
+
+import DeleteIcon from "@mui/icons-material/Delete";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+
 function VentaTable({ items, onCambiarCantidad, onEliminar }) {
   if (!items.length) {
     return (
-      <div className="bg-white rounded-2xl shadow p-6 text-center text-gray-500">
-        No hay productos agregados a la venta.
-      </div>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 4,
+          borderRadius: 3,
+          textAlign: "center",
+        }}
+      >
+        <Stack spacing={1} alignItems="center">
+          <ShoppingCartIcon color="disabled" sx={{ fontSize: 40 }} />
+          <Typography variant="h6" fontWeight="bold">
+            Carrito vacío
+          </Typography>
+          <Typography color="text.secondary">
+            No hay productos agregados a la venta
+          </Typography>
+        </Stack>
+      </Paper>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px]">
-          <thead className="bg-gray-100 text-gray-700">
-            <tr>
-              <th className="text-left px-4 py-3">Producto</th>
-              <th className="text-left px-4 py-3">Precio</th>
-              <th className="text-left px-4 py-3">Stock</th>
-              <th className="text-left px-4 py-3">Cantidad</th>
-              <th className="text-left px-4 py-3">Subtotal</th>
-              <th className="text-center px-4 py-3">Acción</th>
-            </tr>
-          </thead>
+    <Paper
+      variant="outlined"
+      sx={{
+        borderRadius: 3,
+        overflow: "hidden",
+      }}
+    >
+      <Table>
+        <TableHead>
+          <TableRow sx={{ backgroundColor: "action.hover" }}>
+            <TableCell sx={{ fontWeight: "bold" }}>Producto</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Precio</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Cantidad</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Subtotal</TableCell>
+            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+              Acción
+            </TableCell>
+          </TableRow>
+        </TableHead>
 
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id_producto} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <p className="font-medium">{item.nombre}</p>
-                  <p className="text-sm text-gray-500">
-                    {item.codigo_barras || "Sin código"}
-                  </p>
-                </td>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow key={item.id_producto} hover>
+              <TableCell>
+                <Box>
+                  <Typography fontWeight={600}>{item.nombre}</Typography>
+                  {item.codigo_barras && (
+                    <Typography variant="body2" color="text.secondary">
+                      {item.codigo_barras}
+                    </Typography>
+                  )}
+                </Box>
+              </TableCell>
 
-                <td className="px-4 py-3">
+              <TableCell>
+                <Typography fontWeight={600}>
                   Q {Number(item.precio_venta).toFixed(2)}
-                </td>
+                </Typography>
+              </TableCell>
 
-                <td className="px-4 py-3">
-                  <span className="font-medium text-blue-700">{item.stock}</span>
-                </td>
+              <TableCell>
+                <Chip
+                  label={item.stock}
+                  size="small"
+                  color={item.stock <= 5 ? "warning" : "primary"}
+                  variant="outlined"
+                />
+              </TableCell>
 
-                <td className="px-4 py-3">
-                  <input
-                    type="number"
-                    min="1"
-                    max={item.stock}
-                    value={item.cantidad}
-                    onChange={(e) =>
-                      onCambiarCantidad(item.id_producto, Number(e.target.value))
-                    }
-                    className="w-24 border rounded-lg px-3 py-2"
-                  />
-                </td>
+              <TableCell>
+                <TextField
+                  type="number"
+                  size="small"
+                  value={item.cantidad}
+                  onChange={(e) =>
+                    onCambiarCantidad(item.id_producto, Number(e.target.value))
+                  }
+                  inputProps={{
+                    min: 1,
+                    max: item.stock,
+                    style: { textAlign: "center" },
+                  }}
+                  sx={{ width: 90 }}
+                />
+              </TableCell>
 
-                <td className="px-4 py-3 font-semibold">
+              <TableCell>
+                <Typography fontWeight="bold" color="primary.main">
                   Q {(Number(item.precio_venta) * Number(item.cantidad)).toFixed(2)}
-                </td>
+                </Typography>
+              </TableCell>
 
-                <td className="px-4 py-3 text-center">
-                  <button
+              <TableCell align="center">
+                <Tooltip title="Quitar producto">
+                  <IconButton
+                    color="error"
                     onClick={() => onEliminar(item.id_producto)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
                   >
-                    Quitar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Paper>
   );
 }
 

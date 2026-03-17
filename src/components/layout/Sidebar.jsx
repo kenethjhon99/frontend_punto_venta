@@ -1,24 +1,77 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+
+import {
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  Box,
+} from "@mui/material";
+
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+
+const drawerWidth = 240;
 
 function Sidebar() {
+  const location = useLocation();
+
+  const menu = [
+    { text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+    { text: "Productos", path: "/productos", icon: <InventoryIcon /> },
+    { text: "Ventas", path: "/ventas", icon: <PointOfSaleIcon /> },
+  ];
+
   return (
-    <div className="w-64 bg-gray-900 text-white p-4">
-      <h1 className="text-xl font-bold mb-6">Punto de Venta</h1>
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        "& .MuiDrawer-paper": {
+          width: drawerWidth,
+          boxSizing: "border-box",
+          backgroundColor: "#111827",
+          color: "#fff",
+        },
+      }}
+    >
+      <Toolbar>
+        <Typography variant="h6" fontWeight="bold">
+          POS System
+        </Typography>
+      </Toolbar>
 
-      <nav className="flex flex-col gap-3">
-        <Link to="/dashboard" className="hover:text-blue-300">
-          Dashboard
-        </Link>
-
-        <Link to="/productos" className="hover:text-blue-300">
-          Productos
-        </Link>
-
-        <Link to="/ventas" className="hover:text-blue-300">
-          Ventas
-        </Link>
-      </nav>
-    </div>
+      <Box sx={{ overflow: "auto" }}>
+        <List>
+          {menu.map((item) => (
+            <ListItemButton
+              key={item.text}
+              component={Link}
+              to={item.path}
+              selected={location.pathname === item.path}
+              sx={{
+                "&.Mui-selected": {
+                  backgroundColor: "#1d4ed8",
+                },
+                "&:hover": {
+                  backgroundColor: "#374151",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "#fff" }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          ))}
+        </List>
+      </Box>
+    </Drawer>
   );
 }
 

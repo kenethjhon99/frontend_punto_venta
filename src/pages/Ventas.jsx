@@ -4,6 +4,20 @@ import VentaTable from "../components/ventas/VentaTable";
 import { getProductos } from "../services/productoService";
 import { crearVenta } from "../services/ventaService";
 
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  Select,
+  MenuItem,
+  Button,
+  Divider,
+  Stack,
+  Alert,
+  Container,
+} from "@mui/material";
+
 function Ventas() {
   const [productos, setProductos] = useState([]);
   const [items, setItems] = useState([]);
@@ -31,27 +45,25 @@ function Ventas() {
     cargarProductos();
   }, []);
 
-  const agregarProducto = (producto) => {
-    const stockDisponible = Number(producto.stock || 0);
+  const agregarProducto = (producto, cantidadAgregar = 1) => {
+    const stock = Number(producto.stock || 0);
+    const cantidad = Number(cantidadAgregar);
 
-    if (stockDisponible <= 0) {
-      alert(`El producto "${producto.nombre}" no tiene stock disponible.`);
-      return;
-    }
+    if (stock <= 0) return;
+    if (!Number.isInteger(cantidad) || cantidad < 1) return;
+    if (cantidad > stock) return;
 
     setItems((prev) => {
-      const existe = prev.find((item) => item.id_producto === producto.id_producto);
+      const existe = prev.find((i) => i.id_producto === producto.id_producto);
 
       if (existe) {
-        if (existe.cantidad >= stockDisponible) {
-          alert(`Solo tienes ${stockDisponible} unidades disponibles de "${producto.nombre}".`);
-          return prev;
-        }
+        const nuevaCantidad = existe.cantidad + cantidad;
+        if (nuevaCantidad > stock) return prev;
 
-        return prev.map((item) =>
-          item.id_producto === producto.id_producto
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
+        return prev.map((i) =>
+          i.id_producto === producto.id_producto
+            ? { ...i, cantidad: nuevaCantidad }
+            : i
         );
       }
 
@@ -62,50 +74,38 @@ function Ventas() {
           nombre: producto.nombre,
           codigo_barras: producto.codigo_barras,
           precio_venta: Number(producto.precio_venta),
-          cantidad: 1,
-          stock: stockDisponible,
+          cantidad,
+          stock,
         },
       ];
     });
   };
 
-  const cambiarCantidad = (id_producto, cantidad) => {
+  const cambiarCantidad = (id, cantidad) => {
     setItems((prev) =>
       prev.map((item) => {
-        if (item.id_producto !== id_producto) return item;
-
-        if (cantidad < 1) return item;
-
-        if (cantidad > Number(item.stock || 0)) {
-          alert(`No puedes vender más de ${item.stock} unidades de "${item.nombre}".`);
-          return item;
-        }
-
+        if (item.id_producto !== id) return item;
+        if (cantidad < 1 || cantidad > item.stock) return item;
         return { ...item, cantidad };
       })
     );
   };
 
-  const eliminarItem = (id_producto) => {
-    setItems((prev) => prev.filter((item) => item.id_producto !== id_producto));
+  const eliminarItem = (id) => {
+    setItems((prev) => prev.filter((i) => i.id_producto !== id));
   };
 
   const total = useMemo(() => {
-    return items.reduce((acc, item) => {
-      return acc + Number(item.precio_venta) * Number(item.cantidad);
-    }, 0);
+    return items.reduce((acc, i) => acc + i.precio_venta * i.cantidad, 0);
   }, [items]);
 
   const finalizarVenta = async () => {
-    if (!items.length) {
-      alert("Debes agregar al menos un producto");
-      return;
-    }
+    if (!items.length) return;
 
     try {
       setLoadingVenta(true);
 
-      const payload = {
+      await crearVenta({
         tipo_venta: tipoVenta,
         metodo_pago: metodoPago,
         id_sucursal: 1,
@@ -114,106 +114,163 @@ function Ventas() {
           cantidad: item.cantidad,
           precio_venta: item.precio_venta,
         })),
-      };
+      });
 
-      await crearVenta(payload);
-
-      alert("Venta registrada correctamente");
       setItems([]);
-      setMetodoPago("EFECTIVO");
-      setTipoVenta("CONTADO");
       await cargarProductos();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "No se pudo registrar la venta");
+      setError(err.response?.data?.error || "No se pudo registrar la venta");
     } finally {
       setLoadingVenta(false);
     }
   };
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <div className="xl:col-span-1">
-        {loadingProductos ? (
-          <div className="bg-white rounded-2xl shadow p-6 text-center text-gray-500">
-            Cargando productos...
-          </div>
-        ) : (
-          <BuscarProducto productos={productos} onAgregar={agregarProducto} />
-        )}
-      </div>
-
-      <div className="xl:col-span-2 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Ventas</h1>
-          <p className="text-gray-500">
-            Registra ventas rápidas desde el punto de venta
-          </p>
-        </div>
+    <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Box sx={{ maxWidth: 1400, mx: "auto" }}>
+        <Stack spacing={1} mb={3}>
+          <Typography variant="h4" fontWeight="bold">
+            Punto de venta
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Registra ventas rápidas y controla existencias desde una sola pantalla
+          </Typography>
+        </Stack>
 
         {error && (
-          <div className="bg-red-100 text-red-700 px-4 py-3 rounded-xl">
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
             {error}
-          </div>
+          </Alert>
         )}
 
-        <VentaTable
-          items={items}
-          onCambiarCantidad={cambiarCantidad}
-          onEliminar={eliminarItem}
-        />
-
-        <div className="bg-white rounded-2xl shadow p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de venta
-              </label>
-              <select
-                value={tipoVenta}
-                onChange={(e) => setTipoVenta(e.target.value)}
-                className="w-full border rounded-xl px-4 py-3"
-              >
-                <option value="CONTADO">CONTADO</option>
-                <option value="CREDITO">CRÉDITO</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Método de pago
-              </label>
-              <select
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="w-full border rounded-xl px-4 py-3"
-              >
-                <option value="EFECTIVO">EFECTIVO</option>
-                <option value="TARJETA">TARJETA</option>
-                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="border-t pt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <p className="text-gray-500">Total a pagar</p>
-              <h2 className="text-3xl font-bold text-gray-800">
-                Q {total.toFixed(2)}
-              </h2>
-            </div>
-
-            <button
-              onClick={finalizarVenta}
-              disabled={loadingVenta || !items.length}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl font-semibold disabled:opacity-50"
+        <Grid container spacing={3} alignItems="stretch">
+          <Grid item xs={12} lg={5}>
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                height: "100%",
+              }}
             >
-              {loadingVenta ? "Procesando..." : "Finalizar venta"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+              <Typography variant="h6" fontWeight="bold" mb={2}>
+                Buscar productos
+              </Typography>
+
+              <BuscarProducto
+                productos={productos}
+                onAgregar={agregarProducto}
+                loading={loadingProductos}
+              />
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} lg={7}>
+            <Stack spacing={3}>
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 3,
+                  borderRadius: 4,
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Carrito de venta
+                </Typography>
+
+                <VentaTable
+                  items={items}
+                  onCambiarCantidad={cambiarCantidad}
+                  onEliminar={eliminarItem}
+                />
+              </Paper>
+
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 3,
+                  borderRadius: 4,
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Resumen de pago
+                </Typography>
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      Tipo de venta
+                    </Typography>
+                    <Select
+                      fullWidth
+                      value={tipoVenta}
+                      onChange={(e) => setTipoVenta(e.target.value)}
+                    >
+                      <MenuItem value="CONTADO">CONTADO</MenuItem>
+                      <MenuItem value="CREDITO">CRÉDITO</MenuItem>
+                    </Select>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      Método de pago
+                    </Typography>
+                    <Select
+                      fullWidth
+                      value={metodoPago}
+                      onChange={(e) => setMetodoPago(e.target.value)}
+                    >
+                      <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
+                      <MenuItem value="TARJETA">TARJETA</MenuItem>
+                      <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
+                    </Select>
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
+                    alignItems: { xs: "stretch", md: "center" },
+                    justifyContent: "space-between",
+                    gap: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Total a pagar
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="primary.main">
+                      Q {total.toFixed(2)}
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="large"
+                    onClick={finalizarVenta}
+                    disabled={!items.length || loadingVenta}
+                    sx={{
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontWeight: "bold",
+                      minWidth: 220,
+                    }}
+                  >
+                    {loadingVenta ? "Procesando..." : "Finalizar venta"}
+                  </Button>
+                </Box>
+              </Paper>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Box>
+    </Container>
   );
 }
 

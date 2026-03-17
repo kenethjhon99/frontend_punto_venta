@@ -1,63 +1,123 @@
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  Stack,
+} from "@mui/material";
+
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
 function ProductoTable({ productos, onEdit, onDelete }) {
   if (!productos.length) {
     return (
-      <div className="bg-white rounded-2xl shadow p-6 text-center text-gray-500">
-        No hay productos para mostrar.
-      </div>
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography color="text.secondary">
+          No hay productos para mostrar.
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px]">
-          <thead className="bg-gray-100 text-gray-700">
-            <tr>
-              <th className="text-left px-4 py-3">ID</th>
-              <th className="text-left px-4 py-3">Código</th>
-              <th className="text-left px-4 py-3">Nombre</th>
-              <th className="text-left px-4 py-3">Descripción</th>
-              <th className="text-left px-4 py-3">Compra</th>
-              <th className="text-left px-4 py-3">Venta</th>
-              <th className="text-left px-4 py-3">Stock</th>
-              <th className="text-center px-4 py-3">Acciones</th>
+    <TableContainer component={Paper} elevation={0}>
+      <Table sx={{ minWidth: 1000 }}>
+        <TableHead>
+          <TableRow
+            sx={{
+              backgroundColor: "#f8fafc",
+            }}
+          >
+            <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Código</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Descripción</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Compra</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Venta</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
+            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+              Acciones
+            </TableCell>
+          </TableRow>
+        </TableHead>
 
-            </tr>
-          </thead>
+        <TableBody>
+          {productos.map((producto) => {
+            const stock = Number(producto.stock ?? 0);
 
-          <tbody>
-            {productos.map((producto) => (
-              <tr key={producto.id_producto} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-3">{producto.id_producto}</td>
-                <td className="px-4 py-3">{producto.codigo_barras || "-"}</td>
-                <td className="px-4 py-3 font-medium">{producto.nombre}</td>
-                <td className="px-4 py-3">{producto.descripcion || "-"}</td>
-                <td className="px-4 py-3">Q {Number(producto.precio_compra).toFixed(2)}</td>
-                <td className="px-4 py-3">Q {Number(producto.precio_venta).toFixed(2)}</td>
-                <td className="px-4 py-3">{producto.existencia_inicial}</td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => onEdit(producto)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-sm"
-                    >
-                      Editar
-                    </button>
+            return (
+              <TableRow
+                key={producto.id_producto}
+                hover
+                sx={{
+                  "&:last-child td, &:last-child th": { border: 0 },
+                }}
+              >
+                <TableCell>{producto.id_producto}</TableCell>
 
-                    <button
-                      onClick={() => onDelete(producto)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
-                    >
-                      Desactivar
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                <TableCell>{producto.codigo_barras || "-"}</TableCell>
+
+                <TableCell>
+                  <Typography fontWeight={600}>{producto.nombre}</Typography>
+                </TableCell>
+
+                <TableCell>{producto.descripcion || "-"}</TableCell>
+
+                <TableCell>
+                  Q {Number(producto.precio_compra).toFixed(2)}
+                </TableCell>
+
+                <TableCell>
+                  <Typography fontWeight={600}>
+                    Q {Number(producto.precio_venta).toFixed(2)}
+                  </Typography>
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={stock}
+                    color={stock > 0 ? "primary" : "default"}
+                    variant={stock > 0 ? "filled" : "outlined"}
+                    size="small"
+                  />
+                </TableCell>
+
+                <TableCell align="center">
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    <Tooltip title="Editar producto">
+                      <IconButton
+                        color="primary"
+                        onClick={() => onEdit(producto)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Desactivar producto">
+                      <IconButton
+                        color="error"
+                        onClick={() => onDelete(producto)}
+                      >
+                        <DeleteOutlineIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 

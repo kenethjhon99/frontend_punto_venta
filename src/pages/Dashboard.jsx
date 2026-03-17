@@ -1,19 +1,33 @@
-import { useAuth } from "../context/AuthContext";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+const data = [
+  { name: "Lun", ventas: 400 },
+  { name: "Mar", ventas: 700 },
+  { name: "Mié", ventas: 300 },
+  { name: "Jue", ventas: 900 },
+  { name: "Vie", ventas: 1200 },
+];
 
 function Dashboard() {
-  const { user } = useAuth();
-
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <h2>Ventas de la semana</h2>
 
-      <p className="text-gray-700">
-        Bienvenido, <strong>{user?.nombre || user?.username}</strong>
-      </p>
-
-      <p className="text-gray-500 mt-2">
-        Usuario: {user?.username}
-      </p>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={data}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="ventas" />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
