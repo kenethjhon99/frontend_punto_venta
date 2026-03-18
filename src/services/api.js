@@ -2,7 +2,7 @@ import axios from "axios";
 import { clearStoredSession, isTokenValid } from "../utils/authSession";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: "http://localhost:3000/api" || "https://github.com/kenethjhon99/sistema-cobros",
 });
 
 api.interceptors.request.use((config) => {
