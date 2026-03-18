@@ -1,17 +1,16 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import { ThemeProvider, CssBaseline, createTheme } from "@mui/material";
-
-const ThemeModeContext = createContext();
+import { useMemo, useState } from "react";
+import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import ThemeModeContext from "./theme-mode-context";
 
 export function ThemeModeProvider({ children }) {
-  const [mode, setMode] = useState(
-    localStorage.getItem("themeMode") || "light"
-  );
+  const [mode, setMode] = useState(() => localStorage.getItem("themeMode") || "light");
 
   const toggleTheme = () => {
-    const nuevoModo = mode === "light" ? "dark" : "light";
-    setMode(nuevoModo);
-    localStorage.setItem("themeMode", nuevoModo);
+    setMode((currentMode) => {
+      const nextMode = currentMode === "light" ? "dark" : "light";
+      localStorage.setItem("themeMode", nextMode);
+      return nextMode;
+    });
   };
 
   const theme = useMemo(
@@ -34,16 +33,14 @@ export function ThemeModeProvider({ children }) {
     [mode]
   );
 
+  const value = useMemo(() => ({ mode, toggleTheme }), [mode]);
+
   return (
-    <ThemeModeContext.Provider value={{ mode, toggleTheme }}>
+    <ThemeModeContext.Provider value={value}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}
       </ThemeProvider>
     </ThemeModeContext.Provider>
   );
-}
-
-export function useThemeMode() {
-  return useContext(ThemeModeContext);
 }

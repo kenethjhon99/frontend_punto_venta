@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Dialog,
@@ -23,6 +23,23 @@ const initialState = {
   ubicacion: "",
 };
 
+const buildFormState = (productoEditando) => {
+  if (!productoEditando) {
+    return initialState;
+  }
+
+  return {
+    codigo_barras: productoEditando.codigo_barras || "",
+    nombre: productoEditando.nombre || "",
+    descripcion: productoEditando.descripcion || "",
+    precio_compra: productoEditando.precio_compra || "",
+    precio_venta: productoEditando.precio_venta || "",
+    existencia_inicial: productoEditando.stock ?? 0,
+    stock_minimo: productoEditando.stock_minimo ?? 0,
+    ubicacion: productoEditando.ubicacion || "",
+  };
+};
+
 function ProductoFormModal({
   open,
   onClose,
@@ -30,24 +47,7 @@ function ProductoFormModal({
   productoEditando,
   loading,
 }) {
-  const [form, setForm] = useState(initialState);
-
-  useEffect(() => {
-    if (productoEditando) {
-      setForm({
-        codigo_barras: productoEditando.codigo_barras || "",
-        nombre: productoEditando.nombre || "",
-        descripcion: productoEditando.descripcion || "",
-        precio_compra: productoEditando.precio_compra || "",
-        precio_venta: productoEditando.precio_venta || "",
-        existencia_inicial: productoEditando.stock ?? 0,
-        stock_minimo: productoEditando.stock_minimo ?? 0,
-        ubicacion: productoEditando.ubicacion || "",
-      });
-    } else {
-      setForm(initialState);
-    }
-  }, [productoEditando, open]);
+  const [form, setForm] = useState(() => buildFormState(productoEditando));
 
   const handleChange = (e) => {
     const { name, value } = e.target;

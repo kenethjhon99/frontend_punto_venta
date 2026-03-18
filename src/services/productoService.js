@@ -16,6 +16,6 @@ export const editarProducto = async (id, data) => {
 };
 
 export const desactivarProducto = async (id) => {
-  const res = await api.delete(`/productos/${id}`);
+  const res = await api.patch(`/productos/${id}/desactivar`);
   return res.data;
 };

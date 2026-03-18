@@ -22,8 +22,11 @@ import {
 
 import AddIcon from "@mui/icons-material/Add";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import { useAuth } from "../hooks/useAuth";
+import { userHasRole } from "../utils/roles";
 
 function Productos() {
+  const { user } = useAuth();
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,6 +64,10 @@ function Productos() {
       );
     });
   }, [productos, busqueda]);
+
+  const canManageProductos = useMemo(() => {
+    return userHasRole(user, "ADMIN");
+  }, [user]);
 
   const abrirNuevo = () => {
     setProductoEditando(null);
@@ -135,22 +142,30 @@ function Productos() {
           </Typography>
         </Box>
 
-        <Button
-  variant="contained"
-  startIcon={<AddIcon />}
-  onClick={abrirNuevo}
-  sx={{
-    borderRadius: 2,
-    px: 3,
-    py: 1.5,
-    fontWeight: 600,
-    boxShadow: 3,
-    width: { xs: "100%", sm: "auto" },
-  }}
->
-  Nuevo producto
-</Button>
+        {canManageProductos && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={abrirNuevo}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              fontWeight: 600,
+              boxShadow: 3,
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
+            Nuevo producto
+          </Button>
+        )}
       </Stack>
+
+      {!canManageProductos && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          Puedes consultar el catalogo de productos, pero solo un administrador puede crear, editar o desactivar.
+        </Alert>
+      )}
 
       <Paper
         elevation={2}
@@ -204,17 +219,21 @@ function Productos() {
             productos={productosFiltrados}
             onEdit={abrirEditar}
             onDelete={eliminarProducto}
+            canManage={canManageProductos}
           />
         </Paper>
       )}
 
-      <ProductoFormModal
-        open={modalOpen}
-        onClose={cerrarModal}
-        onSave={guardarProducto}
-        productoEditando={productoEditando}
-        loading={loading}
-      />
+      {canManageProductos && (
+        <ProductoFormModal
+          key={`${productoEditando?.id_producto ?? "new"}-${modalOpen ? "open" : "closed"}`}
+          open={modalOpen}
+          onClose={cerrarModal}
+          onSave={guardarProducto}
+          productoEditando={productoEditando}
+          loading={loading}
+        />
+      )}
     </Box>
   );
 }

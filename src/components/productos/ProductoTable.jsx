@@ -23,7 +23,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 
-function ProductoTable({ productos = [], onEdit, onDelete }) {
+function ProductoTable({ productos = [], onEdit, onDelete, canManage = true }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -102,19 +102,21 @@ function ProductoTable({ productos = [], onEdit, onDelete }) {
                     </Box>
                   </Box>
 
-                  <Box display="flex" justifyContent="flex-end" gap={1}>
-                    <Tooltip title="Editar producto">
-                      <IconButton color="primary" onClick={() => onEdit(producto)}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
+                  {canManage && (
+                    <Box display="flex" justifyContent="flex-end" gap={1}>
+                      <Tooltip title="Editar producto">
+                        <IconButton color="primary" onClick={() => onEdit(producto)}>
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
 
-                    <Tooltip title="Desactivar producto">
-                      <IconButton color="error" onClick={() => onDelete(producto)}>
-                        <DeleteOutlineIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
+                      <Tooltip title="Desactivar producto">
+                        <IconButton color="error" onClick={() => onDelete(producto)}>
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
@@ -136,9 +138,11 @@ function ProductoTable({ productos = [], onEdit, onDelete }) {
             <TableCell sx={{ fontWeight: "bold" }}>Compra</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Venta</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
-              Acciones
-            </TableCell>
+            {canManage && (
+              <TableCell align="center" sx={{ fontWeight: "bold" }}>
+                Acciones
+              </TableCell>
+            )}
           </TableRow>
         </TableHead>
 
@@ -176,21 +180,23 @@ function ProductoTable({ productos = [], onEdit, onDelete }) {
                     size="small"
                   />
                 </TableCell>
-                <TableCell align="center">
-                  <Stack direction="row" spacing={1} justifyContent="center">
-                    <Tooltip title="Editar producto">
-                      <IconButton color="primary" onClick={() => onEdit(producto)}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
+                {canManage && (
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <Tooltip title="Editar producto">
+                        <IconButton color="primary" onClick={() => onEdit(producto)}>
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
 
-                    <Tooltip title="Desactivar producto">
-                      <IconButton color="error" onClick={() => onDelete(producto)}>
-                        <DeleteOutlineIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </TableCell>
+                      <Tooltip title="Desactivar producto">
+                        <IconButton color="error" onClick={() => onDelete(producto)}>
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}

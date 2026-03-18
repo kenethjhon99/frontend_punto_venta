@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
 
 import {
@@ -52,8 +52,7 @@ function Login() {
       const res = await api.post("/auth/login", form);
       const { token, user } = res.data;
 
-      localStorage.setItem("token", token);
-      login(user);
+      login(user, token);
 
       navigate("/dashboard");
     } catch (err) {

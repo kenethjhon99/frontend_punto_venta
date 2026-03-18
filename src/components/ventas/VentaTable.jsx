@@ -2,10 +2,11 @@ import {
   Box,
   Typography,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  TableCell,
-  TableBody,
   IconButton,
   TextField,
   Paper,
@@ -31,7 +32,7 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
         <Stack spacing={1} alignItems="center">
           <ShoppingCartIcon color="disabled" sx={{ fontSize: 40 }} />
           <Typography variant="h6" fontWeight="bold">
-            Carrito vacío
+            Carrito vacio
           </Typography>
           <Typography color="text.secondary">
             No hay productos agregados a la venta
@@ -42,23 +43,31 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
   }
 
   return (
-    <Paper
+    <TableContainer
+      component={Paper}
       variant="outlined"
       sx={{
         borderRadius: 3,
-        overflow: "hidden",
+        maxWidth: "100%",
+        overflowX: "auto",
       }}
     >
-      <Table>
+      <Table
+        sx={{
+          width: "100%",
+          minWidth: 0,
+          tableLayout: "fixed",
+        }}
+      >
         <TableHead>
           <TableRow sx={{ backgroundColor: "action.hover" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>Producto</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Precio</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Cantidad</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Subtotal</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
-              Acción
+            <TableCell sx={{ fontWeight: "bold", width: "34%" }}>Producto</TableCell>
+            <TableCell sx={{ fontWeight: "bold", width: "14%" }}>Precio</TableCell>
+            <TableCell sx={{ fontWeight: "bold", width: "10%" }}>Stock</TableCell>
+            <TableCell sx={{ fontWeight: "bold", width: "18%" }}>Cantidad</TableCell>
+            <TableCell sx={{ fontWeight: "bold", width: "16%" }}>Subtotal</TableCell>
+            <TableCell align="center" sx={{ fontWeight: "bold", width: "8%" }}>
+              Accion
             </TableCell>
           </TableRow>
         </TableHead>
@@ -66,19 +75,42 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id_producto} hover>
-              <TableCell>
-                <Box>
-                  <Typography fontWeight={600}>{item.nombre}</Typography>
+              <TableCell sx={{ minWidth: 0 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Tooltip title={item.nombre}>
+                    <Typography
+                      fontWeight={600}
+                      noWrap
+                      sx={{
+                        display: "block",
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {item.nombre}
+                    </Typography>
+                  </Tooltip>
+
                   {item.codigo_barras && (
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      noWrap
+                      sx={{
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {item.codigo_barras}
                     </Typography>
                   )}
                 </Box>
               </TableCell>
 
-              <TableCell>
-                <Typography fontWeight={600}>
+              <TableCell sx={{ whiteSpace: "nowrap" }}>
+                <Typography fontWeight={600} noWrap>
                   Q {Number(item.precio_venta).toFixed(2)}
                 </Typography>
               </TableCell>
@@ -105,12 +137,12 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
                     max: item.stock,
                     style: { textAlign: "center" },
                   }}
-                  sx={{ width: 90 }}
+                  sx={{ width: 90, maxWidth: "100%" }}
                 />
               </TableCell>
 
-              <TableCell>
-                <Typography fontWeight="bold" color="primary.main">
+              <TableCell sx={{ whiteSpace: "nowrap" }}>
+                <Typography fontWeight="bold" color="primary.main" noWrap>
                   Q {(Number(item.precio_venta) * Number(item.cantidad)).toFixed(2)}
                 </Typography>
               </TableCell>
@@ -129,7 +161,7 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
           ))}
         </TableBody>
       </Table>
-    </Paper>
+    </TableContainer>
   );
 }
 

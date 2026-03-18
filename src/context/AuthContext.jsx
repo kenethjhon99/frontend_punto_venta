@@ -1,47 +1,50 @@
-import { createContext, useContext, useEffect, useState } from "react";
-
-const AuthContext = createContext();
+import { useEffect, useMemo, useState } from "react";
+import AuthContext from "./auth-context";
+import {
+  clearStoredSession,
+  readStoredSession,
+  storeSession,
+} from "../utils/authSession";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState(() => readStoredSession());
 
   useEffect(() => {
-    const userGuardado = localStorage.getItem("user");
+    const syncSession = () => {
+      setSession(readStoredSession());
+    };
 
-    if (userGuardado) {
-      setUser(JSON.parse(userGuardado));
-    }
+    window.addEventListener("storage", syncSession);
+    window.addEventListener("auth:changed", syncSession);
 
-    setLoading(false);
+    return () => {
+      window.removeEventListener("storage", syncSession);
+      window.removeEventListener("auth:changed", syncSession);
+    };
   }, []);
 
-  const login = (userData) => {
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
-  };
+  const value = useMemo(() => {
+    const login = (userData, token) => {
+      const nextSession = storeSession(token, userData);
+      setSession(nextSession);
+      window.dispatchEvent(new Event("auth:changed"));
+    };
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setUser(null);
-  };
+    const logout = () => {
+      clearStoredSession();
+      setSession({ user: null, token: null });
+      window.dispatchEvent(new Event("auth:changed"));
+    };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        loading,
-        isAuthenticated: !!user,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
+    return {
+      user: session.user,
+      token: session.token,
+      login,
+      logout,
+      loading: false,
+      isAuthenticated: Boolean(session.user && session.token),
+    };
+  }, [session]);
 
-export function useAuth() {
-  return useContext(AuthContext);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
