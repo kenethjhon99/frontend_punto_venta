@@ -5,6 +5,11 @@ export const crearVenta = async (data) => {
   return res.data;
 };
 
+export const getCatalogoComprobantesVenta = async () => {
+  const res = await api.get("/ventas/comprobantes/catalogo");
+  return res.data;
+};
+
 export const getVentas = async (params = {}) => {
   const res = await api.get("/ventas", { params });
   return res.data;

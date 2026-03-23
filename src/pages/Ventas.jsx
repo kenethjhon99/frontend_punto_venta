@@ -5,8 +5,11 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
+  Chip,
   Container,
   Divider,
+  FormControlLabel,
   FormControl,
   Grid,
   InputLabel,
@@ -26,11 +29,21 @@ import VentaDetalleAnulacionModal from "../components/ui/VentaDetalleAnulacionMo
 import VentaDetalleModal from "../components/ui/VentaDetalleModal";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
+import {
+  readPrintPreference,
+  writePrintPreference,
+} from "../utils/printPreferences";
+import {
+  buildVentaTicketHtml,
+  openPrintWindow,
+  openPrintDocument,
+} from "../utils/printDocuments";
 import { getProductos } from "../services/productoService";
 import {
   anularDetalleVenta,
   anularVenta,
   crearVenta,
+  getCatalogoComprobantesVenta,
   getVentaCompleta,
   getVentas,
 } from "../services/ventaService";
@@ -44,6 +57,12 @@ const normalizarClientes = (data) => {
 };
 
 const normalizarVentas = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+};
+
+const normalizarComprobantes = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
   return [];
@@ -74,13 +93,20 @@ function Ventas() {
   const [ventasRecientes, setVentasRecientes] = useState([]);
   const [items, setItems] = useState([]);
   const [clienteId, setClienteId] = useState("");
+  const [comprobantes, setComprobantes] = useState([]);
+  const [tipoComprobante, setTipoComprobante] = useState("TICKET");
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
+  const [montoRecibido, setMontoRecibido] = useState("");
   const [tipoVenta, setTipoVenta] = useState("CONTADO");
+  const [autoPrintVenta, setAutoPrintVenta] = useState(() =>
+    readPrintPreference(user, "ventas.autoPrint", true)
+  );
   const [fechaDesdeVentas, setFechaDesdeVentas] = useState("");
   const [fechaHastaVentas, setFechaHastaVentas] = useState("");
   const [estadoFiltroVentas, setEstadoFiltroVentas] = useState("TODOS");
   const [loadingProductos, setLoadingProductos] = useState(true);
   const [loadingClientes, setLoadingClientes] = useState(true);
+  const [loadingComprobantes, setLoadingComprobantes] = useState(true);
   const [loadingVentasRecientes, setLoadingVentasRecientes] = useState(true);
   const [loadingCaja, setLoadingCaja] = useState(true);
   const [loadingVenta, setLoadingVenta] = useState(false);
@@ -88,6 +114,7 @@ function Ventas() {
   const [loadingAnulacion, setLoadingAnulacion] = useState(false);
   const [loadingAnulacionDetalle, setLoadingAnulacionDetalle] = useState(false);
   const [loadingDetalleVenta, setLoadingDetalleVenta] = useState(false);
+  const [printingVentaId, setPrintingVentaId] = useState(null);
   const [clienteModalOpen, setClienteModalOpen] = useState(false);
   const [ventaAnulacionOpen, setVentaAnulacionOpen] = useState(false);
   const [detalleAnulacionOpen, setDetalleAnulacionOpen] = useState(false);
@@ -122,6 +149,33 @@ function Ventas() {
       setError(err.response?.data?.error || "No se pudieron cargar los clientes");
     } finally {
       setLoadingClientes(false);
+    }
+  }, []);
+
+  const cargarComprobantes = useCallback(async () => {
+    try {
+      setLoadingComprobantes(true);
+      const data = await getCatalogoComprobantesVenta();
+      const catalogo = normalizarComprobantes(data);
+      setComprobantes(catalogo);
+
+      if (catalogo.length > 0) {
+        setTipoComprobante((prev) =>
+          catalogo.some(
+            (item) => String(item.tipo_comprobante || "").toUpperCase() === prev
+          )
+            ? prev
+            : String(catalogo[0].tipo_comprobante || "TICKET").toUpperCase()
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setComprobantes([]);
+      setError(
+        err.response?.data?.error || "No se pudo cargar el catalogo de comprobantes"
+      );
+    } finally {
+      setLoadingComprobantes(false);
     }
   }, []);
 
@@ -164,9 +218,18 @@ function Ventas() {
     setError("");
     cargarProductos();
     cargarClientes();
+    cargarComprobantes();
     cargarVentasRecientes();
     cargarCajaActiva();
-  }, [cargarCajaActiva, cargarClientes, cargarProductos, cargarVentasRecientes]);
+  }, [cargarCajaActiva, cargarClientes, cargarComprobantes, cargarProductos, cargarVentasRecientes]);
+
+  useEffect(() => {
+    setAutoPrintVenta(readPrintPreference(user, "ventas.autoPrint", true));
+  }, [user]);
+
+  useEffect(() => {
+    writePrintPreference(user, "ventas.autoPrint", autoPrintVenta);
+  }, [autoPrintVenta, user]);
 
   const limpiarFiltrosVentas = () => {
     setFechaDesdeVentas("");
@@ -228,6 +291,21 @@ function Ventas() {
     return items.reduce((acc, item) => acc + item.precio_venta * item.cantidad, 0);
   }, [items]);
 
+  const montoRecibidoNumero = useMemo(() => {
+    const value = Number(montoRecibido);
+    return Number.isFinite(value) ? value : 0;
+  }, [montoRecibido]);
+
+  const vuelto = useMemo(() => {
+    if (metodoPago !== "EFECTIVO") return 0;
+    return Math.max(0, montoRecibidoNumero - total);
+  }, [metodoPago, montoRecibidoNumero, total]);
+
+  const faltanteEfectivo = useMemo(() => {
+    if (metodoPago !== "EFECTIVO") return 0;
+    return Math.max(0, total - montoRecibidoNumero);
+  }, [metodoPago, montoRecibidoNumero, total]);
+
   const clienteSeleccionado = useMemo(() => {
     return clientes.find((cliente) => cliente.id_cliente === Number(clienteId)) || null;
   }, [clientes, clienteId]);
@@ -235,6 +313,15 @@ function Ventas() {
   const ultimoCodigoGenerado = useMemo(() => {
     return obtenerUltimoCodigoCliente(clientes);
   }, [clientes]);
+
+  const comprobanteSeleccionado = useMemo(() => {
+    return (
+      comprobantes.find(
+        (item) =>
+          String(item.tipo_comprobante || "").toUpperCase() === tipoComprobante
+      ) || null
+    );
+  }, [comprobantes, tipoComprobante]);
 
   const canAnularVentas = useMemo(() => {
     return userHasRole(user, "ADMIN");
@@ -307,6 +394,37 @@ function Ventas() {
       setError(err.response?.data?.error || "No se pudo cargar el detalle de la venta");
     } finally {
       setLoadingDetalleVenta(false);
+    }
+  };
+
+  const imprimirVenta = async (ventaInput, preloadedData = null, printWindow = null) => {
+    const idVenta = Number(ventaInput?.id_venta || ventaInput);
+    if (!idVenta) return;
+
+    try {
+      setPrintingVentaId(idVenta);
+      setError("");
+      const targetWindow =
+        printWindow ||
+        openPrintWindow({
+          title: `Venta #${idVenta}`,
+          width: 420,
+          height: 900,
+        });
+
+      const data = preloadedData || (await getVentaCompleta(idVenta));
+      openPrintDocument({
+        title: `Venta #${idVenta}`,
+        html: buildVentaTicketHtml(data),
+        width: 420,
+        height: 900,
+        printWindow: targetWindow,
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo imprimir el comprobante de la venta");
+    } finally {
+      setPrintingVentaId(null);
     }
   };
 
@@ -402,17 +520,34 @@ function Ventas() {
       return;
     }
 
+    if (metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
+      setError("El monto recibido no cubre el total de la venta.");
+      return;
+    }
+
+    let reservedPrintWindow = null;
+
     try {
       setLoadingVenta(true);
       setError("");
       setSuccess("");
 
-      await crearVenta({
-        tipo_venta: tipoVenta,
-        metodo_pago: metodoPago,
-        id_sucursal: 1,
-        id_cliente: clienteId ? Number(clienteId) : null,
-        items: items.map((item) => ({
+        if (autoPrintVenta) {
+          reservedPrintWindow = openPrintWindow({
+            title: "Comprobante de venta",
+            width: 420,
+            height: 900,
+          });
+        }
+
+        const response = await crearVenta({
+          tipo_venta: tipoVenta,
+          tipo_comprobante: tipoComprobante,
+          metodo_pago: metodoPago,
+          monto_recibido: metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
+          id_sucursal: 1,
+          id_cliente: clienteId ? Number(clienteId) : null,
+          items: items.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
           precio_venta: item.precio_venta,
@@ -423,10 +558,30 @@ function Ventas() {
       setClienteId("");
       setTipoVenta("CONTADO");
       setMetodoPago("EFECTIVO");
-      setSuccess("Venta registrada correctamente.");
-      await Promise.all([cargarProductos(), cargarVentasRecientes(), cargarCajaActiva()]);
+      setMontoRecibido("");
+        setSuccess(
+          response?.venta?.numero_comprobante
+            ? `Venta registrada correctamente. Comprobante ${response.venta.numero_comprobante}.`
+            : response?.venta?.id_venta
+              ? `Venta #${response.venta.id_venta} registrada correctamente.`
+            : "Venta registrada correctamente."
+        );
+        await Promise.all([
+          cargarProductos(),
+          cargarComprobantes(),
+          cargarVentasRecientes(),
+          cargarCajaActiva(),
+        ]);
+
+      if (autoPrintVenta && response?.venta?.id_venta) {
+        await imprimirVenta(response.venta.id_venta, null, reservedPrintWindow);
+        reservedPrintWindow = null;
+      }
     } catch (err) {
       console.error(err);
+      if (reservedPrintWindow && !reservedPrintWindow.closed) {
+        reservedPrintWindow.close();
+      }
       setError(err.response?.data?.error || "No se pudo registrar la venta");
     } finally {
       setLoadingVenta(false);
@@ -598,6 +753,31 @@ function Ventas() {
 
                   <Grid item xs={12} md={6}>
                     <Typography variant="body2" color="text.secondary" mb={1}>
+                      Comprobante
+                    </Typography>
+                    <Select
+                      fullWidth
+                      value={tipoComprobante}
+                      disabled={loadingComprobantes || comprobantes.length === 0}
+                      onChange={(event) => setTipoComprobante(event.target.value)}
+                    >
+                      {comprobantes.length === 0 ? (
+                        <MenuItem value="TICKET">TICKET</MenuItem>
+                      ) : (
+                        comprobantes.map((comprobante) => (
+                          <MenuItem
+                            key={comprobante.id_comprobante_serie}
+                            value={String(comprobante.tipo_comprobante || "").toUpperCase()}
+                          >
+                            {comprobante.nombre || comprobante.tipo_comprobante} - {comprobante.serie}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
                       Tipo de venta
                     </Typography>
                     <Select
@@ -617,41 +797,196 @@ function Ventas() {
                     <Select
                       fullWidth
                       value={metodoPago}
-                      onChange={(event) => setMetodoPago(event.target.value)}
+                      onChange={(event) => {
+                        const nextMetodo = event.target.value;
+                        setMetodoPago(nextMetodo);
+
+                        if (nextMetodo !== "EFECTIVO") {
+                          setMontoRecibido("");
+                        }
+                      }}
                     >
                       <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
                       <MenuItem value="TARJETA">TARJETA</MenuItem>
                       <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
-                    </Select>
+                      </Select>
                   </Grid>
+
+                  <Grid item xs={12}>
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                        borderColor:
+                          metodoPago === "EFECTIVO" ? "success.main" : "divider",
+                        background:
+                          metodoPago === "EFECTIVO"
+                            ? "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(15,23,42,0.55))"
+                            : "transparent",
+                        boxShadow:
+                          metodoPago === "EFECTIVO"
+                            ? "0 0 0 1px rgba(34,197,94,0.12), 0 18px 40px rgba(15,23,42,0.18)"
+                            : "none",
+                        transition:
+                          "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
+                      }}
+                    >
+                      <Box>
+                        <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
+                          <Typography variant="body2" color="text.secondary">
+                            Comprobante
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={comprobanteSeleccionado?.serie || tipoComprobante}
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </Stack>
+                        <Typography variant="body2" color="text.secondary">
+                          Total a pagar
+                        </Typography>
+                        <Typography variant="h4" fontWeight="bold" color="primary.main">
+                          Q {total.toFixed(2)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {comprobanteSeleccionado?.siguiente_numero
+                            ? `Siguiente correlativo: ${comprobanteSeleccionado.siguiente_numero}.`
+                            : metodoPago === "EFECTIVO"
+                              ? "Confirma este monto antes de recibir el efectivo."
+                              : "Monto final de la venta actual."}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={
+                          metodoPago === "EFECTIVO"
+                            ? "Cobro en efectivo"
+                            : `Pago ${String(metodoPago || "").toLowerCase()}`
+                        }
+                        color={metodoPago === "EFECTIVO" ? "success" : "default"}
+                        variant={metodoPago === "EFECTIVO" ? "filled" : "outlined"}
+                        sx={{ fontWeight: 700 }}
+                      />
+                    </Paper>
+                  </Grid>
+
+                  {metodoPago === "EFECTIVO" && (
+                    <>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Monto recibido"
+                          value={montoRecibido}
+                          onChange={(event) => setMontoRecibido(event.target.value)}
+                          inputProps={{ min: 0, step: "0.01" }}
+                          helperText={
+                            total > 0 && faltanteEfectivo > 0
+                              ? `Faltan Q ${faltanteEfectivo.toFixed(2)} para completar el pago.`
+                              : "Ingresa el efectivo recibido del cliente."
+                          }
+                          error={total > 0 && faltanteEfectivo > 0}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            borderColor:
+                              total > 0 && faltanteEfectivo > 0
+                                ? "error.main"
+                                : "success.main",
+                            background:
+                              total > 0 && faltanteEfectivo > 0
+                                ? "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(15,23,42,0.55))"
+                                : "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(15,23,42,0.55))",
+                            boxShadow:
+                              total > 0 && faltanteEfectivo > 0
+                                ? "0 0 0 1px rgba(239,68,68,0.10), 0 18px 40px rgba(15,23,42,0.16)"
+                                : "0 0 0 1px rgba(34,197,94,0.10), 0 18px 40px rgba(15,23,42,0.16)",
+                            transition:
+                              "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Vuelto a entregar
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            fontWeight="bold"
+                            color={
+                              total > 0 && faltanteEfectivo > 0
+                                ? "error.main"
+                                : "success.main"
+                            }
+                          >
+                            Q {vuelto.toFixed(2)}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color={
+                              total > 0 && faltanteEfectivo > 0
+                                ? "error.light"
+                                : "text.secondary"
+                            }
+                          >
+                            {faltanteEfectivo > 0
+                              ? `Pago pendiente: Q ${faltanteEfectivo.toFixed(2)}`
+                              : "El pago cubre el total de la venta."}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </>
+                  )}
                 </Grid>
 
                 <Divider sx={{ my: 3 }} />
 
+                <FormControlLabel
+                  control={(
+                    <Checkbox
+                      checked={autoPrintVenta}
+                      onChange={(event) => setAutoPrintVenta(event.target.checked)}
+                    />
+                  )}
+                  label="Imprimir ticket al finalizar"
+                  sx={{ mb: 2 }}
+                />
+
                 <Box
                   sx={{
                     display: "flex",
-                    flexDirection: { xs: "column", md: "row" },
-                    alignItems: { xs: "stretch", md: "center" },
-                    justifyContent: "space-between",
+                    justifyContent: { xs: "stretch", md: "flex-end" },
                     gap: 2,
                   }}
                 >
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Total a pagar
-                    </Typography>
-                    <Typography variant="h4" fontWeight="bold" color="primary.main">
-                      Q {total.toFixed(2)}
-                    </Typography>
-                  </Box>
-
                   <Button
                     variant="contained"
                     color="success"
                     size="large"
                     onClick={finalizarVenta}
-                    disabled={!items.length || loadingVenta || loadingCaja || !cajaActiva}
+                    disabled={
+                      !items.length ||
+                      loadingVenta ||
+                      loadingCaja ||
+                      !cajaActiva ||
+                      (metodoPago === "EFECTIVO" &&
+                        total > 0 &&
+                        montoRecibidoNumero < total)
+                    }
                     sx={{
                       px: 4,
                       py: 1.5,
@@ -746,8 +1081,10 @@ function Ventas() {
             ventas={ventasRecientes}
             loading={loadingVentasRecientes}
             onViewDetail={abrirDetalleVenta}
+            onPrint={imprimirVenta}
             onAnular={abrirAnulacionVenta}
             canAnular={canAnularVentas}
+            printingVentaId={printingVentaId}
           />
         </Paper>
       </Box>
@@ -775,6 +1112,8 @@ function Ventas() {
         onClose={cerrarDetalleVenta}
         ventaData={ventaDetalle}
         loading={loadingDetalleVenta}
+        onPrint={() => imprimirVenta(ventaDetalle?.venta?.id_venta, ventaDetalle)}
+        printing={printingVentaId === ventaDetalle?.venta?.id_venta}
         onAnularDetalle={abrirAnulacionDetalleVenta}
         loadingAnulacionDetalle={loadingAnulacionDetalle}
         detalleAnulandoId={detalleVentaSeleccionado?.id_detalle ?? null}

@@ -22,6 +22,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
 
 const drawerWidth = 240;
 
@@ -83,6 +84,12 @@ function Sidebar() {
       path: "/auditoria",
       icon: <FactCheckIcon />,
       visible: userHasRole(user, "SUPER_ADMIN", "ADMIN"),
+    },
+    {
+      text: "Servicios",
+      path: "/servicios",
+      icon: <LocalCarWashIcon />,
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO"),
     },
   ].filter((item) => item.visible ?? true);
 

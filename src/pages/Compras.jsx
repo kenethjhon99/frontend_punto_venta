@@ -3,9 +3,11 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   Container,
   Divider,
+  FormControlLabel,
   Grid,
   List,
   ListItem,
@@ -22,6 +24,11 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AddIcon from "@mui/icons-material/Add";
+import { useAuth } from "../hooks/useAuth";
+import {
+  readPrintPreference,
+  writePrintPreference,
+} from "../utils/printPreferences";
 
 import BuscarProductoCompra from "../components/ui/BuscarProductoCompra";
 import CompraTable from "../components/ui/CompraTable";
@@ -29,6 +36,11 @@ import CompraAnulacionModal from "../components/ui/CompraAnulacionModal";
 import CompraDetalleAnulacionModal from "../components/ui/CompraDetalleAnulacionModal";
 import CompraDetalleModal from "../components/ui/CompraDetalleModal";
 import ProveedorFormModal from "../components/ui/ProveedorFormModal";
+import {
+  buildCompraTicketHtml,
+  openPrintWindow,
+  openPrintDocument,
+} from "../utils/printDocuments";
 import { getProductos } from "../services/productoService";
 import {
   anularCompra,
@@ -75,6 +87,7 @@ const formatFecha = (value) => {
 };
 
 function Compras() {
+  const { user } = useAuth();
   const [productos, setProductos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [items, setItems] = useState([]);
@@ -93,6 +106,10 @@ function Compras() {
   const [loadingCompra, setLoadingCompra] = useState(false);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
   const [loadingDetalleCompra, setLoadingDetalleCompra] = useState(false);
+  const [printingCompraId, setPrintingCompraId] = useState(null);
+  const [autoPrintCompra, setAutoPrintCompra] = useState(() =>
+    readPrintPreference(user, "compras.autoPrint", true)
+  );
   const [loadingAnulacionCompra, setLoadingAnulacionCompra] = useState(false);
   const [loadingAnulacionDetalle, setLoadingAnulacionDetalle] = useState(false);
   const [error, setError] = useState("");
@@ -167,6 +184,14 @@ function Compras() {
     cargarProveedores();
     cargarCompras();
   }, [cargarCompras, cargarProductos, cargarProveedores]);
+
+  useEffect(() => {
+    setAutoPrintCompra(readPrintPreference(user, "compras.autoPrint", true));
+  }, [user]);
+
+  useEffect(() => {
+    writePrintPreference(user, "compras.autoPrint", autoPrintCompra);
+  }, [autoPrintCompra, user]);
 
   const agregarProducto = (producto) => {
     const costoInicial = Number(
@@ -297,10 +322,18 @@ function Compras() {
       return;
     }
 
+    let reservedPrintWindow = null;
+
     try {
       setLoadingCompra(true);
       setError("");
       setSuccess("");
+
+      if (autoPrintCompra) {
+        reservedPrintWindow = openPrintWindow({
+          title: "Comprobante de compra",
+        });
+      }
 
       const payload = {
         id_proveedor: Number(proveedorId),
@@ -317,13 +350,24 @@ function Compras() {
         })),
       };
 
-      await crearCompra(payload);
+      const response = await crearCompra(payload);
+      const compraCreada = response?.compra;
       setSuccess("Compra registrada correctamente.");
       limpiarFormulario();
       await Promise.all([cargarProductos(), cargarCompras()]);
+
+      if (autoPrintCompra && compraCreada?.id_compra) {
+        await imprimirCompra(compraCreada.id_compra, null, reservedPrintWindow);
+        reservedPrintWindow = null;
+      } else if (reservedPrintWindow && !reservedPrintWindow.closed) {
+        reservedPrintWindow.close();
+      }
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "No se pudo registrar la compra");
+      if (reservedPrintWindow && !reservedPrintWindow.closed) {
+        reservedPrintWindow.close();
+      }
     } finally {
       setLoadingCompra(false);
     }
@@ -343,6 +387,37 @@ function Compras() {
       setError(err.response?.data?.error || "No se pudo cargar el detalle de la compra");
     } finally {
       setLoadingDetalleCompra(false);
+    }
+  };
+
+  const imprimirCompra = async (
+    compraInput,
+    preloadedData = null,
+    printWindow = null
+  ) => {
+    const idCompra = Number(compraInput?.id_compra || compraInput);
+    if (!idCompra) return;
+
+    try {
+      setPrintingCompraId(idCompra);
+      setError("");
+      const targetWindow =
+        printWindow || openPrintWindow({ title: `Compra #${idCompra}` });
+
+      const data = preloadedData || (await getCompraById(idCompra));
+      openPrintDocument({
+        title: `Compra #${idCompra}`,
+        html: buildCompraTicketHtml(data),
+        printWindow: targetWindow,
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo imprimir el comprobante de la compra");
+      if (printWindow && !printWindow.closed) {
+        printWindow.close();
+      }
+    } finally {
+      setPrintingCompraId(null);
     }
   };
 
@@ -486,21 +561,45 @@ function Compras() {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={4}>
-            <Paper elevation={2} sx={{ p: 2.5, borderRadius: 4, height: "100%" }}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <ReceiptLongIcon color="primary" />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Total estimado
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold">
-                    Q {total.toFixed(2)}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Paper>
-          </Grid>
+            <Grid item xs={12} md={4}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 2.5,
+                  borderRadius: 4,
+                  height: "100%",
+                  border: "1px solid",
+                  borderColor: total > 0 ? "primary.main" : "divider",
+                  background:
+                    total > 0
+                      ? "linear-gradient(135deg, rgba(37,99,235,0.18), rgba(15,23,42,0.55))"
+                      : "transparent",
+                  boxShadow:
+                    total > 0
+                      ? "0 0 0 1px rgba(37,99,235,0.10), 0 18px 40px rgba(15,23,42,0.16)"
+                      : "none",
+                  transition:
+                    "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
+                }}
+              >
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <ReceiptLongIcon color="primary" />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Total estimado
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="primary.main">
+                      Q {total.toFixed(2)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {total > 0
+                        ? "Costo acumulado de la compra actual."
+                        : "Agrega productos para calcular el total."}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+            </Grid>
         </Grid>
 
         {error && (
@@ -664,6 +763,17 @@ function Compras() {
 
                 <Divider sx={{ my: 3 }} />
 
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={autoPrintCompra}
+                      onChange={(event) => setAutoPrintCompra(event.target.checked)}
+                    />
+                  }
+                  label="Imprimir comprobante al registrar"
+                  sx={{ mb: 2 }}
+                />
+
                 <Box
                   sx={{
                     display: "flex",
@@ -673,14 +783,33 @@ function Compras() {
                     gap: 2,
                   }}
                 >
-                  <Box>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      minWidth: { xs: "100%", md: 280 },
+                      borderColor: total > 0 ? "primary.main" : "divider",
+                      background:
+                        total > 0
+                          ? "linear-gradient(135deg, rgba(37,99,235,0.18), rgba(15,23,42,0.55))"
+                          : "transparent",
+                      boxShadow:
+                        total > 0
+                          ? "0 0 0 1px rgba(37,99,235,0.10), 0 18px 40px rgba(15,23,42,0.16)"
+                          : "none",
+                    }}
+                  >
                     <Typography variant="body2" color="text.secondary">
                       Total de la compra
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" color="primary.main">
                       Q {total.toFixed(2)}
                     </Typography>
-                  </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Confirma este monto antes de registrar el ingreso.
+                    </Typography>
+                  </Paper>
 
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                     <Button
@@ -849,6 +978,16 @@ function Compras() {
                               </Button>
                               <Button
                                 variant="outlined"
+                                size="small"
+                                disabled={printingCompraId === compra.id_compra}
+                                onClick={() => imprimirCompra(compra)}
+                              >
+                                {printingCompraId === compra.id_compra
+                                  ? "Imprimiendo..."
+                                  : "Imprimir"}
+                              </Button>
+                              <Button
+                                variant="outlined"
                                 color="error"
                                 size="small"
                                 disabled={compraAnulada || loadingAnulacionCompra}
@@ -884,6 +1023,8 @@ function Compras() {
         onClose={cerrarDetalleCompra}
         compraData={compraDetalle}
         loading={loadingDetalleCompra}
+        onPrint={() => imprimirCompra(compraDetalle?.compra?.id_compra, compraDetalle)}
+        printing={printingCompraId === compraDetalle?.compra?.id_compra}
         onAnularCompra={abrirAnulacionCompra}
         onAnularDetalle={abrirAnulacionDetalle}
         loadingAnulacion={loadingAnulacionCompra}

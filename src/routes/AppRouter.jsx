@@ -16,6 +16,10 @@ const Clientes = lazy(() => import("../pages/Clientes"));
 const Usuarios = lazy(() => import("../pages/Usuarios"));
 const Auditoria = lazy(() => import("../pages/Auditoria"));
 const Caja = lazy(() => import("../pages/Caja"));
+const Servicios = lazy(() => import("../pages/Servicios"));
+const ServiciosCatalogo = lazy(() => import("../pages/ServiciosCatalogo"));
+const CarWashAutolavado = lazy(() => import("../pages/CarWashAutolavado"));
+const CarWashReparacion = lazy(() => import("../pages/CarWashReparacion"));
 
 const RouteFallback = () => (
   <Box
@@ -131,6 +135,38 @@ function AppRouter() {
               element={
                 <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
                   <Auditoria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/servicios"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO"]}>
+                  <Servicios />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/servicios/catalogo"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+                  <ServiciosCatalogo />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/carwash/autolavado"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO"]}>
+                  <CarWashAutolavado />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/carwash/reparacion"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO"]}>
+                  <CarWashReparacion />
                 </ProtectedRoute>
               }
             />

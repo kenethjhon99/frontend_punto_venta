@@ -135,6 +135,7 @@ function Usuarios() {
       if (usuarioEditando) {
         await editarUsuario(usuarioEditando.id_usuario, {
           username: formData.username,
+          password: formData.password?.trim() || undefined,
           nombre: `${formData.persona.nombre} ${formData.persona.apellido}`.trim(),
           persona: {
             nombre: formData.persona.nombre,

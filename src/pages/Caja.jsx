@@ -36,6 +36,11 @@ import {
   getCajaSesiones,
   registrarMovimientoCaja,
 } from "../services/cajaService";
+import {
+  buildCajaCorteHtml,
+  openPrintWindow,
+  openPrintDocument,
+} from "../utils/printDocuments";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("es-GT", {
@@ -55,148 +60,21 @@ const formatDateTime = (value) => {
   }).format(date);
 };
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+const INGRESO_CATEGORIAS = [
+  { value: "APORTE_CAJA", label: "Aporte de caja" },
+  { value: "AJUSTE_POSITIVO", label: "Ajuste positivo" },
+  { value: "REINTEGRO", label: "Reintegro" },
+  { value: "OTRO_INGRESO", label: "Otro ingreso" },
+];
 
-const buildCajaPrintHtml = ({ sesion, resumen, movimientos }) => {
-  const movimientosHtml = (movimientos || [])
-    .map(
-      (movimiento) => `
-        <tr>
-          <td>${escapeHtml(formatDateTime(movimiento.fecha))}</td>
-          <td>${escapeHtml(movimiento.tipo)}</td>
-          <td>${escapeHtml(movimiento.categoria || "Sin categoria")}</td>
-          <td>${escapeHtml(movimiento.descripcion || "Sin descripcion")}</td>
-          <td>${escapeHtml(movimiento.nombre || movimiento.username || "Usuario")}</td>
-          <td style="text-align:right;">${escapeHtml(formatCurrency(movimiento.monto))}</td>
-        </tr>
-      `
-    )
-    .join("");
-
-  return `
-    <!doctype html>
-    <html lang="es">
-      <head>
-        <meta charset="utf-8" />
-        <title>Corte de caja #${escapeHtml(sesion.id_caja_sesion)}</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            color: #111827;
-            margin: 24px;
-          }
-          h1, h2 {
-            margin: 0 0 8px;
-          }
-          .meta, .notes {
-            color: #4b5563;
-            font-size: 13px;
-            line-height: 1.6;
-            margin-bottom: 18px;
-          }
-          .summary {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-          }
-          .card {
-            border: 1px solid #d1d5db;
-            border-radius: 10px;
-            padding: 12px;
-          }
-          .label {
-            color: #6b7280;
-            font-size: 12px;
-            margin-bottom: 6px;
-          }
-          .value {
-            font-size: 18px;
-            font-weight: 700;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-          }
-          th, td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-            font-size: 12px;
-            vertical-align: top;
-          }
-          th {
-            background: #f3f4f6;
-            text-align: left;
-          }
-          .empty {
-            color: #6b7280;
-            font-style: italic;
-          }
-          @media print {
-            body {
-              margin: 12px;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Corte de caja</h1>
-        <div class="meta">
-          <div><strong>Sesion:</strong> #${escapeHtml(sesion.id_caja_sesion)}</div>
-          <div><strong>Usuario:</strong> ${escapeHtml(sesion.nombre || sesion.username || "Usuario")}</div>
-          <div><strong>Estado:</strong> ${escapeHtml(sesion.estado)}</div>
-          <div><strong>Fecha apertura:</strong> ${escapeHtml(formatDateTime(sesion.fecha_apertura))}</div>
-          <div><strong>Fecha cierre:</strong> ${escapeHtml(sesion.fecha_cierre ? formatDateTime(sesion.fecha_cierre) : "Pendiente")}</div>
-          <div><strong>Generado:</strong> ${escapeHtml(formatDateTime(new Date().toISOString()))}</div>
-        </div>
-
-        <div class="summary">
-          <div class="card"><div class="label">Apertura</div><div class="value">${escapeHtml(formatCurrency(resumen.monto_apertura))}</div></div>
-          <div class="card"><div class="label">Ventas en efectivo</div><div class="value">${escapeHtml(formatCurrency(resumen.total_efectivo))}</div></div>
-          <div class="card"><div class="label">Ingresos manuales</div><div class="value">${escapeHtml(formatCurrency(resumen.ingresos_manuales))}</div></div>
-          <div class="card"><div class="label">Egresos manuales</div><div class="value">${escapeHtml(formatCurrency(resumen.egresos_manuales))}</div></div>
-          <div class="card"><div class="label">Cierre calculado</div><div class="value">${escapeHtml(formatCurrency(resumen.cierre_calculado))}</div></div>
-          <div class="card"><div class="label">Cierre reportado</div><div class="value">${escapeHtml(formatCurrency(resumen.monto_cierre_reportado || 0))}</div></div>
-          <div class="card"><div class="label">Diferencia</div><div class="value">${escapeHtml(formatCurrency(resumen.diferencia || 0))}</div></div>
-          <div class="card"><div class="label">Ventas registradas</div><div class="value">${escapeHtml(resumen.ventas_cantidad || 0)}</div></div>
-        </div>
-
-        <div class="notes">
-          <div><strong>Observaciones apertura:</strong> ${escapeHtml(sesion.observaciones_apertura || "Sin observaciones")}</div>
-          <div><strong>Observaciones cierre:</strong> ${escapeHtml(sesion.observaciones_cierre || "Sin observaciones")}</div>
-        </div>
-
-        <h2>Movimientos manuales</h2>
-        ${
-          movimientosHtml
-            ? `
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Tipo</th>
-                <th>Categoria</th>
-                <th>Descripcion</th>
-                <th>Usuario</th>
-                <th>Monto</th>
-              </tr>
-            </thead>
-            <tbody>${movimientosHtml}</tbody>
-          </table>
-        `
-            : '<div class="empty">No hay movimientos manuales registrados en esta sesion.</div>'
-        }
-      </body>
-    </html>
-  `;
-};
+const EGRESO_CATEGORIAS = [
+  { value: "AGUA", label: "Agua" },
+  { value: "INSUMOS", label: "Insumos" },
+  { value: "COMPRAS_MENORES", label: "Compras menores" },
+  { value: "VIATICOS", label: "Viaticos" },
+  { value: "MANTENIMIENTO", label: "Mantenimiento" },
+  { value: "OTRO_GASTO", label: "Otro gasto" },
+];
 
 function Caja() {
   const { user } = useAuth();
@@ -208,6 +86,7 @@ function Caja() {
   const [selectedResumen, setSelectedResumen] = useState(null);
   const [selectedMovimientos, setSelectedMovimientos] = useState([]);
   const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
+  const [filtroUsuario, setFiltroUsuario] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(8);
   const [loading, setLoading] = useState(true);
@@ -231,13 +110,15 @@ function Caja() {
     observaciones_cierre: "",
   });
 
-  const canSeeAllSessions = userHasRole(user, "ADMIN");
+  const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  const isCajeroOnly = userHasRole(user, "CAJERO") && !canSeeAllSessions;
 
   const cargarSesiones = async (nextPage = page, nextRowsPerPage = rowsPerPage, nextEstado = estadoFiltro) => {
     const response = await getCajaSesiones({
       page: nextPage + 1,
       limit: nextRowsPerPage,
       estado: nextEstado !== "TODOS" ? nextEstado : undefined,
+      q: canSeeAllSessions ? filtroUsuario.trim() || undefined : undefined,
     });
 
     setSesiones(Array.isArray(response?.data) ? response.data : []);
@@ -283,7 +164,7 @@ function Caja() {
 
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, rowsPerPage, estadoFiltro]);
+  }, [page, rowsPerPage, estadoFiltro, filtroUsuario]);
 
   const refrescarSesionSeleccionada = async (idSesion) => {
     const response = await getCajaResumen(idSesion);
@@ -385,19 +266,114 @@ function Caja() {
     if (!resumen) return null;
 
     const cards = [
-      { label: "Apertura", value: formatCurrency(resumen.monto_apertura), color: "primary.main" },
-      { label: "Ventas en efectivo", value: formatCurrency(resumen.total_efectivo), color: "success.main" },
-      { label: "Ingresos manuales", value: formatCurrency(resumen.ingresos_manuales), color: "info.main" },
-      { label: "Egresos manuales", value: formatCurrency(resumen.egresos_manuales), color: "warning.main" },
-      { label: "Cierre calculado", value: formatCurrency(resumen.cierre_calculado), color: "secondary.main" },
-      { label: "Ventas registradas", value: String(resumen.ventas_cantidad || 0), color: "text.primary" },
+      {
+        label: "Apertura",
+        value: formatCurrency(resumen.monto_apertura),
+        color: "primary.main",
+        tone: "primary",
+      },
+      {
+        label: "Ventas en efectivo",
+        value: formatCurrency(resumen.total_efectivo),
+        color: "success.main",
+        tone: "success",
+      },
+      {
+        label: "Servicios en efectivo",
+        value: formatCurrency(resumen.total_servicios_efectivo || 0),
+        color: "info.main",
+        tone: "info",
+      },
+      {
+        label: "Servicios cobrados",
+        value: String(resumen.servicios_cantidad || 0),
+        color: "text.primary",
+        tone: "neutral",
+      },
+      {
+        label: "Reparaciones en efectivo",
+        value: formatCurrency(resumen.total_reparaciones_efectivo || 0),
+        color: "warning.main",
+        tone: "warning",
+      },
+      {
+        label: "Reparaciones cobradas",
+        value: String(resumen.reparaciones_cantidad || 0),
+        color: "text.primary",
+        tone: "neutral",
+      },
+      {
+        label: "Ingresos manuales",
+        value: formatCurrency(resumen.ingresos_manuales),
+        color: "info.main",
+        tone: "info",
+      },
+      {
+        label: "Egresos manuales",
+        value: formatCurrency(resumen.egresos_manuales),
+        color: "error.main",
+        tone: "error",
+      },
+      {
+        label: "Cierre calculado",
+        value: formatCurrency(resumen.cierre_calculado),
+        color: "secondary.main",
+        tone: "secondary",
+      },
+      {
+        label: "Ventas registradas",
+        value: String(resumen.ventas_cantidad || 0),
+        color: "text.primary",
+        tone: "neutral",
+      },
     ];
 
     return (
       <Grid container spacing={2}>
         {cards.map((card) => (
           <Grid item xs={12} sm={6} lg={4} key={card.label}>
-            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: "100%" }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                height: "100%",
+                borderColor:
+                  card.tone === "success"
+                    ? "success.main"
+                    : card.tone === "error"
+                      ? "error.main"
+                      : card.tone === "warning"
+                        ? "warning.main"
+                        : card.tone === "info"
+                          ? "info.main"
+                          : card.tone === "secondary"
+                            ? "secondary.main"
+                            : card.tone === "primary"
+                              ? "primary.main"
+                              : "divider",
+                background:
+                  card.tone === "success"
+                    ? "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(15,23,42,0.50))"
+                    : card.tone === "error"
+                      ? "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(15,23,42,0.50))"
+                      : card.tone === "warning"
+                        ? "linear-gradient(135deg, rgba(245,158,11,0.16), rgba(15,23,42,0.50))"
+                        : card.tone === "info"
+                          ? "linear-gradient(135deg, rgba(14,165,233,0.16), rgba(15,23,42,0.50))"
+                          : card.tone === "secondary"
+                            ? "linear-gradient(135deg, rgba(168,85,247,0.16), rgba(15,23,42,0.50))"
+                            : card.tone === "primary"
+                              ? "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(15,23,42,0.50))"
+                              : "transparent",
+                boxShadow:
+                  card.tone !== "neutral"
+                    ? "0 0 0 1px rgba(255,255,255,0.04), 0 18px 40px rgba(15,23,42,0.14)"
+                    : "none",
+                transition:
+                  "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
+              }}
+            >
               <Typography variant="body2" color="text.secondary" mb={1}>
                 {card.label}
               </Typography>
@@ -408,6 +384,156 @@ function Caja() {
           </Grid>
         ))}
       </Grid>
+    );
+  };
+
+  const renderConciliacion = (resumen) => {
+    if (!resumen?.conciliacion) return null;
+
+    const conciliacion = resumen.conciliacion;
+
+    return (
+      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+        <Typography variant="subtitle1" fontWeight="bold" mb={2}>
+          Conciliacion por metodo de pago
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                borderColor: "success.main",
+                background:
+                  "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(15,23,42,0.50))",
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Efectivo segun sistema
+              </Typography>
+              <Typography variant="h5" fontWeight="bold" color="success.main">
+                {formatCurrency(conciliacion.efectivo_sistema)}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                borderColor:
+                  conciliacion.efectivo_reportado != null &&
+                  Number(conciliacion.diferencia_efectivo || 0) !== 0
+                    ? "error.main"
+                    : "info.main",
+                background:
+                  conciliacion.efectivo_reportado != null &&
+                  Number(conciliacion.diferencia_efectivo || 0) !== 0
+                    ? "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(15,23,42,0.50))"
+                    : "linear-gradient(135deg, rgba(14,165,233,0.16), rgba(15,23,42,0.50))",
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Efectivo reportado
+              </Typography>
+              <Typography
+                variant="h5"
+                fontWeight="bold"
+                color={
+                  conciliacion.efectivo_reportado != null &&
+                  Number(conciliacion.diferencia_efectivo || 0) !== 0
+                    ? "error.main"
+                    : "info.main"
+                }
+              >
+                {conciliacion.efectivo_reportado != null
+                  ? formatCurrency(conciliacion.efectivo_reportado)
+                  : "Pendiente"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Diferencia: {formatCurrency(conciliacion.diferencia_efectivo || 0)}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                Tarjeta
+              </Typography>
+              <Typography variant="h6" fontWeight="bold" color="primary.main">
+                {formatCurrency(conciliacion.total_tarjeta)}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                Transferencia
+              </Typography>
+              <Typography variant="h6" fontWeight="bold" color="info.main">
+                {formatCurrency(conciliacion.total_transferencia)}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                Credito
+              </Typography>
+              <Typography variant="h6" fontWeight="bold" color="warning.main">
+                {formatCurrency(conciliacion.total_credito)}
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Paper>
+    );
+  };
+
+  const renderGastosCategoria = (resumen) => {
+    const gastos = Array.isArray(resumen?.gastos_por_categoria)
+      ? resumen.gastos_por_categoria
+      : [];
+
+    return (
+      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+        <Typography variant="subtitle1" fontWeight="bold" mb={2}>
+          Gastos de caja por categoria
+        </Typography>
+        {gastos.length === 0 ? (
+          <Typography color="text.secondary">
+            Todavia no hay gastos manuales registrados en esta sesion.
+          </Typography>
+        ) : (
+          <Stack spacing={1.25}>
+            {gastos.map((gasto) => (
+              <Paper
+                key={gasto.categoria}
+                variant="outlined"
+                sx={{ p: 1.5, borderRadius: 2 }}
+              >
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Box>
+                    <Typography fontWeight="bold">{gasto.categoria}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {gasto.cantidad} movimiento(s)
+                    </Typography>
+                  </Box>
+                  <Typography fontWeight="bold" color="error.main">
+                    {formatCurrency(gasto.total)}
+                  </Typography>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+        )}
+      </Paper>
     );
   };
 
@@ -424,6 +550,11 @@ function Caja() {
     try {
       setExportingPdf(true);
       setError("");
+      const printWindow = openPrintWindow({
+        title: `Corte de caja #${sesionObjetivo.id_caja_sesion}`,
+        width: 1200,
+        height: 900,
+      });
 
       const response = await getCajaResumen(sesionObjetivo.id_caja_sesion);
       const movimientosObjetivo = Array.isArray(response?.movimientos)
@@ -432,23 +563,17 @@ function Caja() {
       const sesionPdf = response?.sesion || sesionObjetivo;
       const resumenPdf = response?.resumen || resumenObjetivo;
 
-      const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
-      if (!printWindow) {
-        setError("Tu navegador bloqueo la ventana emergente para generar el PDF.");
-        return;
-      }
-
-      printWindow.document.open();
-      printWindow.document.write(
-        buildCajaPrintHtml({
+      openPrintDocument({
+        title: `Corte de caja #${sesionPdf.id_caja_sesion}`,
+        html: buildCajaCorteHtml({
           sesion: sesionPdf,
           resumen: resumenPdf,
           movimientos: movimientosObjetivo,
-        })
-      );
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
+        }),
+        width: 1200,
+        height: 900,
+        printWindow,
+      });
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "No se pudo generar el PDF del corte de caja");
@@ -475,16 +600,25 @@ function Caja() {
           </Stack>
 
           <Typography variant="body1" color="text.secondary">
-            Abre caja, registra ingresos o egresos y cierra con diferencia controlada.
+            {canSeeAllSessions
+              ? "Administra aperturas, cierres, conciliacion y sesiones de caja por cajero."
+              : "Opera tu caja, registra movimientos y controla tu cierre con diferencia."}
           </Typography>
         </Box>
 
-        <Chip
-          color={sesionActiva ? "success" : "default"}
-          icon={sesionActiva ? <LockOpenIcon /> : <LockIcon />}
-          label={sesionActiva ? "Caja abierta" : "Caja cerrada"}
-          sx={{ fontWeight: 700 }}
-        />
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Chip
+            color={canSeeAllSessions ? "primary" : "default"}
+            label={canSeeAllSessions ? "Vista global de cajas" : "Vista de mi caja"}
+            sx={{ fontWeight: 700 }}
+          />
+          <Chip
+            color={sesionActiva ? "success" : "default"}
+            icon={sesionActiva ? <LockOpenIcon /> : <LockIcon />}
+            label={sesionActiva ? "Caja abierta" : "Caja cerrada"}
+            sx={{ fontWeight: 700 }}
+          />
+        </Stack>
       </Stack>
 
       <Stack
@@ -514,6 +648,12 @@ function Caja() {
       {success && (
         <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
           {success}
+        </Alert>
+      )}
+
+      {isCajeroOnly && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          Como cajero solo puedes ver y operar tu propia caja. El historial mostrado corresponde unicamente a tus aperturas y cierres.
         </Alert>
       )}
 
@@ -614,7 +754,11 @@ function Caja() {
                           fullWidth
                           value={movimiento.tipo}
                           onChange={(event) =>
-                            setMovimiento((prev) => ({ ...prev, tipo: event.target.value }))
+                            setMovimiento((prev) => ({
+                              ...prev,
+                              tipo: event.target.value,
+                              categoria: "",
+                            }))
                           }
                         >
                           <MenuItem value="INGRESO">Ingreso</MenuItem>
@@ -622,15 +766,28 @@ function Caja() {
                         </Select>
                       </Grid>
                       <Grid item xs={12} md={3}>
-                        <TextField
+                        <Select
                           fullWidth
-                          label="Categoria"
                           value={movimiento.categoria}
                           onChange={(event) =>
                             setMovimiento((prev) => ({ ...prev, categoria: event.target.value }))
                           }
-                          placeholder="Ej. retiro, gasto"
-                        />
+                          displayEmpty
+                        >
+                          <MenuItem value="" disabled>
+                            {movimiento.tipo === "EGRESO"
+                              ? "Categoria de gasto"
+                              : "Categoria de ingreso"}
+                          </MenuItem>
+                          {(movimiento.tipo === "EGRESO"
+                            ? EGRESO_CATEGORIAS
+                            : INGRESO_CATEGORIAS
+                          ).map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
                       </Grid>
                       <Grid item xs={12} md={3}>
                         <TextField
@@ -761,6 +918,9 @@ function Caja() {
                   </Paper>
                 </Grid>
               </Grid>
+
+              {renderConciliacion(resumenActivo)}
+              {renderGastosCategoria(resumenActivo)}
             </>
           )}
 
@@ -778,31 +938,48 @@ function Caja() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {canSeeAllSessions
-                    ? "Como administrador puedes consultar sesiones de caja registradas."
-                    : "Aqui puedes revisar tus aperturas y cierres anteriores."}
+                    ? "Como administrador puedes consultar sesiones de caja de todos los cajeros."
+                    : "Aqui puedes revisar solo tus aperturas y cierres anteriores."}
                 </Typography>
               </Box>
-
-              <Select
-                value={estadoFiltro}
-                onChange={(event) => {
-                  setEstadoFiltro(event.target.value);
-                  setPage(0);
-                }}
-                sx={{ minWidth: { xs: "100%", md: 180 } }}
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1.5}
+                sx={{ width: { xs: "100%", md: "auto" } }}
               >
-                <MenuItem value="TODOS">Todos</MenuItem>
-                <MenuItem value="ABIERTA">Abiertas</MenuItem>
-                <MenuItem value="CERRADA">Cerradas</MenuItem>
-              </Select>
+                {canSeeAllSessions && (
+                  <TextField
+                    value={filtroUsuario}
+                    onChange={(event) => {
+                      setFiltroUsuario(event.target.value);
+                      setPage(0);
+                    }}
+                    placeholder="Buscar cajero"
+                    sx={{ minWidth: { xs: "100%", md: 220 } }}
+                  />
+                )}
+                <Select
+                  value={estadoFiltro}
+                  onChange={(event) => {
+                    setEstadoFiltro(event.target.value);
+                    setPage(0);
+                  }}
+                  sx={{ minWidth: { xs: "100%", md: 180 } }}
+                >
+                  <MenuItem value="TODOS">Todos</MenuItem>
+                  <MenuItem value="ABIERTA">Abiertas</MenuItem>
+                  <MenuItem value="CERRADA">Cerradas</MenuItem>
+                </Select>
+              </Stack>
             </Stack>
 
             <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Usuario</TableCell>
+                    <TableCell>Cajero</TableCell>
                     <TableCell>Fecha apertura</TableCell>
+                    <TableCell>Fecha cierre</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Monto apertura</TableCell>
                     <TableCell>Cierre calculado</TableCell>
@@ -822,6 +999,9 @@ function Caja() {
                         </Typography>
                       </TableCell>
                       <TableCell>{formatDateTime(sesion.fecha_apertura)}</TableCell>
+                      <TableCell>
+                        {sesion.fecha_cierre ? formatDateTime(sesion.fecha_cierre) : "Pendiente"}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={sesion.estado}
@@ -880,7 +1060,17 @@ function Caja() {
                   : " - Caja aun abierta"}
               </Typography>
 
+              <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                {canSeeAllSessions
+                  ? `Resumen de caja del cajero ${selectedSesion.nombre || selectedSesion.username}.`
+                  : "Resumen de tu sesion de caja."}
+              </Alert>
+
               {renderSummaryCards(selectedResumen)}
+              <Stack spacing={2} sx={{ mt: 3 }}>
+                {renderConciliacion(selectedResumen)}
+                {renderGastosCategoria(selectedResumen)}
+              </Stack>
             </Paper>
           )}
         </Stack>

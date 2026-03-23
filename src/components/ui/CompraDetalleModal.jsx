@@ -22,6 +22,8 @@ function CompraDetalleModal({
   onClose,
   compraData,
   loading = false,
+  onPrint,
+  printing = false,
   onAnularCompra,
   onAnularDetalle,
   loadingAnulacion = false,
@@ -38,9 +40,24 @@ function CompraDetalleModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Typography variant="h6" fontWeight="bold">
-          Detalle de compra
-        </Typography>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          justifyContent="space-between"
+          alignItems={{ xs: "flex-start", sm: "center" }}
+        >
+          <Typography variant="h6" fontWeight="bold">
+            Detalle de compra
+          </Typography>
+
+          <Button
+            variant="outlined"
+            onClick={() => onPrint?.()}
+            disabled={loading || !compra || printing}
+          >
+            {printing ? "Imprimiendo..." : "Imprimir comprobante"}
+          </Button>
+        </Stack>
       </DialogTitle>
 
       <DialogContent dividers>

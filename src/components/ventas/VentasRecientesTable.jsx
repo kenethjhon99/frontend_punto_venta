@@ -29,8 +29,10 @@ function VentasRecientesTable({
   ventas = [],
   loading = false,
   onViewDetail,
+  onPrint,
   onAnular,
   canAnular = false,
+  printingVentaId = null,
 }) {
   if (loading) {
     return (
@@ -84,9 +86,11 @@ function VentasRecientesTable({
             return (
               <TableRow key={venta.id_venta} hover>
                 <TableCell>
-                  <Typography fontWeight={700}>#{venta.id_venta}</Typography>
+                  <Typography fontWeight={700}>
+                    {venta.numero_comprobante || `#${venta.id_venta}`}
+                  </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {venta.tipo_venta || "-"}
+                    {(venta.comprobante_nombre || venta.tipo_comprobante || "Comprobante").toString()} | {venta.tipo_venta || "-"}
                   </Typography>
                 </TableCell>
 
@@ -132,6 +136,15 @@ function VentasRecientesTable({
                       onClick={() => onViewDetail(venta)}
                     >
                       Ver detalle
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => onPrint?.(venta)}
+                      disabled={printingVentaId === venta.id_venta}
+                    >
+                      {printingVentaId === venta.id_venta ? "Imprimiendo..." : "Imprimir"}
                     </Button>
 
                     {canAnular && (

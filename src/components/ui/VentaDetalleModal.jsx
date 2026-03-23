@@ -22,6 +22,8 @@ function VentaDetalleModal({
   onClose,
   ventaData,
   loading = false,
+  onPrint,
+  printing = false,
   onAnularDetalle,
   loadingAnulacionDetalle = false,
   detalleAnulandoId = null,
@@ -36,9 +38,24 @@ function VentaDetalleModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Typography variant="h6" fontWeight="bold">
-          Detalle de venta
-        </Typography>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          justifyContent="space-between"
+          alignItems={{ xs: "flex-start", sm: "center" }}
+        >
+          <Typography variant="h6" fontWeight="bold">
+            Detalle de venta
+          </Typography>
+
+          <Button
+            variant="outlined"
+            onClick={() => onPrint?.()}
+            disabled={loading || !venta || printing}
+          >
+            {printing ? "Imprimiendo..." : "Imprimir comprobante"}
+          </Button>
+        </Stack>
       </DialogTitle>
 
       <DialogContent dividers>
@@ -58,9 +75,11 @@ function VentaDetalleModal({
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Venta
+                  Comprobante
                 </Typography>
-                <Typography fontWeight={600}>#{venta.id_venta}</Typography>
+                <Typography fontWeight={600}>
+                  {venta.numero_comprobante || `#${venta.id_venta}`}
+                </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="body2" color="text.secondary">
@@ -78,6 +97,14 @@ function VentaDetalleModal({
                 </Typography>
                 <Typography fontWeight={600}>
                   {venta.cliente_nombre || "Consumidor final"}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Tipo de comprobante
+                </Typography>
+                <Typography fontWeight={600}>
+                  {venta.comprobante_nombre || venta.tipo_comprobante || "-"}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>

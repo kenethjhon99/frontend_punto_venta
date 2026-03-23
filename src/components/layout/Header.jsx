@@ -73,8 +73,8 @@ function Header() {
 
     const sections = {
       "/dashboard": {
-        title: "Panel administrativo",
-        subtitle: "Resumen general del negocio y seguimiento operativo.",
+        title: "Dashboard y reportes",
+        subtitle: "Ventas, compras, utilidad estimada y stock critico en un solo panel.",
       },
       "/ventas": {
         title: isCashierView ? "Caja y ventas" : "Ventas",
@@ -113,6 +113,22 @@ function Header() {
       "/auditoria": {
         title: "Auditoria del sistema",
         subtitle: "Consulta trazabilidad de altas, cambios e inactivaciones.",
+      },
+      "/servicios": {
+        title: "Servicios",
+        subtitle: "Accede rapidamente a autolavado y reparacion desde un solo modulo.",
+      },
+      "/servicios/catalogo": {
+        title: "Servicios - Catalogo",
+        subtitle: "Administra tipos de vehiculo y servicios desde una pantalla central.",
+      },
+      "/carwash/autolavado": {
+        title: "Servicios - Autolavado",
+        subtitle: "Gestiona el flujo operativo del area de autolavado.",
+      },
+      "/carwash/reparacion": {
+        title: "Servicios - Reparacion",
+        subtitle: "Organiza trabajos de taller, diagnosticos y mantenimientos.",
       },
     };
 
