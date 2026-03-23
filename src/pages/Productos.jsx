@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ProductoFormModal from "../components/productos/ProductoFormModal";
 import ProductoTable from "../components/productos/ProductoTable";
 
@@ -26,6 +27,7 @@ import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 
 function Productos() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -118,6 +120,10 @@ function Productos() {
       console.error(err);
       alert(err.response?.data?.error || "No se pudo desactivar el producto");
     }
+  };
+
+  const verKardexProducto = (producto) => {
+    navigate(`/inventario?id_producto=${producto.id_producto}`);
   };
 
   return (
@@ -219,6 +225,7 @@ function Productos() {
             productos={productosFiltrados}
             onEdit={abrirEditar}
             onDelete={eliminarProducto}
+            onViewKardex={verKardexProducto}
             canManage={canManageProductos}
           />
         </Paper>

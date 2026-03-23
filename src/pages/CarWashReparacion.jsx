@@ -53,6 +53,7 @@ import { getCajaSesionActiva } from "../services/cajaService";
 import { getProductos } from "../services/productoService";
 import {
   actualizarEstadoOrdenReparacion,
+  asignarTecnicoOrdenReparacion,
   agregarProductoReparacion,
   cobrarOrdenReparacion,
   cobrarServicioReparacion,
@@ -61,6 +62,7 @@ import {
   editarServicioReparacion,
   getOrdenesReparacion,
   getReparacionCatalogo,
+  getTecnicosServicio,
 } from "../services/servicioService";
 
 const VEHICLE_ICON_MAP = {
@@ -159,9 +161,11 @@ const getSiguientesEstadosReparacion = (estadoActual) => {
 function CarWashReparacion() {
   const { user } = useAuth();
   const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO");
   const [vehiculos, setVehiculos] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [tecnicos, setTecnicos] = useState([]);
   const [ordenes, setOrdenes] = useState([]);
   const [vehiculoId, setVehiculoId] = useState(null);
   const [servicioId, setServicioId] = useState(null);
@@ -186,6 +190,7 @@ function CarWashReparacion() {
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
   const [actualizandoOrdenId, setActualizandoOrdenId] = useState(null);
+  const [asignandoTecnicoOrdenId, setAsignandoTecnicoOrdenId] = useState(null);
   const [imprimiendoOrdenId, setImprimiendoOrdenId] = useState(null);
   const [autoPrintOrdenNueva, setAutoPrintOrdenNueva] = useState(() =>
     readPrintPreference(user, "reparacion.autoPrintNueva", true)
@@ -200,15 +205,17 @@ function CarWashReparacion() {
     try {
       setLoading(true);
       setError("");
-      const [catalogoRes, cajaRes, productosRes] = await Promise.all([
+      const [catalogoRes, cajaRes, productosRes, tecnicosRes] = await Promise.all([
         getReparacionCatalogo(),
         getCajaSesionActiva(),
         getProductos(),
+        getTecnicosServicio(),
       ]);
       const catalogo = normalizarCatalogo(catalogoRes);
       setVehiculos(catalogo.vehiculos);
       setServicios(catalogo.servicios);
       setProductos(Array.isArray(productosRes) ? productosRes : []);
+      setTecnicos(Array.isArray(tecnicosRes?.data) ? tecnicosRes.data : []);
       setCajaActiva(cajaRes?.sesion || null);
       const firstVehiculo = catalogo.vehiculos[0]?.id_tipo_vehiculo ?? null;
       const firstServicio =
@@ -620,6 +627,31 @@ function CarWashReparacion() {
       setError(err.response?.data?.error || "No se pudo actualizar el estado.");
     } finally {
       setActualizandoOrdenId(null);
+    }
+  };
+
+  const asignarTecnico = async (id, idTecnico) => {
+    try {
+      setAsignandoTecnicoOrdenId(id);
+      setError("");
+      setSuccess("");
+      await asignarTecnicoOrdenReparacion(id, {
+        id_tecnico: idTecnico || null,
+      });
+      await cargarOrdenes(estadoFiltro);
+      const tecnico = tecnicos.find(
+        (item) => String(item.id_usuario) === String(idTecnico)
+      );
+      setSuccess(
+        tecnico
+          ? `Tecnico ${tecnico.nombre || tecnico.username} asignado a la orden #${id}.`
+          : `Tecnico retirado de la orden #${id}.`
+      );
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo asignar el tecnico.");
+    } finally {
+      setAsignandoTecnicoOrdenId(null);
     }
   };
 
@@ -1147,6 +1179,21 @@ function CarWashReparacion() {
                           <Typography variant="body2" color="text.secondary">
                             Total orden: Q {Number(orden.monto_cobrado || 0).toFixed(2)} | Estado de cobro: {orden.estado} | Registro: {formatDateTime(orden.fecha)}
                           </Typography>
+                          <Stack direction="row" spacing={1} flexWrap="wrap">
+                            <Chip
+                              size="small"
+                              label={`Tecnico ${orden.tecnico_nombre || orden.tecnico_username || "Sin asignar"}`}
+                              color={orden.id_tecnico_asignado ? "secondary" : "default"}
+                              variant="outlined"
+                            />
+                            {orden.tecnico_asignado_en && (
+                              <Chip
+                                size="small"
+                                label={`Asignado ${formatDateTime(orden.tecnico_asignado_en)}`}
+                                variant="outlined"
+                              />
+                            )}
+                          </Stack>
                           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                             <Stack spacing={1.5}>
                               <Stack
@@ -1249,19 +1296,45 @@ function CarWashReparacion() {
                               </Stack>
                             </Stack>
                           )}
-                          <FormControl fullWidth>
-                            <InputLabel>Cambiar estado</InputLabel>
-                            <Select
-                              value={orden.estado_trabajo}
-                              label="Cambiar estado"
-                              onChange={(e) => cambiarEstado(orden.id_reparacion_orden, e.target.value)}
-                              disabled={actualizandoOrdenId === orden.id_reparacion_orden}
-                            >
-                              {getSiguientesEstadosReparacion(orden.estado_trabajo).map((estado) => (
-                                <MenuItem key={estado} value={estado}>{estado.replaceAll("_", " ")}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
+                          {canManageOrders && (
+                            <>
+                              <FormControl fullWidth>
+                                <InputLabel>Asignar tecnico</InputLabel>
+                                <Select
+                                  value={orden.id_tecnico_asignado ? String(orden.id_tecnico_asignado) : ""}
+                                  label="Asignar tecnico"
+                                  onChange={(e) => asignarTecnico(orden.id_reparacion_orden, e.target.value)}
+                                  disabled={asignandoTecnicoOrdenId === orden.id_reparacion_orden}
+                                >
+                                  <MenuItem value="">
+                                    <em>Sin asignar</em>
+                                  </MenuItem>
+                                  {tecnicos.map((tecnico) => (
+                                    <MenuItem key={tecnico.id_usuario} value={String(tecnico.id_usuario)}>
+                                      {(tecnico.nombre || tecnico.username) +
+                                        (Array.isArray(tecnico.roles) && tecnico.roles.length
+                                          ? ` | ${tecnico.roles.join(", ")}`
+                                          : "")}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+
+                              <FormControl fullWidth>
+                                <InputLabel>Cambiar estado</InputLabel>
+                                <Select
+                                  value={orden.estado_trabajo}
+                                  label="Cambiar estado"
+                                  onChange={(e) => cambiarEstado(orden.id_reparacion_orden, e.target.value)}
+                                  disabled={actualizandoOrdenId === orden.id_reparacion_orden}
+                                >
+                                  {getSiguientesEstadosReparacion(orden.estado_trabajo).map((estado) => (
+                                    <MenuItem key={estado} value={estado}>{estado.replaceAll("_", " ")}</MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </>
+                          )}
 
                           <Button
                             variant="outlined"

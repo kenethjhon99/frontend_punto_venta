@@ -1,5 +1,10 @@
 import api from "./api";
 
+export const getTecnicosServicio = async () => {
+  const res = await api.get("/servicios/tecnicos");
+  return res.data;
+};
+
 export const getAutolavadoCatalogo = async () => {
   const res = await api.get("/servicios/autolavado/catalogo");
   return res.data;
@@ -37,6 +42,11 @@ export const getOrdenesAutolavado = async (params = {}) => {
 
 export const actualizarEstadoOrdenAutolavado = async (id, data) => {
   const res = await api.patch(`/servicios/autolavado/ordenes/${id}/estado`, data);
+  return res.data;
+};
+
+export const asignarTecnicoOrdenAutolavado = async (id, data) => {
+  const res = await api.patch(`/servicios/autolavado/ordenes/${id}/tecnico`, data);
   return res.data;
 };
 
@@ -92,5 +102,10 @@ export const agregarProductoReparacion = async (id, data) => {
 
 export const actualizarEstadoOrdenReparacion = async (id, data) => {
   const res = await api.patch(`/servicios/reparacion/ordenes/${id}/estado`, data);
+  return res.data;
+};
+
+export const asignarTecnicoOrdenReparacion = async (id, data) => {
+  const res = await api.patch(`/servicios/reparacion/ordenes/${id}/tecnico`, data);
   return res.data;
 };

@@ -92,6 +92,10 @@ function Header() {
           ? "Administra catalogo, stock y configuraciones de inventario."
           : "Consulta existencias y disponibilidad del catalogo.",
       },
+      "/inventario": {
+        title: "Inventario y kardex",
+        subtitle: "Revisa existencias, stock critico y movimientos detallados por producto.",
+      },
       "/clientes": {
         title: "Clientes",
         subtitle: isAdminView

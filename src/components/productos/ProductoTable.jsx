@@ -22,8 +22,15 @@ import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import TimelineIcon from "@mui/icons-material/Timeline";
 
-function ProductoTable({ productos = [], onEdit, onDelete, canManage = true }) {
+function ProductoTable({
+  productos = [],
+  onEdit,
+  onDelete,
+  onViewKardex,
+  canManage = true,
+}) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -102,21 +109,31 @@ function ProductoTable({ productos = [], onEdit, onDelete, canManage = true }) {
                     </Box>
                   </Box>
 
-                  {canManage && (
-                    <Box display="flex" justifyContent="flex-end" gap={1}>
-                      <Tooltip title="Editar producto">
-                        <IconButton color="primary" onClick={() => onEdit(producto)}>
-                          <EditIcon />
+                  <Box display="flex" justifyContent="flex-end" gap={1}>
+                    {onViewKardex && (
+                      <Tooltip title="Ver kardex">
+                        <IconButton color="secondary" onClick={() => onViewKardex(producto)}>
+                          <TimelineIcon />
                         </IconButton>
                       </Tooltip>
+                    )}
 
-                      <Tooltip title="Desactivar producto">
-                        <IconButton color="error" onClick={() => onDelete(producto)}>
-                          <DeleteOutlineIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  )}
+                    {canManage && (
+                      <>
+                        <Tooltip title="Editar producto">
+                          <IconButton color="primary" onClick={() => onEdit(producto)}>
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Desactivar producto">
+                          <IconButton color="error" onClick={() => onDelete(producto)}>
+                            <DeleteOutlineIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -138,11 +155,9 @@ function ProductoTable({ productos = [], onEdit, onDelete, canManage = true }) {
             <TableCell sx={{ fontWeight: "bold" }}>Compra</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Venta</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
-            {canManage && (
-              <TableCell align="center" sx={{ fontWeight: "bold" }}>
-                Acciones
-              </TableCell>
-            )}
+            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+              Acciones
+            </TableCell>
           </TableRow>
         </TableHead>
 
@@ -180,23 +195,33 @@ function ProductoTable({ productos = [], onEdit, onDelete, canManage = true }) {
                     size="small"
                   />
                 </TableCell>
-                {canManage && (
-                  <TableCell align="center">
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <Tooltip title="Editar producto">
-                        <IconButton color="primary" onClick={() => onEdit(producto)}>
-                          <EditIcon />
+                <TableCell align="center">
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    {onViewKardex && (
+                      <Tooltip title="Ver kardex">
+                        <IconButton color="secondary" onClick={() => onViewKardex(producto)}>
+                          <TimelineIcon />
                         </IconButton>
                       </Tooltip>
+                    )}
 
-                      <Tooltip title="Desactivar producto">
-                        <IconButton color="error" onClick={() => onDelete(producto)}>
-                          <DeleteOutlineIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                )}
+                    {canManage && (
+                      <>
+                        <Tooltip title="Editar producto">
+                          <IconButton color="primary" onClick={() => onEdit(producto)}>
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Desactivar producto">
+                          <IconButton color="error" onClick={() => onDelete(producto)}>
+                            <DeleteOutlineIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
+                  </Stack>
+                </TableCell>
               </TableRow>
             );
           })}

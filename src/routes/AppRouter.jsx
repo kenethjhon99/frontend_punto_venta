@@ -8,6 +8,7 @@ import ProtectedRoute from "./ProtectedRoute";
 const Login = lazy(() => import("../pages/Login"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 const Productos = lazy(() => import("../pages/Productos"));
+const Inventario = lazy(() => import("../pages/Inventario"));
 const Layout = lazy(() => import("../components/layout/Layout"));
 const Ventas = lazy(() => import("../pages/Ventas"));
 const Compras = lazy(() => import("../pages/Compras"));
@@ -79,6 +80,14 @@ function AppRouter() {
               element={
                 <ProtectedRoute allowedRoles={["ADMIN", "CAJERO"]}>
                   <Productos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventario"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+                  <Inventario />
                 </ProtectedRoute>
               }
             />

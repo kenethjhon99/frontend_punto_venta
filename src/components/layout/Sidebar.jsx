@@ -23,6 +23,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 
 const drawerWidth = 240;
 
@@ -42,6 +43,12 @@ function Sidebar() {
       path: "/productos",
       icon: <InventoryIcon />,
       visible: userHasRole(user, "ADMIN", "CAJERO"),
+    },
+    {
+      text: "Inventario",
+      path: "/inventario",
+      icon: <Inventory2Icon />,
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN"),
     },
     {
       text: "Clientes",

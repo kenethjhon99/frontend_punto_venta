@@ -738,6 +738,7 @@ export const buildAutolavadoTicketHtml = (orden) =>
       { label: "Color", value: orden?.color || "Sin color" },
       { label: "Metodo de pago", value: orden?.metodo_pago || "-" },
       { label: "Estado", value: String(orden?.estado_trabajo || "RECIBIDO").replaceAll("_", " ") },
+      { label: "Tecnico asignado", value: orden?.tecnico_nombre || orden?.tecnico_username || "Sin asignar" },
       { label: "Fecha", value: formatPrintDateTime(orden?.fecha) },
     ],
     summaryCards: [
@@ -771,6 +772,7 @@ export const buildReparacionTicketHtml = (orden) =>
       { label: "Kilometraje", value: orden?.kilometraje || "No registrado" },
       { label: "Estado trabajo", value: String(orden?.estado_trabajo || "RECIBIDO").replaceAll("_", " ") },
       { label: "Estado cobro", value: orden?.estado || "PENDIENTE" },
+      { label: "Tecnico asignado", value: orden?.tecnico_nombre || orden?.tecnico_username || "Sin asignar" },
       { label: "Metodo de pago", value: orden?.metodo_pago || "Pendiente" },
       { label: "Fecha", value: formatPrintDateTime(orden?.fecha) },
     ],
@@ -899,3 +901,105 @@ export const buildCajaCorteHtml = ({ sesion, resumen, movimientos = [] }) =>
     ],
     footerNote: "Corte generado desde el modulo de caja.",
   });
+
+export const buildKardexHtml = ({
+  producto = null,
+  movimientos = [],
+  filtros = {},
+  resumen = {},
+}) =>
+  (() => {
+    const ultimoMovimiento = movimientos[0] || null;
+    const valorInventario = producto
+      ? Number(producto.existencia || 0) * Number(producto.precio_compra || 0)
+      : 0;
+
+    return buildFormalDocument({
+    title: "Kardex de inventario",
+    subtitle: "Trazabilidad formal de entradas, salidas y ajustes de stock.",
+    accent: "#1f2937",
+    badge: producto
+      ? `Producto #${producto.id_producto || "-"}`
+      : "Kardex general",
+    metaRows: [
+      { label: "Producto", value: producto?.nombre || "Todos los productos" },
+      { label: "Codigo", value: producto?.codigo_barras || "Todos" },
+      { label: "Desde", value: filtros?.desde || "Sin filtro" },
+      { label: "Hasta", value: filtros?.hasta || "Sin filtro" },
+      { label: "Tipo", value: filtros?.tipo || "Todos" },
+      { label: "Busqueda", value: filtros?.q || "Sin filtro" },
+    ],
+    summaryCards: [
+      {
+        label: "Stock actual",
+        value: producto
+          ? String(Number(producto.existencia || 0))
+          : `${movimientos.length} movimiento(s)`,
+      },
+      {
+        label: "Entradas visibles",
+        value: String(Number(resumen?.entradas || 0)),
+      },
+      {
+        label: "Salidas visibles",
+        value: String(Number(resumen?.salidas || 0)),
+      },
+      {
+        label: "Ajustes visibles",
+        value: String(Number(resumen?.ajustes || 0)),
+      },
+      producto
+        ? {
+            label: "Valor estimado stock",
+            value: formatPrintCurrency(valorInventario),
+          }
+        : null,
+      ultimoMovimiento
+        ? {
+            label: "Ultimo movimiento",
+            value: `${ultimoMovimiento.tipo} | ${formatPrintDateTime(ultimoMovimiento.fecha)}`,
+          }
+        : null,
+      producto
+        ? {
+            label: "Stock minimo",
+            value: String(Number(producto.stock_minimo || 0)),
+          }
+        : null,
+      producto?.ubicacion
+        ? {
+            label: "Ubicacion",
+            value: producto.ubicacion,
+          }
+        : null,
+    ],
+    sections: [
+      buildSectionHtml(
+        "Movimientos de stock",
+        buildTableHtml({
+          headers: [
+            "Fecha",
+            "Producto",
+            "Tipo",
+            "Cantidad",
+            "Antes",
+            "Despues",
+            "Motivo",
+            "Usuario",
+          ],
+          rows: movimientos.map((movimiento) => [
+            formatPrintDateTime(movimiento.fecha),
+            `${movimiento.producto_nombre || "Producto"} (${movimiento.producto_codigo_barras || "Sin codigo"})`,
+            movimiento.tipo || "-",
+            { value: Number(movimiento.cantidad || 0), align: "right" },
+            { value: Number(movimiento.existencia_antes || 0), align: "right" },
+            { value: Number(movimiento.existencia_despues || 0), align: "right" },
+            movimiento.motivo || "Sin detalle",
+            movimiento.usuario_nombre || movimiento.usuario_username || "Sistema",
+          ]),
+        })
+      ),
+    ],
+    footerNote: "Kardex generado desde el modulo de inventario.",
+    });
+  })();
