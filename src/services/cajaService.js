@@ -20,6 +20,19 @@ export const cerrarCaja = async (idSesion, data) => {
   return response.data;
 };
 
+export const validarNoCobroPendienteCaja = async (idSesion, data) => {
+  const response = await api.post(`/caja/${idSesion}/pendientes/no-cobro/validar`, data);
+  return response.data;
+};
+
+export const validarMovimientoPendienteCaja = async (idSesion, idMovimiento, data) => {
+  const response = await api.post(
+    `/caja/${idSesion}/pendientes/movimientos/${idMovimiento}/validar`,
+    data
+  );
+  return response.data;
+};
+
 export const getCajaResumen = async (idSesion) => {
   const response = await api.get(`/caja/${idSesion}/resumen`);
   return response.data;

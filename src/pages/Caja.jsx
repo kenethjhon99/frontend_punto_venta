@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LockIcon from "@mui/icons-material/Lock";
@@ -37,6 +37,8 @@ import {
   getCajaSesionActiva,
   getCajaSesiones,
   registrarMovimientoCaja,
+  validarMovimientoPendienteCaja,
+  validarNoCobroPendienteCaja,
 } from "../services/cajaService";
 import {
   buildCajaCorteHtml,
@@ -81,6 +83,7 @@ const EGRESO_CATEGORIAS = [
 
 function Caja() {
   const { user } = useAuth();
+  const resumenSesionRef = useRef(null);
   const [sesionActiva, setSesionActiva] = useState(null);
   const [resumenActivo, setResumenActivo] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
@@ -117,9 +120,35 @@ function Caja() {
     admin_password: "",
     validacion_no_cobro_nota: "",
   });
+  const [vistaPendientes, setVistaPendientes] = useState("NO_COBROS");
+  const [validacionPendiente, setValidacionPendiente] = useState({
+    tipo: "",
+    referencia: "",
+    admin_username: "",
+    admin_password: "",
+    nota: "",
+  });
 
   const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN", "ADMIN");
   const isCajeroOnly = userHasRole(user, "CAJERO") && !canSeeAllSessions;
+  const pendientesNoCobroActivos = Number(resumenActivo?.no_cobrados_pendientes_count || 0);
+  const movimientosPendientesValidacion = Number(
+    resumenActivo?.movimientos_pendientes_validacion_count || 0
+  );
+  const movimientosPendientesLista = Array.isArray(movimientos)
+    ? movimientos.filter(
+        (item) => !item.admin_autoriza_nombre && !item.admin_autoriza_username
+      )
+    : [];
+  const cierreCalculadoSistema = Number(resumenActivo?.cierre_calculado || 0);
+  const montoCierreReportadoNumero = Number(cierre.monto_cierre_reportado || 0);
+  const diferenciaCierre =
+    String(cierre.monto_cierre_reportado || "").trim() === ""
+      ? 0
+      : Number((montoCierreReportadoNumero - cierreCalculadoSistema).toFixed(2));
+  const requiereAutorizacionDiferencia = Number(diferenciaCierre) !== 0;
+  const requiereAutorizacionCierre =
+    requiereAutorizacionDiferencia;
 
   const cargarSesiones = async (nextPage = page, nextRowsPerPage = rowsPerPage, nextEstado = estadoFiltro) => {
     const response = await getCajaSesiones({
@@ -174,11 +203,26 @@ function Caja() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage, estadoFiltro, filtroUsuario]);
 
+  useEffect(() => {
+    if (!selectedSesion || !selectedResumen || !resumenSesionRef.current) return;
+
+    resumenSesionRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [selectedSesion, selectedResumen]);
+
   const refrescarSesionSeleccionada = async (idSesion) => {
     const response = await getCajaResumen(idSesion);
     setSelectedSesion(response?.sesion || null);
     setSelectedResumen(response?.resumen || null);
     setSelectedMovimientos(Array.isArray(response?.movimientos) ? response.movimientos : []);
+  };
+
+  const aplicarDatosSesionActiva = (response) => {
+    setSesionActiva(response?.sesion || null);
+    setResumenActivo(response?.resumen || null);
+    setMovimientos(Array.isArray(response?.movimientos) ? response.movimientos : []);
   };
 
   const handleAbrirCaja = async () => {
@@ -188,9 +232,7 @@ function Caja() {
       setSuccess("");
 
       const response = await abrirCaja(apertura);
-      setSesionActiva(response?.sesion || null);
-      setResumenActivo(response?.resumen || null);
-      setMovimientos(Array.isArray(response?.movimientos) ? response.movimientos : []);
+      aplicarDatosSesionActiva(response);
       setApertura({ monto_apertura: "0.00", observaciones_apertura: "" });
       setSuccess("Caja abierta correctamente.");
       await cargarSesiones(0, rowsPerPage, estadoFiltro);
@@ -212,15 +254,14 @@ function Caja() {
       setSuccess("");
 
       const response = await registrarMovimientoCaja(sesionActiva.id_caja_sesion, movimiento);
-      setResumenActivo(response?.resumen || null);
-      setMovimientos(Array.isArray(response?.movimientos) ? response.movimientos : []);
+      aplicarDatosSesionActiva(response);
       setMovimiento({
         tipo: "INGRESO",
         categoria: "",
         monto: "",
         descripcion: "",
       });
-      setSuccess("Movimiento de caja registrado correctamente.");
+      setSuccess("Movimiento de caja registrado correctamente. Quedara pendiente de validacion al cierre.");
       await cargarSesiones(page, rowsPerPage, estadoFiltro);
     } catch (err) {
       console.error(err);
@@ -238,13 +279,17 @@ function Caja() {
       setError("");
       setSuccess("");
 
-      const pendientesNoCobro = Number(resumenActivo?.no_cobrados_pendientes_count || 0);
-      if (pendientesNoCobro > 0) {
+      if (pendientesNoCobroActivos > 0 || movimientosPendientesValidacion > 0) {
+        setError("Debes validar uno por uno los no cobrados y movimientos pendientes antes de cerrar la caja.");
+        return;
+      }
+
+      if (requiereAutorizacionCierre) {
         if (
           !String(validacionNoCobro.admin_username || "").trim() ||
           !String(validacionNoCobro.admin_password || "").trim()
         ) {
-          setError("Debes ingresar la autorizacion de un admin para validar los registros no cobrados.");
+          setError("Debes ingresar la autorizacion de un admin para validar los no cobrados o autorizar la diferencia de cierre.");
           return;
         }
       }
@@ -252,13 +297,17 @@ function Caja() {
       const response = await cerrarCaja(sesionActiva.id_caja_sesion, {
         ...cierre,
         admin_username:
-          pendientesNoCobro > 0 ? validacionNoCobro.admin_username : undefined,
+          requiereAutorizacionCierre ? validacionNoCobro.admin_username : undefined,
         admin_password:
-          pendientesNoCobro > 0 ? validacionNoCobro.admin_password : undefined,
+          requiereAutorizacionCierre ? validacionNoCobro.admin_password : undefined,
         validacion_no_cobro_nota:
-          pendientesNoCobro > 0
+          null,
+        validacion_movimientos_nota:
+          null,
+        validacion_diferencia_nota:
+          requiereAutorizacionDiferencia
             ? String(validacionNoCobro.validacion_no_cobro_nota || "").trim() || null
-            : undefined,
+            : null,
       });
       setSesionActiva(null);
       setResumenActivo(null);
@@ -272,9 +321,15 @@ function Caja() {
         admin_password: "",
         validacion_no_cobro_nota: "",
       });
+      const mensajesCierre = [];
+      if (requiereAutorizacionDiferencia) {
+        mensajesCierre.push(
+          `Se autorizo el cierre con una diferencia de ${formatCurrency(diferenciaCierre)}.`
+        );
+      }
       setSuccess(
-        pendientesNoCobro > 0
-          ? `Caja cerrada correctamente. Se validaron ${pendientesNoCobro} registro(s) no cobrado(s) con autorizacion administrativa.`
+        mensajesCierre.length > 0
+          ? `Caja cerrada correctamente. ${mensajesCierre.join(" ")}`
           : "Caja cerrada correctamente."
       );
       await cargarSesiones(0, rowsPerPage, estadoFiltro);
@@ -287,10 +342,97 @@ function Caja() {
     }
   };
 
+  const handleValidarNoCobroPendiente = async (item) => {
+    if (!sesionActiva?.id_caja_sesion) return;
+
+    try {
+      setLoadingAction(true);
+      setError("");
+      setSuccess("");
+
+      if (
+        !String(validacionPendiente.admin_username || "").trim() ||
+        !String(validacionPendiente.admin_password || "").trim()
+      ) {
+        setError("Debes ingresar la autorizacion de un admin para validar este no cobro.");
+        return;
+      }
+
+      const response = await validarNoCobroPendienteCaja(sesionActiva.id_caja_sesion, {
+        modulo: item.modulo,
+        referencia: item.referencia,
+        admin_username: validacionPendiente.admin_username,
+        admin_password: validacionPendiente.admin_password,
+        nota: String(validacionPendiente.nota || "").trim() || null,
+      });
+
+      aplicarDatosSesionActiva(response);
+      setValidacionPendiente({
+        tipo: "",
+        referencia: "",
+        admin_username: "",
+        admin_password: "",
+        nota: "",
+      });
+      setSuccess("Registro no cobrado validado correctamente.");
+      await cargarSesiones(page, rowsPerPage, estadoFiltro);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo validar el no cobro");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleValidarMovimientoPendiente = async (item) => {
+    if (!sesionActiva?.id_caja_sesion) return;
+
+    try {
+      setLoadingAction(true);
+      setError("");
+      setSuccess("");
+
+      if (
+        !String(validacionPendiente.admin_username || "").trim() ||
+        !String(validacionPendiente.admin_password || "").trim()
+      ) {
+        setError("Debes ingresar la autorizacion de un admin para validar este movimiento.");
+        return;
+      }
+
+      const response = await validarMovimientoPendienteCaja(
+        sesionActiva.id_caja_sesion,
+        item.id_caja_movimiento,
+        {
+          admin_username: validacionPendiente.admin_username,
+          admin_password: validacionPendiente.admin_password,
+          nota: String(validacionPendiente.nota || "").trim() || null,
+        }
+      );
+
+      aplicarDatosSesionActiva(response);
+      setValidacionPendiente({
+        tipo: "",
+        referencia: "",
+        admin_username: "",
+        admin_password: "",
+        nota: "",
+      });
+      setSuccess("Movimiento manual validado correctamente.");
+      await cargarSesiones(page, rowsPerPage, estadoFiltro);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo validar el movimiento manual");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   const verResumenSesion = async (idSesion) => {
     try {
       setLoadingAction(true);
       setError("");
+      setSuccess("");
       await refrescarSesionSeleccionada(idSesion);
     } catch (err) {
       console.error(err);
@@ -575,7 +717,7 @@ function Caja() {
     );
   };
 
-  const renderNoCobrosPendientes = (resumen, { compact = false } = {}) => {
+  const renderNoCobrosPendientes = (resumen) => {
     const pendientes = Array.isArray(resumen?.no_cobrados_pendientes)
       ? resumen.no_cobrados_pendientes
       : [];
@@ -645,56 +787,440 @@ function Caja() {
             ))}
           </Stack>
 
-          {!compact && (
-            <Stack spacing={2}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Validacion administrativa para cierre
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Usuario admin"
-                    value={validacionNoCobro.admin_username}
-                    onChange={(event) =>
-                      setValidacionNoCobro((prev) => ({
-                        ...prev,
-                        admin_username: event.target.value,
-                      }))
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    type="password"
-                    label="Password admin"
-                    value={validacionNoCobro.admin_password}
-                    onChange={(event) =>
-                      setValidacionNoCobro((prev) => ({
-                        ...prev,
-                        admin_password: event.target.value,
-                      }))
-                    }
-                  />
-                </Grid>
-              </Grid>
+        </Stack>
+      </Paper>
+    );
+  };
+
+  const renderPendientesPorValidar = () => {
+    const noCobros = Array.isArray(resumenActivo?.no_cobrados_pendientes)
+      ? resumenActivo.no_cobrados_pendientes
+      : [];
+    const movimientosPendientes = movimientosPendientesLista;
+
+    if (noCobros.length === 0 && movimientosPendientes.length === 0) return null;
+
+    const vistaActual =
+      vistaPendientes === "MOVIMIENTOS" && movimientosPendientes.length > 0
+        ? "MOVIMIENTOS"
+        : noCobros.length > 0
+          ? "NO_COBROS"
+          : "MOVIMIENTOS";
+
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2.5,
+          borderRadius: 3,
+          borderColor: "warning.main",
+          background:
+            "linear-gradient(135deg, rgba(245,158,11,0.14), rgba(15,23,42,0.45))",
+        }}
+      >
+        <Stack spacing={2}>
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            Debes validar cada registro pendiente de forma individual antes de cerrar la caja.
+          </Alert>
+
+          <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
+            {noCobros.length > 0 && (
+              <Chip
+                clickable
+                color="warning"
+                variant={vistaActual === "NO_COBROS" ? "filled" : "outlined"}
+                label={`No cobrados pendientes ${noCobros.length}`}
+                onClick={() => setVistaPendientes("NO_COBROS")}
+              />
+            )}
+            {movimientosPendientes.length > 0 && (
+              <Chip
+                clickable
+                color="info"
+                variant={vistaActual === "MOVIMIENTOS" ? "filled" : "outlined"}
+                label={`Movimientos pendientes ${movimientosPendientes.length}`}
+                onClick={() => setVistaPendientes("MOVIMIENTOS")}
+              />
+            )}
+          </Stack>
+
+          <Stack spacing={1.25}>
+            {vistaActual === "NO_COBROS"
+              ? noCobros.map((item) => {
+                  const isActive =
+                    validacionPendiente.tipo === "NO_COBRO" &&
+                    String(validacionPendiente.referencia) === String(item.referencia);
+
+                  return (
+                    <Paper
+                      key={`${item.modulo}-${item.referencia}-${item.fecha}`}
+                      variant="outlined"
+                      sx={{ p: 1.75, borderRadius: 2.5, backgroundColor: "rgba(15,23,42,0.35)" }}
+                    >
+                      <Stack spacing={1.5}>
+                        <Stack
+                          direction={{ xs: "column", md: "row" }}
+                          justifyContent="space-between"
+                          spacing={1}
+                        >
+                          <Box>
+                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                              <Chip size="small" label={item.modulo} color="warning" />
+                              <Chip
+                                size="small"
+                                label={item.documento ? `${item.referencia} | ${item.documento}` : item.referencia}
+                                variant="outlined"
+                              />
+                            </Stack>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              Cliente: {item.cliente_nombre || "Consumidor final"}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Motivo: {item.motivo || "Sin motivo"}
+                            </Typography>
+                          </Box>
+
+                          <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={0.5}>
+                            <Typography fontWeight="bold" color="warning.main">
+                              {formatCurrency(item.monto)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatDateTime(item.fecha)}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+
+                        {!isActive ? (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="warning"
+                            onClick={() =>
+                              setValidacionPendiente({
+                                tipo: "NO_COBRO",
+                                referencia: String(item.referencia),
+                                admin_username: "",
+                                admin_password: "",
+                                nota: "",
+                              })
+                            }
+                          >
+                            Validar este no cobrado
+                          </Button>
+                        ) : (
+                          <Stack spacing={1.5}>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  label="Usuario admin"
+                                  value={validacionPendiente.admin_username}
+                                  onChange={(event) =>
+                                    setValidacionPendiente((prev) => ({
+                                      ...prev,
+                                      admin_username: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  type="password"
+                                  label="Password admin"
+                                  value={validacionPendiente.admin_password}
+                                  onChange={(event) =>
+                                    setValidacionPendiente((prev) => ({
+                                      ...prev,
+                                      admin_password: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </Grid>
+                            </Grid>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              multiline
+                              minRows={2}
+                              label="Nota de validacion"
+                              value={validacionPendiente.nota}
+                              onChange={(event) =>
+                                setValidacionPendiente((prev) => ({
+                                  ...prev,
+                                  nota: event.target.value,
+                                }))
+                              }
+                            />
+                            <Stack direction="row" spacing={1.25}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="warning"
+                                disabled={loadingAction}
+                                onClick={() => handleValidarNoCobroPendiente(item)}
+                              >
+                                Confirmar validacion
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() =>
+                                  setValidacionPendiente({
+                                    tipo: "",
+                                    referencia: "",
+                                    admin_username: "",
+                                    admin_password: "",
+                                    nota: "",
+                                  })
+                                }
+                              >
+                                Cancelar
+                              </Button>
+                            </Stack>
+                          </Stack>
+                        )}
+                      </Stack>
+                    </Paper>
+                  );
+                })
+              : movimientosPendientes.map((item) => {
+                  const isActive =
+                    validacionPendiente.tipo === "MOVIMIENTO" &&
+                    String(validacionPendiente.referencia) === String(item.id_caja_movimiento);
+
+                  return (
+                    <Paper
+                      key={item.id_caja_movimiento}
+                      variant="outlined"
+                      sx={{ p: 1.75, borderRadius: 2.5, backgroundColor: "rgba(15,23,42,0.35)" }}
+                    >
+                      <Stack spacing={1.5}>
+                        <Stack
+                          direction={{ xs: "column", md: "row" }}
+                          justifyContent="space-between"
+                          spacing={1}
+                        >
+                          <Box>
+                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                              <Chip
+                                size="small"
+                                color={item.tipo === "INGRESO" ? "success" : "error"}
+                                label={item.tipo}
+                              />
+                              <Chip
+                                size="small"
+                                variant="outlined"
+                                label={item.categoria || "SIN CATEGORIA"}
+                              />
+                            </Stack>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              Descripcion: {item.descripcion || "Sin descripcion"}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Registrado por: {item.nombre || item.username}
+                            </Typography>
+                          </Box>
+
+                          <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={0.5}>
+                            <Typography
+                              fontWeight="bold"
+                              color={item.tipo === "INGRESO" ? "success.main" : "error.main"}
+                            >
+                              {formatCurrency(item.monto)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatDateTime(item.fecha)}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+
+                        {!isActive ? (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="info"
+                            onClick={() =>
+                              setValidacionPendiente({
+                                tipo: "MOVIMIENTO",
+                                referencia: String(item.id_caja_movimiento),
+                                admin_username: "",
+                                admin_password: "",
+                                nota: "",
+                              })
+                            }
+                          >
+                            Validar este movimiento
+                          </Button>
+                        ) : (
+                          <Stack spacing={1.5}>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  label="Usuario admin"
+                                  value={validacionPendiente.admin_username}
+                                  onChange={(event) =>
+                                    setValidacionPendiente((prev) => ({
+                                      ...prev,
+                                      admin_username: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  type="password"
+                                  label="Password admin"
+                                  value={validacionPendiente.admin_password}
+                                  onChange={(event) =>
+                                    setValidacionPendiente((prev) => ({
+                                      ...prev,
+                                      admin_password: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </Grid>
+                            </Grid>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              multiline
+                              minRows={2}
+                              label="Nota de validacion"
+                              value={validacionPendiente.nota}
+                              onChange={(event) =>
+                                setValidacionPendiente((prev) => ({
+                                  ...prev,
+                                  nota: event.target.value,
+                                }))
+                              }
+                            />
+                            <Stack direction="row" spacing={1.25}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="info"
+                                disabled={loadingAction}
+                                onClick={() => handleValidarMovimientoPendiente(item)}
+                              >
+                                Confirmar validacion
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() =>
+                                  setValidacionPendiente({
+                                    tipo: "",
+                                    referencia: "",
+                                    admin_username: "",
+                                    admin_password: "",
+                                    nota: "",
+                                  })
+                                }
+                              >
+                                Cancelar
+                              </Button>
+                            </Stack>
+                          </Stack>
+                        )}
+                      </Stack>
+                    </Paper>
+                  );
+                })}
+          </Stack>
+        </Stack>
+      </Paper>
+    );
+  };
+
+  const renderAutorizacionCierre = () => {
+    if (!requiereAutorizacionCierre) return null;
+
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2.5,
+          borderRadius: 3,
+          borderColor: "warning.main",
+          background:
+            "linear-gradient(135deg, rgba(245,158,11,0.14), rgba(15,23,42,0.45))",
+        }}
+      >
+        <Stack spacing={2}>
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            La caja no esta cuadrada. Se requiere autorizacion administrativa para
+            cerrar con una diferencia de {formatCurrency(diferenciaCierre)}.
+          </Alert>
+
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              borderColor: "error.main",
+              background:
+                "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(15,23,42,0.35))",
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Diferencia actual
+            </Typography>
+            <Typography variant="h5" fontWeight="bold" color="error.main">
+              {formatCurrency(diferenciaCierre)}
+            </Typography>
+          </Paper>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                multiline
-                minRows={2}
-                label="Nota de validacion"
-                placeholder="Ej. pendiente autorizado por garantia, cortesia o ajuste administrativo"
-                value={validacionNoCobro.validacion_no_cobro_nota}
+                label="Usuario admin"
+                value={validacionNoCobro.admin_username}
                 onChange={(event) =>
                   setValidacionNoCobro((prev) => ({
                     ...prev,
-                    validacion_no_cobro_nota: event.target.value,
+                    admin_username: event.target.value,
                   }))
                 }
               />
-            </Stack>
-          )}
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="password"
+                label="Password admin"
+                value={validacionNoCobro.admin_password}
+                onChange={(event) =>
+                  setValidacionNoCobro((prev) => ({
+                    ...prev,
+                    admin_password: event.target.value,
+                  }))
+                }
+              />
+            </Grid>
+          </Grid>
+
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            label="Nota de validacion"
+            placeholder="Ej. cortesia autorizada, diferencia explicada o ajuste administrativo"
+            value={validacionNoCobro.validacion_no_cobro_nota}
+            onChange={(event) =>
+              setValidacionNoCobro((prev) => ({
+                ...prev,
+                validacion_no_cobro_nota: event.target.value,
+              }))
+            }
+          />
         </Stack>
       </Paper>
     );
@@ -1140,6 +1666,10 @@ function Caja() {
                       </Grid>
                     </Grid>
 
+                    <Alert severity="info" sx={{ mt: 2.5, borderRadius: 2 }}>
+                      Los ingresos y egresos manuales se registran de inmediato, pero quedaran pendientes de validacion administrativa hasta el cierre de caja.
+                    </Alert>
+
                     <Button
                       variant="contained"
                       onClick={handleRegistrarMovimiento}
@@ -1174,6 +1704,11 @@ function Caja() {
                                 <Typography variant="caption" color="text.secondary">
                                   {formatDateTime(item.fecha)} | {item.nombre || item.username}
                                 </Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {(item.admin_autoriza_nombre || item.admin_autoriza_username)
+                                    ? `Validado por admin: ${item.admin_autoriza_nombre || item.admin_autoriza_username}`
+                                    : "Pendiente de validacion administrativa"}
+                                </Typography>
                               </Box>
 
                               <Typography
@@ -1200,8 +1735,9 @@ function Caja() {
                     </Stack>
 
                     <Stack spacing={2}>
-                      {renderNoCobrosPendientes(resumenActivo)}
+                      {renderPendientesPorValidar()}
                       {renderNoCobrosValidados(resumenActivo)}
+                      {renderAutorizacionCierre()}
 
                       <TextField
                         fullWidth
@@ -1241,7 +1777,7 @@ function Caja() {
                         onClick={handleCerrarCaja}
                         disabled={
                           loadingAction ||
-                          (Number(resumenActivo?.no_cobrados_pendientes_count || 0) > 0 &&
+                          (requiereAutorizacionCierre &&
                             (!String(validacionNoCobro.admin_username || "").trim() ||
                               !String(validacionNoCobro.admin_password || "").trim()))
                         }
@@ -1323,7 +1859,20 @@ function Caja() {
                 </TableHead>
                 <TableBody>
                   {sesiones.map((sesion) => (
-                    <TableRow key={sesion.id_caja_sesion} hover>
+                    <TableRow
+                      key={sesion.id_caja_sesion}
+                      hover
+                      selected={Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)}
+                      sx={
+                        Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)
+                          ? {
+                              "& td": {
+                                backgroundColor: "rgba(59,130,246,0.10)",
+                              },
+                            }
+                          : undefined
+                      }
+                    >
                       <TableCell>
                         <Typography fontWeight="bold">
                           {sesion.nombre || sesion.username}
@@ -1358,7 +1907,9 @@ function Caja() {
                           onClick={() => verResumenSesion(sesion.id_caja_sesion)}
                           disabled={loadingAction}
                         >
-                          Ver resumen
+                          {Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)
+                            ? "Resumen abierto"
+                            : "Ver resumen"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1383,16 +1934,38 @@ function Caja() {
           </Paper>
 
           {selectedSesion && selectedResumen && (
-            <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
-              <Typography variant="h6" fontWeight="bold" mb={1}>
-                Resumen de sesion #{selectedSesion.id_caja_sesion}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={3}>
-                {formatDateTime(selectedSesion.fecha_apertura)}
-                {selectedSesion.fecha_cierre
-                  ? ` a ${formatDateTime(selectedSesion.fecha_cierre)}`
-                  : " - Caja aun abierta"}
-              </Typography>
+            <Paper ref={resumenSesionRef} elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", md: "center" }}
+                spacing={1.5}
+                mb={3}
+              >
+                <Box>
+                  <Typography variant="h6" fontWeight="bold" mb={1}>
+                    Resumen de sesion #{selectedSesion.id_caja_sesion}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatDateTime(selectedSesion.fecha_apertura)}
+                    {selectedSesion.fecha_cierre
+                      ? ` a ${formatDateTime(selectedSesion.fecha_cierre)}`
+                      : " - Caja aun abierta"}
+                  </Typography>
+                </Box>
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    setSelectedSesion(null);
+                    setSelectedResumen(null);
+                    setSelectedMovimientos([]);
+                  }}
+                >
+                  Ocultar resumen
+                </Button>
+              </Stack>
 
               <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                 {canSeeAllSessions
@@ -1402,7 +1975,7 @@ function Caja() {
 
               {renderSummaryCards(selectedResumen)}
               <Stack spacing={2} sx={{ mt: 3 }}>
-                {renderNoCobrosPendientes(selectedResumen, { compact: true })}
+                {renderNoCobrosPendientes(selectedResumen)}
                 {renderNoCobrosValidados(selectedResumen)}
                 {renderConciliacion(selectedResumen)}
                 {renderGastosCategoria(selectedResumen)}

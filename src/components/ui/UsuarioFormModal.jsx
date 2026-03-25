@@ -177,34 +177,6 @@ function UsuarioFormModal({
             />
           </Grid>
 
-          {!usuarioEditando && (
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                required
-                type={showPassword ? "text" : "password"}
-                label="Password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                helperText="Minimo 4 caracteres."
-                error={passwordTooShort}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        edge="end"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                      >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-          )}
-
           {usuarioEditando && (
             <Grid item xs={12}>
               <Box
