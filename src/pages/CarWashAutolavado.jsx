@@ -41,7 +41,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 import {
@@ -53,6 +52,7 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import { getCajaSesionActiva } from "../services/cajaService";
 import {
   actualizarEstadoOrdenAutolavado,
@@ -125,6 +125,11 @@ const EMPTY_COBRO_FORM = {
   metodo_pago: "EFECTIVO",
   monto_cobrado: "",
   monto_recibido: "",
+};
+
+const EMPTY_NO_COBRO_FORM = {
+  enabled: false,
+  motivo: "",
 };
 
 const ESTADOS_ORDEN_OPTIONS = [
@@ -203,6 +208,7 @@ function CarWashAutolavado() {
   const [vehicleForm, setVehicleForm] = useState(EMPTY_VEHICLE_FORM);
   const [serviceForm, setServiceForm] = useState(EMPTY_SERVICE_FORM);
   const [cobroForm, setCobroForm] = useState(EMPTY_COBRO_FORM);
+  const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
   const [cajaActiva, setCajaActiva] = useState(null);
   const [ordenes, setOrdenes] = useState([]);
   const [estadoFiltroOrdenes, setEstadoFiltroOrdenes] = useState("TODOS");
@@ -214,7 +220,7 @@ function CarWashAutolavado() {
   }, [user]);
 
   const canManageOrders = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
   }, [user]);
 
   const cargarOrdenes = useCallback(async (estadoTrabajo = estadoFiltroOrdenes) => {
@@ -512,6 +518,13 @@ function CarWashAutolavado() {
       return;
     }
 
+    if (noCobroForm.enabled) {
+      if (!String(noCobroForm.motivo || "").trim()) {
+        setError("Debes indicar el motivo del no cobro.");
+        return;
+      }
+    }
+
     let reservedPrintWindow = null;
 
     try {
@@ -537,7 +550,11 @@ function CarWashAutolavado() {
         metodo_pago: cobroForm.metodo_pago,
         monto_cobrado: montoCobradoNumero,
         monto_recibido:
-          cobroForm.metodo_pago === "EFECTIVO" ? montoRecibidoNumero : null,
+          !noCobroForm.enabled && cobroForm.metodo_pago === "EFECTIVO"
+            ? montoRecibidoNumero
+            : null,
+        no_cobrar: noCobroForm.enabled,
+        no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
       });
 
       const orden = response?.orden;
@@ -562,6 +579,7 @@ function CarWashAutolavado() {
         monto_cobrado: String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
         monto_recibido: String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
       });
+      setNoCobroForm(EMPTY_NO_COBRO_FORM);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "No se pudo registrar el cobro del servicio.");
@@ -777,19 +795,15 @@ function CarWashAutolavado() {
 
                 {canManageCatalog && (
                   <Button
-                    component={RouterLink}
-                    to={{
-                      pathname: "/servicios/catalogo",
-                      search: `?modulo=AUTOLAVADO&editar=vehiculo${vehiculoSeleccionadoId ? `&vehiculo=${vehiculoSeleccionadoId}` : ""}`,
-                    }}
                     variant="outlined"
-                    startIcon={<EditIcon />}
+                    startIcon={<AddIcon />}
+                    onClick={() => setVehicleModalOpen(true)}
                     sx={{
                       borderRadius: 999,
                       alignSelf: { xs: "stretch", md: "center" },
                     }}
                   >
-                    Editar vehiculo
+                    Agregar vehiculo
                   </Button>
                 )}
               </Stack>
@@ -974,21 +988,31 @@ function CarWashAutolavado() {
                   </Box>
 
                   {canManageCatalog && (
-                    <Button
-                      component={RouterLink}
-                      to={{
-                        pathname: "/servicios/catalogo",
-                        search: `?modulo=AUTOLAVADO&editar=servicio${vehiculoSeleccionadoId ? `&vehiculo=${vehiculoSeleccionadoId}` : ""}${servicioSeleccionadoId ? `&servicio=${servicioSeleccionadoId}` : ""}`,
-                      }}
-                      variant="outlined"
-                      startIcon={<EditIcon />}
-                      sx={{
-                        borderRadius: 999,
-                        alignSelf: { xs: "stretch", md: "center" },
-                      }}
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={1.5}
+                      sx={{ alignSelf: { xs: "stretch", md: "center" } }}
                     >
-                      Editar en catalogo
-                    </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={() => abrirModalServicioNuevo()}
+                        sx={{ borderRadius: 999 }}
+                      >
+                        Agregar servicio
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<EditIcon />}
+                        onClick={() =>
+                          servicioSeleccionado && abrirModalServicioEditar(servicioSeleccionado)
+                        }
+                        disabled={!servicioSeleccionado}
+                        sx={{ borderRadius: 999 }}
+                      >
+                        Editar servicio
+                      </Button>
+                    </Stack>
                   )}
                 </Stack>
 
@@ -1061,7 +1085,7 @@ function CarWashAutolavado() {
                                 <IconButton
                                   size="small"
                                   color="primary"
-                                  sx={{ display: "none" }}
+                                  sx={{ display: "inline-flex" }}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     abrirModalServicioEditar(servicio);
@@ -1148,26 +1172,6 @@ function CarWashAutolavado() {
                       {servicioSeleccionado?.duracion_minutos || 0} minutos
                     </Typography>
                   </Box>
-
-                  {canManageCatalog && (
-                    <Alert severity="info" sx={{ borderRadius: 3 }}>
-                      El catalogo de autolavado ahora se administra desde Servicios &gt; Catalogo.
-                      <Box sx={{ mt: 1.5 }}>
-                        <Button
-                          component={RouterLink}
-                          to={{
-                            pathname: "/servicios/catalogo",
-                            search: `?modulo=AUTOLAVADO&editar=servicio${vehiculoSeleccionadoId ? `&vehiculo=${vehiculoSeleccionadoId}` : ""}${servicioSeleccionadoId ? `&servicio=${servicioSeleccionadoId}` : ""}`,
-                          }}
-                          size="small"
-                          variant="outlined"
-                          sx={{ borderRadius: 999 }}
-                        >
-                          Abrir catalogo
-                        </Button>
-                      </Box>
-                    </Alert>
-                  )}
 
                   <Divider />
 
@@ -1269,7 +1273,20 @@ function CarWashAutolavado() {
                       />
                     </Stack>
 
-                    {cobroForm.metodo_pago === "EFECTIVO" && (
+                    <NoCobroAuthorizationFields
+                      enabled={noCobroForm.enabled}
+                      onToggle={(checked) =>
+                        setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
+                      }
+                      form={noCobroForm}
+                      onChange={(field, value) =>
+                        setNoCobroForm((prev) => ({ ...prev, [field]: value }))
+                      }
+                      title="Registrar servicio sin cobro"
+                      helperText="El autolavado se registrara como no cobrado y quedara pendiente de validacion al cierre de caja por un admin."
+                    />
+
+                    {cobroForm.metodo_pago === "EFECTIVO" && !noCobroForm.enabled && (
                       <Stack spacing={2}>
                         <TextField
                           label="Monto recibido"
@@ -1324,11 +1341,18 @@ function CarWashAutolavado() {
                         !servicioSeleccionadoId ||
                         !cobroForm.monto_cobrado ||
                         cobrandoServicio ||
-                        (cobroForm.metodo_pago === "EFECTIVO" && faltanteEfectivo > 0)
+                        (!noCobroForm.enabled &&
+                          cobroForm.metodo_pago === "EFECTIVO" &&
+                          faltanteEfectivo > 0) ||
+                        (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
                       }
                       sx={{ borderRadius: 999, py: 1.4, fontWeight: 700 }}
                     >
-                      {cobrandoServicio ? "Registrando cobro..." : "Cobrar servicio"}
+                      {cobrandoServicio
+                        ? "Registrando..."
+                        : noCobroForm.enabled
+                          ? "Registrar sin cobro"
+                          : "Cobrar servicio"}
                     </Button>
                   </Stack>
                 </Stack>

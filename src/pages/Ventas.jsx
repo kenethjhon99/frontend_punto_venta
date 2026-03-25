@@ -27,6 +27,7 @@ import ClienteFormModal from "../components/ui/ClienteFormModal";
 import VentaAnulacionModal from "../components/ui/VentaAnulacionModal";
 import VentaDetalleAnulacionModal from "../components/ui/VentaDetalleAnulacionModal";
 import VentaDetalleModal from "../components/ui/VentaDetalleModal";
+import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 import {
@@ -68,6 +69,11 @@ const normalizarComprobantes = (data) => {
   return [];
 };
 
+const EMPTY_NO_COBRO_FORM = {
+  enabled: false,
+  motivo: "",
+};
+
 const obtenerUltimoCodigoCliente = (clientes = []) => {
   return clientes.reduce((ultimoCodigo, cliente) => {
     const codigo = String(cliente?.codigo || "").trim();
@@ -98,6 +104,7 @@ function Ventas() {
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
   const [montoRecibido, setMontoRecibido] = useState("");
   const [tipoVenta, setTipoVenta] = useState("CONTADO");
+  const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
   const [autoPrintVenta, setAutoPrintVenta] = useState(() =>
     readPrintPreference(user, "ventas.autoPrint", true)
   );
@@ -515,12 +522,19 @@ function Ventas() {
   const finalizarVenta = async () => {
     if (!items.length) return;
 
+    if (noCobroForm.enabled) {
+      if (!String(noCobroForm.motivo || "").trim()) {
+        setError("Debes indicar el motivo del no cobro.");
+        return;
+      }
+    }
+
     if (tipoVenta === "CREDITO" && !clienteId) {
       setError("Selecciona un cliente para registrar una venta a credito.");
       return;
     }
 
-    if (metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
+    if (!noCobroForm.enabled && metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
       setError("El monto recibido no cubre el total de la venta.");
       return;
     }
@@ -544,9 +558,14 @@ function Ventas() {
           tipo_venta: tipoVenta,
           tipo_comprobante: tipoComprobante,
           metodo_pago: metodoPago,
-          monto_recibido: metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
+          monto_recibido:
+            !noCobroForm.enabled && metodoPago === "EFECTIVO"
+              ? montoRecibidoNumero
+              : null,
           id_sucursal: 1,
           id_cliente: clienteId ? Number(clienteId) : null,
+          no_cobrar: noCobroForm.enabled,
+          no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
           items: items.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
@@ -559,6 +578,7 @@ function Ventas() {
       setTipoVenta("CONTADO");
       setMetodoPago("EFECTIVO");
       setMontoRecibido("");
+      setNoCobroForm(EMPTY_NO_COBRO_FORM);
         setSuccess(
           response?.venta?.numero_comprobante
             ? `Venta registrada correctamente. Comprobante ${response.venta.numero_comprobante}.`
@@ -813,6 +833,24 @@ function Ventas() {
                   </Grid>
 
                   <Grid item xs={12}>
+                    <NoCobroAuthorizationFields
+                      enabled={noCobroForm.enabled}
+                      onToggle={(checked) =>
+                        setNoCobroForm((prev) => ({
+                          ...prev,
+                          enabled: checked,
+                        }))
+                      }
+                      form={noCobroForm}
+                      onChange={(field, value) =>
+                        setNoCobroForm((prev) => ({ ...prev, [field]: value }))
+                      }
+                      title="Registrar como no cobrado"
+                      helperText="La venta se guardara sin cobro y quedara pendiente de validacion al cierre de caja por un admin."
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
                     <Paper
                       variant="outlined"
                       sx={{
@@ -876,7 +914,7 @@ function Ventas() {
                     </Paper>
                   </Grid>
 
-                  {metodoPago === "EFECTIVO" && (
+                  {metodoPago === "EFECTIVO" && !noCobroForm.enabled && (
                     <>
                       <Grid item xs={12} md={6}>
                         <TextField
@@ -983,9 +1021,11 @@ function Ventas() {
                       loadingVenta ||
                       loadingCaja ||
                       !cajaActiva ||
-                      (metodoPago === "EFECTIVO" &&
+                      (!noCobroForm.enabled &&
+                        metodoPago === "EFECTIVO" &&
                         total > 0 &&
-                        montoRecibidoNumero < total)
+                        montoRecibidoNumero < total) ||
+                      (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
                     }
                     sx={{
                       px: 4,
@@ -1000,8 +1040,10 @@ function Ventas() {
                       : loadingCaja
                         ? "Validando caja..."
                         : !cajaActiva
-                          ? "Abre caja para vender"
-                          : "Finalizar venta"}
+                        ? "Abre caja para vender"
+                          : noCobroForm.enabled
+                            ? "Registrar venta sin cobro"
+                            : "Finalizar venta"}
                   </Button>
                 </Box>
               </Paper>

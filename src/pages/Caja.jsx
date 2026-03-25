@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import PaidIcon from "@mui/icons-material/Paid";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import PrintIcon from "@mui/icons-material/Print";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import {
   Alert,
@@ -38,6 +40,7 @@ import {
 } from "../services/cajaService";
 import {
   buildCajaCorteHtml,
+  buildCajaNoCobrosValidadosHtml,
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
@@ -108,6 +111,11 @@ function Caja() {
   const [cierre, setCierre] = useState({
     monto_cierre_reportado: "",
     observaciones_cierre: "",
+  });
+  const [validacionNoCobro, setValidacionNoCobro] = useState({
+    admin_username: "",
+    admin_password: "",
+    validacion_no_cobro_nota: "",
   });
 
   const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN", "ADMIN");
@@ -230,7 +238,28 @@ function Caja() {
       setError("");
       setSuccess("");
 
-      const response = await cerrarCaja(sesionActiva.id_caja_sesion, cierre);
+      const pendientesNoCobro = Number(resumenActivo?.no_cobrados_pendientes_count || 0);
+      if (pendientesNoCobro > 0) {
+        if (
+          !String(validacionNoCobro.admin_username || "").trim() ||
+          !String(validacionNoCobro.admin_password || "").trim()
+        ) {
+          setError("Debes ingresar la autorizacion de un admin para validar los registros no cobrados.");
+          return;
+        }
+      }
+
+      const response = await cerrarCaja(sesionActiva.id_caja_sesion, {
+        ...cierre,
+        admin_username:
+          pendientesNoCobro > 0 ? validacionNoCobro.admin_username : undefined,
+        admin_password:
+          pendientesNoCobro > 0 ? validacionNoCobro.admin_password : undefined,
+        validacion_no_cobro_nota:
+          pendientesNoCobro > 0
+            ? String(validacionNoCobro.validacion_no_cobro_nota || "").trim() || null
+            : undefined,
+      });
       setSesionActiva(null);
       setResumenActivo(null);
       setMovimientos([]);
@@ -238,7 +267,16 @@ function Caja() {
       setSelectedResumen(response?.resumen || null);
       setSelectedMovimientos(Array.isArray(response?.movimientos) ? response.movimientos : []);
       setCierre({ monto_cierre_reportado: "", observaciones_cierre: "" });
-      setSuccess("Caja cerrada correctamente.");
+      setValidacionNoCobro({
+        admin_username: "",
+        admin_password: "",
+        validacion_no_cobro_nota: "",
+      });
+      setSuccess(
+        pendientesNoCobro > 0
+          ? `Caja cerrada correctamente. Se validaron ${pendientesNoCobro} registro(s) no cobrado(s) con autorizacion administrativa.`
+          : "Caja cerrada correctamente."
+      );
       await cargarSesiones(0, rowsPerPage, estadoFiltro);
       setPage(0);
     } catch (err) {
@@ -533,6 +571,294 @@ function Caja() {
             ))}
           </Stack>
         )}
+      </Paper>
+    );
+  };
+
+  const renderNoCobrosPendientes = (resumen, { compact = false } = {}) => {
+    const pendientes = Array.isArray(resumen?.no_cobrados_pendientes)
+      ? resumen.no_cobrados_pendientes
+      : [];
+
+    if (pendientes.length === 0) return null;
+
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2.5,
+          borderRadius: 3,
+          borderColor: "warning.main",
+          background:
+            "linear-gradient(135deg, rgba(245,158,11,0.14), rgba(15,23,42,0.45))",
+        }}
+      >
+        <Stack spacing={2}>
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            Hay {pendientes.length} registro(s) sin cobro. No se puede cerrar caja hasta validarlos con la password de un admin.
+          </Alert>
+
+          <Stack spacing={1.25}>
+            {pendientes.map((item) => (
+              <Paper
+                key={`${item.modulo}-${item.referencia}-${item.fecha}`}
+                variant="outlined"
+                sx={{ p: 1.5, borderRadius: 2, backgroundColor: "rgba(15,23,42,0.35)" }}
+              >
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Box>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      <Chip size="small" label={item.modulo} color="warning" />
+                      <Chip
+                        size="small"
+                        label={item.documento ? `${item.referencia} | ${item.documento}` : item.referencia}
+                        variant="outlined"
+                      />
+                    </Stack>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Cliente: {item.cliente_nombre || "Consumidor final"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Motivo: {item.motivo || "Sin motivo"}
+                    </Typography>
+                    {(item.autorizado_por_nombre || item.autorizado_por_username) && (
+                      <Typography variant="caption" color="text.secondary">
+                        Autorizado por: {item.autorizado_por_nombre || item.autorizado_por_username}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={0.5}>
+                    <Typography fontWeight="bold" color="warning.main">
+                      {formatCurrency(item.monto)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDateTime(item.fecha)}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+
+          {!compact && (
+            <Stack spacing={2}>
+              <Typography variant="subtitle2" fontWeight="bold">
+                Validacion administrativa para cierre
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Usuario admin"
+                    value={validacionNoCobro.admin_username}
+                    onChange={(event) =>
+                      setValidacionNoCobro((prev) => ({
+                        ...prev,
+                        admin_username: event.target.value,
+                      }))
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="password"
+                    label="Password admin"
+                    value={validacionNoCobro.admin_password}
+                    onChange={(event) =>
+                      setValidacionNoCobro((prev) => ({
+                        ...prev,
+                        admin_password: event.target.value,
+                      }))
+                    }
+                  />
+                </Grid>
+              </Grid>
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                label="Nota de validacion"
+                placeholder="Ej. pendiente autorizado por garantia, cortesia o ajuste administrativo"
+                value={validacionNoCobro.validacion_no_cobro_nota}
+                onChange={(event) =>
+                  setValidacionNoCobro((prev) => ({
+                    ...prev,
+                    validacion_no_cobro_nota: event.target.value,
+                  }))
+                }
+              />
+            </Stack>
+          )}
+        </Stack>
+      </Paper>
+    );
+  };
+
+  const renderNoCobrosValidados = (resumen) => {
+    const validados = Array.isArray(resumen?.no_cobrados_validados)
+      ? resumen.no_cobrados_validados
+      : [];
+
+    if (validados.length === 0) return null;
+
+    const copyValidationSummary = async () => {
+      const lines = [
+        `Sesion de caja #${selectedSesion?.id_caja_sesion || sesionActiva?.id_caja_sesion || "-"}`,
+        `Registros validados: ${validados.length}`,
+        ...(resumen?.no_cobrados_validados_admins || []).length
+          ? [
+              `Admins: ${(resumen?.no_cobrados_validados_admins || [])
+                .map((admin) => admin.nombre || admin.username)
+                .filter(Boolean)
+                .join(", ")}`,
+            ]
+          : [],
+        "",
+        ...validados.map(
+          (item) =>
+            `${item.modulo} | ${item.documento || item.referencia || "-"} | Admin: ${
+              item.admin_nombre || item.admin_username || "Sin dato"
+            } | Fecha: ${formatDateTime(item.fecha_validacion)} | Nota: ${
+              item.nota_validacion || "Sin nota"
+            }`
+        ),
+      ];
+
+      try {
+        await navigator.clipboard.writeText(lines.join("\n"));
+        setSuccess("Validaciones administrativas copiadas correctamente.");
+      } catch (error) {
+        console.error(error);
+        setError("No se pudieron copiar las validaciones administrativas.");
+      }
+    };
+
+    const printValidationsOnly = () => {
+      try {
+        const sesionObjetivo = selectedSesion || sesionActiva;
+        if (!sesionObjetivo) {
+          setError("No hay una sesion disponible para imprimir las validaciones.");
+          return;
+        }
+
+        const html = buildCajaNoCobrosValidadosHtml({
+          sesion: sesionObjetivo,
+          resumen,
+        });
+
+        openPrintDocument({
+          title: `Validaciones no cobrado #${sesionObjetivo.id_caja_sesion}`,
+          html,
+          width: 1100,
+          height: 860,
+        });
+      } catch (error) {
+        console.error(error);
+        setError(error.message || "No se pudieron imprimir las validaciones administrativas.");
+      }
+    };
+
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2.5,
+          borderRadius: 3,
+          borderColor: "success.main",
+          background:
+            "linear-gradient(135deg, rgba(34,197,94,0.14), rgba(15,23,42,0.45))",
+        }}
+      >
+        <Stack spacing={2}>
+          <Alert severity="success" sx={{ borderRadius: 2 }}>
+            {`Hay ${validados.length} registro(s) no cobrado(s) ya validados con autorizacion administrativa.`}
+          </Alert>
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              startIcon={<ContentCopyIcon />}
+              onClick={copyValidationSummary}
+            >
+              Copiar validaciones
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              startIcon={<PrintIcon />}
+              onClick={printValidationsOnly}
+            >
+              Imprimir validaciones
+            </Button>
+          </Stack>
+
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {(resumen?.no_cobrados_validados_admins || []).map((admin) => (
+              <Chip
+                key={admin.username || admin.nombre}
+                size="small"
+                color="success"
+                variant="outlined"
+                label={
+                  admin.username
+                    ? `${admin.nombre || admin.username} (${admin.username})`
+                    : admin.nombre || "Admin"
+                }
+              />
+            ))}
+          </Stack>
+
+          <Stack spacing={1.25}>
+            {validados.map((item) => (
+              <Paper
+                key={`${item.modulo}-${item.referencia}-${item.fecha_validacion}`}
+                variant="outlined"
+                sx={{ p: 1.5, borderRadius: 2, backgroundColor: "rgba(15,23,42,0.35)" }}
+              >
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Box>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      <Chip size="small" label={item.modulo} color="success" />
+                      <Chip
+                        size="small"
+                        label={item.documento ? `${item.referencia} | ${item.documento}` : item.referencia}
+                        variant="outlined"
+                      />
+                    </Stack>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Validado por: {item.admin_nombre || item.admin_username || "Sin dato"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Nota: {item.nota_validacion || "Sin nota"}
+                    </Typography>
+                  </Box>
+
+                  <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={0.5}>
+                    <Typography fontWeight="bold" color="success.main">
+                      {formatDateTime(item.fecha_validacion)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Registro validado
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+        </Stack>
       </Paper>
     );
   };
@@ -874,6 +1200,9 @@ function Caja() {
                     </Stack>
 
                     <Stack spacing={2}>
+                      {renderNoCobrosPendientes(resumenActivo)}
+                      {renderNoCobrosValidados(resumenActivo)}
+
                       <TextField
                         fullWidth
                         type="number"
@@ -910,7 +1239,12 @@ function Caja() {
                         variant="contained"
                         color="warning"
                         onClick={handleCerrarCaja}
-                        disabled={loadingAction}
+                        disabled={
+                          loadingAction ||
+                          (Number(resumenActivo?.no_cobrados_pendientes_count || 0) > 0 &&
+                            (!String(validacionNoCobro.admin_username || "").trim() ||
+                              !String(validacionNoCobro.admin_password || "").trim()))
+                        }
                       >
                         {loadingAction ? "Cerrando..." : "Cerrar caja"}
                       </Button>
@@ -1068,6 +1402,8 @@ function Caja() {
 
               {renderSummaryCards(selectedResumen)}
               <Stack spacing={2} sx={{ mt: 3 }}>
+                {renderNoCobrosPendientes(selectedResumen, { compact: true })}
+                {renderNoCobrosValidados(selectedResumen)}
                 {renderConciliacion(selectedResumen)}
                 {renderGastosCategoria(selectedResumen)}
               </Stack>

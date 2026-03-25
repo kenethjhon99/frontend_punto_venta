@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
+import { getDefaultRoute } from "../utils/roles";
 
 import {
   Box,
@@ -53,10 +54,20 @@ function Login() {
       const { token, user } = res.data;
 
       login(user, token);
-
-      navigate("/dashboard");
+      navigate(getDefaultRoute(user));
     } catch (err) {
-      setError(err.response?.data?.error || "Error al iniciar sesión");
+      const networkError = !err.response;
+      const productionApiMissing = !import.meta.env.DEV && !import.meta.env.VITE_API_URL;
+
+      if (networkError) {
+        setError(
+          productionApiMissing
+            ? "No se pudo conectar con el servidor. Configura VITE_API_URL en Vercel."
+            : "No se pudo conectar con el servidor. Revisa la URL del API y CORS del backend."
+        );
+      } else {
+        setError(err.response?.data?.error || "Error al iniciar sesion");
+      }
     } finally {
       setLoading(false);
     }
@@ -106,7 +117,7 @@ function Login() {
             </Avatar>
 
             <Typography variant="h4" fontWeight="bold" textAlign="center">
-              Iniciar sesión
+              Iniciar sesion
             </Typography>
 
             <Typography variant="body2" color="text.secondary" textAlign="center">
@@ -134,7 +145,7 @@ function Login() {
           />
 
           <TextField
-            label="Contraseña"
+            label="Contrasena"
             name="password"
             type={mostrarPassword ? "text" : "password"}
             value={form.password}

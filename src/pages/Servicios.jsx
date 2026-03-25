@@ -1,7 +1,6 @@
 import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
 import BuildIcon from "@mui/icons-material/Build";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import {
   Box,
   Button,
@@ -11,12 +10,8 @@ import {
   Typography,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
 
 function Servicios() {
-  const { user } = useAuth();
-  const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN");
   const serviceCards = [
     {
       title: "Autolavado",
@@ -34,18 +29,6 @@ function Servicios() {
       accent: "linear-gradient(135deg, rgba(148,163,184,0.28), rgba(59,130,246,0.12))",
       borderColor: "rgba(148,163,184,0.3)",
     },
-    ...(canManageCatalog
-      ? [
-          {
-            title: "Catalogo",
-            description: "Crea y edita tipos de vehiculo y servicios en una pagina dedicada.",
-            to: "/servicios/catalogo",
-            icon: <Inventory2OutlinedIcon sx={{ fontSize: 34 }} />,
-            accent: "linear-gradient(135deg, rgba(34,197,94,0.24), rgba(16,185,129,0.12))",
-            borderColor: "rgba(34,197,94,0.28)",
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -67,13 +50,14 @@ function Servicios() {
             gridTemplateColumns: {
               xs: "1fr",
               md: "repeat(2, minmax(0, 1fr))",
-              xl: "repeat(3, minmax(0, 1fr))",
             },
           }}
         >
           {serviceCards.map((service) => (
             <Paper
               key={service.title}
+              component={RouterLink}
+              to={service.to}
               elevation={3}
               sx={{
                 p: 3,
@@ -84,6 +68,14 @@ function Servicios() {
                 justifyContent: "space-between",
                 background: service.accent,
                 border: `1px solid ${service.borderColor}`,
+                textDecoration: "none",
+                color: "inherit",
+                transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: 8,
+                  borderColor: "rgba(96,165,250,0.45)",
+                },
               }}
             >
               <Stack spacing={2}>
@@ -112,8 +104,6 @@ function Servicios() {
               </Stack>
 
               <Button
-                component={RouterLink}
-                to={service.to}
                 variant="contained"
                 endIcon={<ArrowForwardIcon />}
                 sx={{

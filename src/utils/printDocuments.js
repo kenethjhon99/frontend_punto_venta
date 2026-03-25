@@ -856,8 +856,62 @@ export const buildCajaCorteHtml = ({ sesion, resumen, movimientos = [] }) =>
         value: formatPrintCurrency(resumen?.monto_cierre_reportado || 0),
       },
       { label: "Diferencia", value: formatPrintCurrency(resumen?.diferencia || 0) },
+      {
+        label: "No cobrados",
+        value: String(
+          Number(resumen?.ventas_no_cobradas || 0) +
+            Number(resumen?.servicios_no_cobrados || 0) +
+            Number(resumen?.reparaciones_no_cobradas || 0)
+        ),
+      },
+      {
+        label: "Admins validaron",
+        value:
+          (resumen?.no_cobrados_validados_admins || [])
+            .map((item) => item.nombre || item.username)
+            .filter(Boolean)
+            .join(", ") || "Sin validaciones",
+      },
     ],
       sections: [
+        buildSectionHtml(
+          "Registros no cobrados",
+          buildTableHtml({
+            headers: ["Modulo", "Cantidad"],
+            rows: [
+              ["Ventas", { value: Number(resumen?.ventas_no_cobradas || 0), align: "right" }],
+              ["Autolavado", { value: Number(resumen?.servicios_no_cobrados || 0), align: "right" }],
+              ["Reparacion", { value: Number(resumen?.reparaciones_no_cobradas || 0), align: "right" }],
+              [
+                "Pendientes al generar el reporte",
+                { value: Number(resumen?.no_cobrados_pendientes_count || 0), align: "right" },
+              ],
+            ],
+          }) +
+            (Number(resumen?.no_cobrados_pendientes_count || 0) === 0 &&
+            Number(
+              Number(resumen?.ventas_no_cobradas || 0) +
+                Number(resumen?.servicios_no_cobrados || 0) +
+                Number(resumen?.reparaciones_no_cobradas || 0)
+            ) > 0
+              ? `<div class="notes-box">Los registros no cobrados de esta sesion ya fueron validados con autorizacion administrativa para permitir el cierre.</div>`
+              : "")
+        ),
+        buildSectionHtml(
+          "Validacion administrativa de no cobrados",
+          (resumen?.no_cobrados_validados_count || 0) > 0
+            ? buildTableHtml({
+                headers: ["Modulo", "Referencia", "Admin", "Fecha", "Nota"],
+                rows: (resumen?.no_cobrados_validados || []).map((item) => [
+                  item.modulo || "-",
+                  item.documento || item.referencia || "-",
+                  item.admin_nombre || item.admin_username || "Sin dato",
+                  formatPrintDateTime(item.fecha_validacion),
+                  item.nota_validacion || "Sin nota",
+                ]),
+              })
+            : '<div class="notes-box">No hubo validaciones administrativas de no cobro en esta sesion.</div>'
+        ),
         buildSectionHtml(
           "Conciliacion por metodo de pago",
           buildTableHtml({
@@ -900,6 +954,58 @@ export const buildCajaCorteHtml = ({ sesion, resumen, movimientos = [] }) =>
       ),
     ],
     footerNote: "Corte generado desde el modulo de caja.",
+  });
+
+export const buildCajaNoCobrosValidadosHtml = ({ sesion, resumen }) =>
+  buildFormalDocument({
+    title: "Validaciones administrativas de no cobro",
+    subtitle: "Detalle de autorizaciones aplicadas durante la sesion de caja.",
+    accent: "#15803d",
+    badge: `Sesion #${sesion?.id_caja_sesion || "-"}`,
+    metaRows: [
+      { label: "Usuario de caja", value: sesion?.nombre || sesion?.username || "Usuario" },
+      { label: "Fecha apertura", value: formatPrintDateTime(sesion?.fecha_apertura) },
+      {
+        label: "Fecha cierre",
+        value: sesion?.fecha_cierre ? formatPrintDateTime(sesion.fecha_cierre) : "Pendiente",
+      },
+      {
+        label: "Admins validadores",
+        value:
+          (resumen?.no_cobrados_validados_admins || [])
+            .map((item) => item.nombre || item.username)
+            .filter(Boolean)
+            .join(", ") || "Sin validaciones",
+      },
+    ],
+    summaryCards: [
+      {
+        label: "Registros validados",
+        value: String(Number(resumen?.no_cobrados_validados_count || 0)),
+      },
+      {
+        label: "Pendientes actuales",
+        value: String(Number(resumen?.no_cobrados_pendientes_count || 0)),
+      },
+    ],
+    sections: [
+      buildSectionHtml(
+        "Detalle de validaciones",
+        (resumen?.no_cobrados_validados_count || 0) > 0
+          ? buildTableHtml({
+              headers: ["Modulo", "Referencia", "Admin", "Fecha", "Nota"],
+              rows: (resumen?.no_cobrados_validados || []).map((item) => [
+                item.modulo || "-",
+                item.documento || item.referencia || "-",
+                item.admin_nombre || item.admin_username || "Sin dato",
+                formatPrintDateTime(item.fecha_validacion),
+                item.nota_validacion || "Sin nota",
+              ]),
+            })
+          : '<div class="notes-box">No existen validaciones administrativas registradas para esta sesion.</div>'
+      ),
+    ],
+    footerNote: "Documento generado desde el cierre y validacion administrativa de caja.",
   });
 
 export const buildKardexHtml = ({

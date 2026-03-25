@@ -37,7 +37,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 import {
@@ -50,6 +49,7 @@ import {
   openPrintDocument,
 } from "../utils/printDocuments";
 import { getCajaSesionActiva } from "../services/cajaService";
+import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import { getProductos } from "../services/productoService";
 import {
   actualizarEstadoOrdenReparacion,
@@ -129,6 +129,10 @@ const EMPTY_PRODUCTO_ORDEN = {
   cantidad: "1",
   cobra_al_cliente: true,
 };
+const EMPTY_NO_COBRO_FORM = {
+  enabled: false,
+  motivo: "",
+};
 
 const normalizarCatalogo = (data) =>
   data?.data?.vehiculos && data?.data?.servicios
@@ -161,7 +165,7 @@ const getSiguientesEstadosReparacion = (estadoActual) => {
 function CarWashReparacion() {
   const { user } = useAuth();
   const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN");
-  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO");
+  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
   const [vehiculos, setVehiculos] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -185,6 +189,8 @@ function CarWashReparacion() {
   const [servicioForm, setServicioForm] = useState(EMPTY_SERVICIO);
   const [cobroForm, setCobroForm] = useState(EMPTY_COBRO);
   const [pagoForm, setPagoForm] = useState(EMPTY_PAGO);
+  const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
+  const [noCobroPagoForm, setNoCobroPagoForm] = useState(EMPTY_NO_COBRO_FORM);
   const [productoOrdenForm, setProductoOrdenForm] = useState(EMPTY_PRODUCTO_ORDEN);
   const [productoBorradorForm, setProductoBorradorForm] = useState(EMPTY_PRODUCTO_ORDEN);
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
@@ -423,6 +429,13 @@ function CarWashReparacion() {
       setError("");
       setSuccess("");
 
+      if (noCobroForm.enabled) {
+        if (!String(noCobroForm.motivo || "").trim()) {
+          setError("Debes indicar el motivo del no cobro.");
+          return;
+        }
+      }
+
       if (autoPrintOrdenNueva) {
         reservedPrintWindow = openPrintWindow({
           title: "Ticket de reparacion",
@@ -442,12 +455,17 @@ function CarWashReparacion() {
         observaciones: cobroForm.observaciones,
         metodo_pago: cobroForm.metodo_pago,
         monto_cobrado: totalOrden,
-        monto_recibido: cobroForm.metodo_pago === "EFECTIVO" ? montoRecibido : null,
+        monto_recibido:
+          !noCobroForm.enabled && cobroForm.metodo_pago === "EFECTIVO"
+            ? montoRecibido
+            : null,
         productos: productosSeleccionados.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
           cobra_al_cliente: item.cobra_al_cliente,
         })),
+        no_cobrar: noCobroForm.enabled,
+        no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
       });
       const ordenCreada = response?.orden;
       await Promise.all([cargarOrdenes(), cargarCatalogo()]);
@@ -463,7 +481,12 @@ function CarWashReparacion() {
         ...EMPTY_COBRO,
       });
       setProductosSeleccionados([]);
-      setSuccess("Orden de reparacion creada y cobrada correctamente.");
+      setNoCobroForm(EMPTY_NO_COBRO_FORM);
+      setSuccess(
+        noCobroForm.enabled
+          ? "Orden de reparacion registrada sin cobro."
+          : "Orden de reparacion creada y cobrada correctamente."
+      );
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "No se pudo crear y cobrar la orden de reparacion.");
@@ -521,6 +544,7 @@ function CarWashReparacion() {
       metodo_pago: "EFECTIVO",
       monto_recibido: String(Number(orden.monto_cobrado || 0).toFixed(2)),
     });
+    setNoCobroPagoForm(EMPTY_NO_COBRO_FORM);
     setPagoOrdenModalOpen(true);
   };
 
@@ -534,6 +558,13 @@ function CarWashReparacion() {
       setError("");
       setSuccess("");
 
+      if (noCobroPagoForm.enabled) {
+        if (!String(noCobroPagoForm.motivo || "").trim()) {
+          setError("Debes indicar el motivo del no cobro.");
+          return;
+        }
+      }
+
       if (autoPrintCobroOrden) {
         reservedPrintWindow = openPrintWindow({
           title: `Ticket de reparacion #${ordenPagoActiva.id_reparacion_orden}`,
@@ -544,14 +575,22 @@ function CarWashReparacion() {
 
       const response = await cobrarOrdenReparacion(ordenPagoActiva.id_reparacion_orden, {
         metodo_pago: pagoForm.metodo_pago,
-        monto_recibido: pagoForm.metodo_pago === "EFECTIVO" ? montoRecibido : null,
+        monto_recibido:
+          !noCobroPagoForm.enabled && pagoForm.metodo_pago === "EFECTIVO"
+            ? montoRecibido
+            : null,
+        no_cobrar: noCobroPagoForm.enabled,
+        no_cobrado_motivo: noCobroPagoForm.enabled ? noCobroPagoForm.motivo : null,
       });
       const ordenActualizada = response?.orden || {
         ...ordenPagoActiva,
-        metodo_pago: pagoForm.metodo_pago,
+        metodo_pago: noCobroPagoForm.enabled ? "NO_COBRADO" : pagoForm.metodo_pago,
         monto_recibido:
-          pagoForm.metodo_pago === "EFECTIVO" ? montoRecibido : null,
-        estado: "PAGADO",
+          !noCobroPagoForm.enabled && pagoForm.metodo_pago === "EFECTIVO"
+            ? montoRecibido
+            : null,
+        estado: noCobroPagoForm.enabled ? "NO_COBRADO" : "PAGADO",
+        no_cobrado_motivo: noCobroPagoForm.enabled ? noCobroPagoForm.motivo : null,
       };
       await cargarOrdenes(estadoFiltro);
 
@@ -565,7 +604,12 @@ function CarWashReparacion() {
       setPagoOrdenModalOpen(false);
       setOrdenPagoActiva(null);
       setPagoForm(EMPTY_PAGO);
-      setSuccess("Cobro registrado correctamente en caja.");
+      setNoCobroPagoForm(EMPTY_NO_COBRO_FORM);
+      setSuccess(
+        noCobroPagoForm.enabled
+          ? "Orden registrada como no cobrada."
+          : "Cobro registrado correctamente en caja."
+      );
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "No se pudo cobrar la orden.");
@@ -766,15 +810,11 @@ function CarWashReparacion() {
                 </Box>
                 {canManageCatalog && (
                   <Button
-                    component={RouterLink}
-                    to={{
-                      pathname: "/servicios/catalogo",
-                      search: `?modulo=REPARACION&editar=vehiculo${vehiculoId ? `&vehiculo=${vehiculoId}` : ""}`,
-                    }}
                     variant="outlined"
-                    startIcon={<EditIcon />}
+                    startIcon={<AddIcon />}
+                    onClick={() => setVehiculoModalOpen(true)}
                   >
-                    Editar vehiculo
+                    Agregar vehiculo
                   </Button>
                 )}
               </Stack>
@@ -882,39 +922,37 @@ function CarWashReparacion() {
                       <Typography variant="body2" color="text.secondary">Elige el trabajo a realizar.</Typography>
                     </Box>
                     {canManageCatalog && (
-                      <Button
-                        component={RouterLink}
-                        to={{
-                          pathname: "/servicios/catalogo",
-                          search: `?modulo=REPARACION&editar=servicio${vehiculoId ? `&vehiculo=${vehiculoId}` : ""}${servicioId ? `&servicio=${servicioId}` : ""}`,
-                        }}
-                        variant="outlined"
-                        startIcon={<BuildIcon />}
-                      >
-                        Editar en catalogo
-                      </Button>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<AddIcon />}
+                          onClick={() => abrirModalServicioNuevo()}
+                        >
+                          Agregar servicio
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          startIcon={<EditIcon />}
+                          onClick={() => {
+                            if (!servicioSeleccionado) return;
+                            setEditingServicioId(servicioSeleccionado.id_servicio_catalogo);
+                            setServicioForm({
+                              id_tipo_vehiculo: String(servicioSeleccionado.id_tipo_vehiculo),
+                              nombre: servicioSeleccionado.nombre,
+                              descripcion: servicioSeleccionado.descripcion || "",
+                              precio_base: String(servicioSeleccionado.precio_base || ""),
+                              duracion_minutos: String(servicioSeleccionado.duracion_minutos || ""),
+                              icono: servicioSeleccionado.icono || "build",
+                            });
+                            setServicioModalOpen(true);
+                          }}
+                          disabled={!servicioSeleccionado}
+                        >
+                          Editar servicio
+                        </Button>
+                      </Stack>
                     )}
                   </Stack>
-
-                  {canManageCatalog && (
-                    <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>
-                      El catalogo de reparacion ahora se administra desde Servicios &gt; Catalogo.
-                      <Box sx={{ mt: 1.5 }}>
-                        <Button
-                          component={RouterLink}
-                          to={{
-                            pathname: "/servicios/catalogo",
-                            search: `?modulo=REPARACION&editar=servicio${vehiculoId ? `&vehiculo=${vehiculoId}` : ""}${servicioId ? `&servicio=${servicioId}` : ""}`,
-                          }}
-                          size="small"
-                          variant="outlined"
-                          sx={{ borderRadius: 999 }}
-                        >
-                          Abrir catalogo
-                        </Button>
-                      </Box>
-                    </Alert>
-                  )}
 
                   <Stack spacing={2}>
                     {serviciosFiltrados.map((servicio) => {
@@ -930,7 +968,7 @@ function CarWashReparacion() {
                                 {canManageCatalog && (
                                   <Button
                                     size="small"
-                                    sx={{ display: "none" }}
+                                    sx={{ display: "inline-flex" }}
                                     onClick={() => {
                                       setEditingServicioId(servicio.id_servicio_catalogo);
                                       setServicioForm({
@@ -1093,7 +1131,19 @@ function CarWashReparacion() {
                         </Typography>
                       </Stack>
                     </Paper>
-                    {cobroForm.metodo_pago === "EFECTIVO" && (
+                    <NoCobroAuthorizationFields
+                      enabled={noCobroForm.enabled}
+                      onToggle={(checked) =>
+                        setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
+                      }
+                      form={noCobroForm}
+                      onChange={(field, value) =>
+                        setNoCobroForm((prev) => ({ ...prev, [field]: value }))
+                      }
+                      title="Registrar orden sin cobro"
+                      helperText="La reparacion se registrara como no cobrada y quedara pendiente de validacion al cierre de caja por un admin."
+                    />
+                    {cobroForm.metodo_pago === "EFECTIVO" && !noCobroForm.enabled && (
                       <TextField
                         label="Monto recibido"
                         type="number"
@@ -1119,9 +1169,22 @@ function CarWashReparacion() {
                       variant="contained"
                       color="success"
                       onClick={crearOrden}
-                      disabled={!cajaActiva || !vehiculoId || !servicioId || saving || (cobroForm.metodo_pago === "EFECTIVO" && faltante > 0)}
+                      disabled={
+                        !cajaActiva ||
+                        !vehiculoId ||
+                        !servicioId ||
+                        saving ||
+                        (!noCobroForm.enabled &&
+                          cobroForm.metodo_pago === "EFECTIVO" &&
+                          faltante > 0) ||
+                        (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
+                      }
                     >
-                      {saving ? "Procesando..." : "Crear orden y cobrar"}
+                      {saving
+                        ? "Procesando..."
+                        : noCobroForm.enabled
+                          ? "Registrar orden sin cobro"
+                          : "Crear orden y cobrar"}
                     </Button>
                   </Stack>
                 </Paper>
@@ -1237,16 +1300,21 @@ function CarWashReparacion() {
                                   color="success"
                                   variant="contained"
                                   onClick={() => abrirModalCobroOrden(orden)}
-                                  disabled={!cajaActiva}
+                                  disabled={!cajaActiva || orden.estado === "NO_COBRADO"}
                                 >
-                                  Cobrar orden
+                                  {orden.estado === "NO_COBRADO" ? "Pendiente de validacion" : "Cobrar orden"}
                                 </Button>
                               )}
                             </Stack>
                           </Paper>
-                          {!cajaActiva && orden.estado !== "PAGADO" && (
+                          {!cajaActiva && !["PAGADO", "NO_COBRADO"].includes(orden.estado) && (
                             <Alert severity="warning">
                               Debes abrir una caja para cobrar esta orden.
+                            </Alert>
+                          )}
+                          {orden.estado === "NO_COBRADO" && (
+                            <Alert severity="warning">
+                              Esta orden quedo registrada sin cobro y debera validarse con un admin antes del cierre de caja.
                             </Alert>
                           )}
                           {Array.isArray(orden.productos_usados) && orden.productos_usados.length > 0 && (
@@ -1624,7 +1692,12 @@ function CarWashReparacion() {
 
       <Dialog
         open={pagoOrdenModalOpen}
-        onClose={() => !saving && setPagoOrdenModalOpen(false)}
+        onClose={() => {
+          if (saving) return;
+          setPagoOrdenModalOpen(false);
+          setOrdenPagoActiva(null);
+          setNoCobroPagoForm(EMPTY_NO_COBRO_FORM);
+        }}
         fullWidth
         maxWidth="sm"
       >
@@ -1668,7 +1741,19 @@ function CarWashReparacion() {
                 <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
               </Select>
             </FormControl>
-            {pagoForm.metodo_pago === "EFECTIVO" && (
+            <NoCobroAuthorizationFields
+              enabled={noCobroPagoForm.enabled}
+              onToggle={(checked) =>
+                setNoCobroPagoForm((prev) => ({ ...prev, enabled: checked }))
+              }
+              form={noCobroPagoForm}
+              onChange={(field, value) =>
+                setNoCobroPagoForm((prev) => ({ ...prev, [field]: value }))
+              }
+              title="Registrar orden sin cobro"
+              helperText="La orden quedara como no cobrada y debera validarse por un admin antes de cerrar la caja."
+            />
+            {pagoForm.metodo_pago === "EFECTIVO" && !noCobroPagoForm.enabled && (
               <TextField
                 label="Monto recibido"
                 type="number"
@@ -1696,6 +1781,7 @@ function CarWashReparacion() {
               if (saving) return;
               setPagoOrdenModalOpen(false);
               setOrdenPagoActiva(null);
+              setNoCobroPagoForm(EMPTY_NO_COBRO_FORM);
             }}
           >
             Cancelar
@@ -1704,9 +1790,16 @@ function CarWashReparacion() {
             variant="contained"
             color="success"
             onClick={guardarCobroOrden}
-            disabled={!cajaActiva || saving || (pagoForm.metodo_pago === "EFECTIVO" && faltante > 0)}
+            disabled={
+              !cajaActiva ||
+              saving ||
+              (!noCobroPagoForm.enabled &&
+                pagoForm.metodo_pago === "EFECTIVO" &&
+                faltante > 0) ||
+              (noCobroPagoForm.enabled && !String(noCobroPagoForm.motivo || "").trim())
+            }
           >
-            Registrar cobro
+            {noCobroPagoForm.enabled ? "Registrar sin cobro" : "Registrar cobro"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -32,5 +32,9 @@ export const getDefaultRoute = (user) => {
     return "/ventas";
   }
 
+   if (userHasRole(user, "MECANICO")) {
+    return "/carwash/reparacion";
+  }
+
   return "/login";
 };

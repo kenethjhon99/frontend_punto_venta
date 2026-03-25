@@ -58,6 +58,15 @@ function Header() {
       };
     }
 
+    if (roleNames.includes("MECANICO")) {
+      return {
+        label: "Modo mecanico",
+        chipColor: "warning",
+        accent: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(249,115,22,0.12))",
+        borderColor: "rgba(245,158,11,0.3)",
+      };
+    }
+
     return {
       label: "Modo general",
       chipColor: "default",
@@ -70,6 +79,7 @@ function Header() {
     const pathname = location.pathname;
     const isAdminView = userHasRole(user, "SUPER_ADMIN", "ADMIN");
     const isCashierView = userHasRole(user, "CAJERO");
+    const isMechanicView = userHasRole(user, "MECANICO");
 
     const sections = {
       "/dashboard": {
@@ -120,7 +130,9 @@ function Header() {
       },
       "/servicios": {
         title: "Servicios",
-        subtitle: "Accede rapidamente a autolavado y reparacion desde un solo modulo.",
+        subtitle: isMechanicView
+          ? "Accede a los trabajos de taller y seguimiento del servicio."
+          : "Accede rapidamente a autolavado y reparacion desde un solo modulo.",
       },
       "/servicios/catalogo": {
         title: "Servicios - Catalogo",
@@ -131,7 +143,7 @@ function Header() {
         subtitle: "Gestiona el flujo operativo del area de autolavado.",
       },
       "/carwash/reparacion": {
-        title: "Servicios - Reparacion",
+        title: isMechanicView ? "Taller mecanico" : "Servicios - Reparacion",
         subtitle: "Organiza trabajos de taller, diagnosticos y mantenimientos.",
       },
     };
