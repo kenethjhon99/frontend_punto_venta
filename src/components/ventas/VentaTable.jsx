@@ -13,12 +13,17 @@ import {
   Chip,
   Stack,
   Tooltip,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 
 function VentaTable({ items, onCambiarCantidad, onEliminar }) {
+  const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("md"));
+
   if (!items.length) {
     return (
       <Paper
@@ -39,6 +44,87 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
           </Typography>
         </Stack>
       </Paper>
+    );
+  }
+
+  if (esMovil) {
+    return (
+      <Stack spacing={1.5}>
+        {items.map((item) => (
+          <Paper
+            key={item.id_producto}
+            variant="outlined"
+            sx={{ p: 2, borderRadius: 3 }}
+          >
+            <Stack spacing={1.5}>
+              <Box display="flex" justifyContent="space-between" gap={2}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography fontWeight={700}>{item.nombre}</Typography>
+                  {item.codigo_barras && (
+                    <Typography variant="body2" color="text.secondary">
+                      {item.codigo_barras}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Chip
+                  label={`Stock ${item.stock}`}
+                  size="small"
+                  color={item.stock <= 5 ? "warning" : "primary"}
+                  variant="outlined"
+                />
+              </Box>
+
+              <Stack direction="row" justifyContent="space-between" spacing={2}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Precio
+                  </Typography>
+                  <Typography fontWeight={600}>
+                    Q {Number(item.precio_venta).toFixed(2)}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Subtotal
+                  </Typography>
+                  <Typography fontWeight="bold" color="primary.main">
+                    Q {(Number(item.precio_venta) * Number(item.cantidad)).toFixed(2)}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
+                <TextField
+                  type="number"
+                  size="small"
+                  label="Cantidad"
+                  value={item.cantidad}
+                  onChange={(e) =>
+                    onCambiarCantidad(item.id_producto, Number(e.target.value))
+                  }
+                  inputProps={{
+                    min: 1,
+                    max: item.stock,
+                    style: { textAlign: "center" },
+                  }}
+                  sx={{ width: 120 }}
+                />
+
+                <Tooltip title="Quitar producto">
+                  <IconButton
+                    color="error"
+                    onClick={() => onEliminar(item.id_producto)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Stack>
+          </Paper>
+        ))}
+      </Stack>
     );
   }
 

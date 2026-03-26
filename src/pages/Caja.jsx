@@ -27,7 +27,9 @@ import {
   TableRow,
   TextField,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 import {
@@ -82,6 +84,8 @@ const EGRESO_CATEGORIAS = [
 ];
 
 function Caja() {
+  const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("md"));
   const { user } = useAuth();
   const resumenSesionRef = useRef(null);
   const [sesionActiva, setSesionActiva] = useState(null);
@@ -1843,80 +1847,148 @@ function Caja() {
               </Stack>
             </Stack>
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Cajero</TableCell>
-                    <TableCell>Fecha apertura</TableCell>
-                    <TableCell>Fecha cierre</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Monto apertura</TableCell>
-                    <TableCell>Cierre calculado</TableCell>
-                    <TableCell>Diferencia</TableCell>
-                    <TableCell>Accion</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sesiones.map((sesion) => (
-                    <TableRow
+            {esMovil ? (
+              <Stack spacing={1.5}>
+                {sesiones.map((sesion) => {
+                  const selected =
+                    Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion);
+
+                  return (
+                    <Paper
                       key={sesion.id_caja_sesion}
-                      hover
-                      selected={Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)}
-                      sx={
-                        Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)
-                          ? {
-                              "& td": {
-                                backgroundColor: "rgba(59,130,246,0.10)",
-                              },
-                            }
-                          : undefined
-                      }
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        borderColor: selected ? "primary.main" : "divider",
+                        backgroundColor: selected ? "rgba(59,130,246,0.08)" : "transparent",
+                      }}
                     >
-                      <TableCell>
-                        <Typography fontWeight="bold">
-                          {sesion.nombre || sesion.username}
+                      <Stack spacing={1.25}>
+                        <Box display="flex" justifyContent="space-between" gap={2}>
+                          <Box>
+                            <Typography fontWeight="bold">
+                              {sesion.nombre || sesion.username}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {sesion.username}
+                            </Typography>
+                          </Box>
+
+                          <Chip
+                            label={sesion.estado}
+                            color={sesion.estado === "ABIERTA" ? "success" : "default"}
+                            size="small"
+                          />
+                        </Box>
+
+                        <Typography variant="body2" color="text.secondary">
+                          Apertura: {formatDateTime(sesion.fecha_apertura)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {sesion.username}
+                          Cierre: {sesion.fecha_cierre ? formatDateTime(sesion.fecha_cierre) : "Pendiente"}
                         </Typography>
-                      </TableCell>
-                      <TableCell>{formatDateTime(sesion.fecha_apertura)}</TableCell>
-                      <TableCell>
-                        {sesion.fecha_cierre ? formatDateTime(sesion.fecha_cierre) : "Pendiente"}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={sesion.estado}
-                          color={sesion.estado === "ABIERTA" ? "success" : "default"}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{formatCurrency(sesion.monto_apertura)}</TableCell>
-                      <TableCell>
-                        {sesion.monto_cierre_calculado != null
-                          ? formatCurrency(sesion.monto_cierre_calculado)
-                          : "Pendiente"}
-                      </TableCell>
-                      <TableCell>
-                        {sesion.diferencia != null ? formatCurrency(sesion.diferencia) : "Pendiente"}
-                      </TableCell>
-                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          Monto apertura: {formatCurrency(sesion.monto_apertura)}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Cierre calculado: {sesion.monto_cierre_calculado != null
+                            ? formatCurrency(sesion.monto_cierre_calculado)
+                            : "Pendiente"}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Diferencia: {sesion.diferencia != null ? formatCurrency(sesion.diferencia) : "Pendiente"}
+                        </Typography>
+
                         <Button
                           size="small"
                           onClick={() => verResumenSesion(sesion.id_caja_sesion)}
                           disabled={loadingAction}
+                          fullWidth
                         >
-                          {Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)
-                            ? "Resumen abierto"
-                            : "Ver resumen"}
+                          {selected ? "Resumen abierto" : "Ver resumen"}
                         </Button>
-                      </TableCell>
+                      </Stack>
+                    </Paper>
+                  );
+                })}
+              </Stack>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Cajero</TableCell>
+                      <TableCell>Fecha apertura</TableCell>
+                      <TableCell>Fecha cierre</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell>Monto apertura</TableCell>
+                      <TableCell>Cierre calculado</TableCell>
+                      <TableCell>Diferencia</TableCell>
+                      <TableCell>Accion</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {sesiones.map((sesion) => (
+                      <TableRow
+                        key={sesion.id_caja_sesion}
+                        hover
+                        selected={Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)}
+                        sx={
+                          Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)
+                            ? {
+                                "& td": {
+                                  backgroundColor: "rgba(59,130,246,0.10)",
+                                },
+                              }
+                            : undefined
+                        }
+                      >
+                        <TableCell>
+                          <Typography fontWeight="bold">
+                            {sesion.nombre || sesion.username}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {sesion.username}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{formatDateTime(sesion.fecha_apertura)}</TableCell>
+                        <TableCell>
+                          {sesion.fecha_cierre ? formatDateTime(sesion.fecha_cierre) : "Pendiente"}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={sesion.estado}
+                            color={sesion.estado === "ABIERTA" ? "success" : "default"}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{formatCurrency(sesion.monto_apertura)}</TableCell>
+                        <TableCell>
+                          {sesion.monto_cierre_calculado != null
+                            ? formatCurrency(sesion.monto_cierre_calculado)
+                            : "Pendiente"}
+                        </TableCell>
+                        <TableCell>
+                          {sesion.diferencia != null ? formatCurrency(sesion.diferencia) : "Pendiente"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="small"
+                            onClick={() => verResumenSesion(sesion.id_caja_sesion)}
+                            disabled={loadingAction}
+                          >
+                            {Number(selectedSesion?.id_caja_sesion) === Number(sesion.id_caja_sesion)
+                              ? "Resumen abierto"
+                              : "Ver resumen"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
 
             <TablePagination
               component="div"
