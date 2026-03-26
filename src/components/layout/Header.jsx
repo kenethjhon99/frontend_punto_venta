@@ -6,6 +6,7 @@ import { userHasRole } from "../../utils/roles";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LogoutIcon from "@mui/icons-material/Logout";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 
 import {
   AppBar,
@@ -18,7 +19,7 @@ import {
   IconButton,
 } from "@mui/material";
 
-function Header() {
+function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -167,7 +168,23 @@ function Header() {
           alignItems: "center",
         }}
       >
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+          {showMobileMenuButton && (
+            <IconButton
+              onClick={onOpenMobileMenu}
+              color="inherit"
+              sx={{
+                display: { xs: "inline-flex", md: "none" },
+                mt: 0.25,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <MenuRoundedIcon />
+            </IconButton>
+          )}
+
+          <Box sx={{ minWidth: 0 }}>
           <Chip
             label={roleMeta.label}
             size="small"
@@ -180,6 +197,7 @@ function Header() {
           <Typography variant="body2" color="text.secondary">
             {headerContent.subtitle}
           </Typography>
+          </Box>
         </Box>
 
         <Box

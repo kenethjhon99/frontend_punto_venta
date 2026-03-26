@@ -13,6 +13,8 @@ import {
   Box,
   IconButton,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -35,9 +37,13 @@ function Sidebar({
   collapsed = false,
   onToggleCollapse = () => {},
   onCollapse = () => {},
+  mobileOpen = false,
+  onMobileClose = () => {},
 }) {
   const location = useLocation();
   const { user } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const menu = [
     {
@@ -110,12 +116,15 @@ function Sidebar({
 
   return (
     <Drawer
-      variant="permanent"
+      variant={isMobile ? "temporary" : "permanent"}
+      open={isMobile ? mobileOpen : true}
+      onClose={isMobile ? onMobileClose : undefined}
+      ModalProps={isMobile ? { keepMounted: true } : undefined}
       sx={{
-        width: collapsed ? collapsedDrawerWidth : drawerWidth,
+        width: isMobile ? drawerWidth : collapsed ? collapsedDrawerWidth : drawerWidth,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          width: collapsed ? collapsedDrawerWidth : drawerWidth,
+          width: isMobile ? drawerWidth : collapsed ? collapsedDrawerWidth : drawerWidth,
           boxSizing: "border-box",
           backgroundColor: "#111827",
           color: "#fff",
@@ -129,14 +138,14 @@ function Sidebar({
       }}
     >
       <Toolbar sx={{ display: "flex", justifyContent: collapsed ? "center" : "space-between", gap: 1 }}>
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <Typography variant="h6" fontWeight="bold" noWrap>
             POS System
           </Typography>
         )}
         <Tooltip title={collapsed ? "Expandir menu" : "Ocultar menu"}>
           <IconButton
-            onClick={onToggleCollapse}
+            onClick={isMobile ? onMobileClose : onToggleCollapse}
             sx={{
               color: "#fff",
               border: "2px solid rgba(255,255,255,0.85)",
@@ -160,13 +169,18 @@ function Sidebar({
                 component={Link}
                 to={item.path}
                 onClick={() => {
+                  if (isMobile) {
+                    onMobileClose();
+                    return;
+                  }
+
                   if (!collapsed) onCollapse();
                 }}
                 selected={location.pathname === item.path}
                 sx={{
                   minHeight: 48,
                   px: 2,
-                  justifyContent: collapsed ? "center" : "initial",
+                  justifyContent: collapsed && !isMobile ? "center" : "initial",
                   "&.Mui-selected": {
                     backgroundColor: "#1d4ed8",
                   },
@@ -179,13 +193,13 @@ function Sidebar({
                   sx={{
                     color: "#fff",
                     minWidth: 0,
-                    mr: collapsed ? 0 : 2,
+                    mr: collapsed && !isMobile ? 0 : 2,
                     justifyContent: "center",
                   }}
                 >
                   {item.icon}
                 </ListItemIcon>
-                {!collapsed && <ListItemText primary={item.text} />}
+                {(!collapsed || isMobile) && <ListItemText primary={item.text} />}
               </ListItemButton>
             </Tooltip>
           ))}
