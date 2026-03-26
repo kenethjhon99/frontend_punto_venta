@@ -30,9 +30,27 @@ function ProductoTable({
   onDelete,
   onViewKardex,
   canManage = true,
+  showModulo = false,
 }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
+
+  const getModuloChip = (modulo) => {
+    const normalized = String(modulo || "GENERAL").toUpperCase();
+
+    if (normalized === "SERVICIOS") {
+      return <Chip label="Tienda" color="secondary" size="small" />;
+    }
+
+    return (
+      <Chip
+        label="General"
+        color="primary"
+        size="small"
+        variant="outlined"
+      />
+    );
+  };
 
   if (!productos.length) {
     return (
@@ -60,13 +78,18 @@ function ProductoTable({
             >
               <CardContent>
                 <Stack spacing={1.5}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                    gap={2}
+                  >
                     <Box>
                       <Typography variant="h6" fontWeight="bold">
                         {producto.nombre}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Código: {producto.codigo_barras || "-"}
+                        Codigo: {producto.codigo_barras || "-"}
                       </Typography>
                     </Box>
 
@@ -80,9 +103,18 @@ function ProductoTable({
 
                   <Divider />
 
+                  {showModulo && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Modulo
+                      </Typography>
+                      <Box mt={0.5}>{getModuloChip(producto.modulo_origen)}</Box>
+                    </Box>
+                  )}
+
                   <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Descripción
+                      Descripcion
                     </Typography>
                     <Typography variant="body1">
                       {producto.descripcion || "-"}
@@ -112,7 +144,10 @@ function ProductoTable({
                   <Box display="flex" justifyContent="flex-end" gap={1}>
                     {onViewKardex && (
                       <Tooltip title="Ver kardex">
-                        <IconButton color="secondary" onClick={() => onViewKardex(producto)}>
+                        <IconButton
+                          color="secondary"
+                          onClick={() => onViewKardex(producto)}
+                        >
                           <TimelineIcon />
                         </IconButton>
                       </Tooltip>
@@ -121,13 +156,19 @@ function ProductoTable({
                     {canManage && (
                       <>
                         <Tooltip title="Editar producto">
-                          <IconButton color="primary" onClick={() => onEdit(producto)}>
+                          <IconButton
+                            color="primary"
+                            onClick={() => onEdit(producto)}
+                          >
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Desactivar producto">
-                          <IconButton color="error" onClick={() => onDelete(producto)}>
+                          <IconButton
+                            color="error"
+                            onClick={() => onDelete(producto)}
+                          >
                             <DeleteOutlineIcon />
                           </IconButton>
                         </Tooltip>
@@ -145,13 +186,16 @@ function ProductoTable({
 
   return (
     <TableContainer component={Paper} elevation={0}>
-      <Table sx={{ minWidth: 1000 }}>
+      <Table sx={{ minWidth: showModulo ? 1120 : 1000 }}>
         <TableHead>
           <TableRow sx={{ backgroundColor: "#f8fafc" }}>
             <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Código</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Codigo</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Descripción</TableCell>
+            {showModulo && (
+              <TableCell sx={{ fontWeight: "bold" }}>Modulo</TableCell>
+            )}
+            <TableCell sx={{ fontWeight: "bold" }}>Descripcion</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Compra</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Venta</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
@@ -178,10 +222,11 @@ function ProductoTable({
                 <TableCell>
                   <Typography fontWeight={600}>{producto.nombre}</Typography>
                 </TableCell>
+                {showModulo && (
+                  <TableCell>{getModuloChip(producto.modulo_origen)}</TableCell>
+                )}
                 <TableCell>{producto.descripcion || "-"}</TableCell>
-                <TableCell>
-                  Q {Number(producto.precio_compra).toFixed(2)}
-                </TableCell>
+                <TableCell>Q {Number(producto.precio_compra).toFixed(2)}</TableCell>
                 <TableCell>
                   <Typography fontWeight={600}>
                     Q {Number(producto.precio_venta).toFixed(2)}
@@ -199,7 +244,10 @@ function ProductoTable({
                   <Stack direction="row" spacing={1} justifyContent="center">
                     {onViewKardex && (
                       <Tooltip title="Ver kardex">
-                        <IconButton color="secondary" onClick={() => onViewKardex(producto)}>
+                        <IconButton
+                          color="secondary"
+                          onClick={() => onViewKardex(producto)}
+                        >
                           <TimelineIcon />
                         </IconButton>
                       </Tooltip>
@@ -208,13 +256,19 @@ function ProductoTable({
                     {canManage && (
                       <>
                         <Tooltip title="Editar producto">
-                          <IconButton color="primary" onClick={() => onEdit(producto)}>
+                          <IconButton
+                            color="primary"
+                            onClick={() => onEdit(producto)}
+                          >
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Desactivar producto">
-                          <IconButton color="error" onClick={() => onDelete(producto)}>
+                          <IconButton
+                            color="error"
+                            onClick={() => onDelete(producto)}
+                          >
                             <DeleteOutlineIcon />
                           </IconButton>
                         </Tooltip>

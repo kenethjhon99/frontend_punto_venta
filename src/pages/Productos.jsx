@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductoFormModal from "../components/productos/ProductoFormModal";
 import ProductoTable from "../components/productos/ProductoTable";
@@ -19,6 +19,10 @@ import {
   Alert,
   CircularProgress,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -26,22 +30,41 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 
+const MODULO_OPTIONS = [
+  { value: "TODOS", label: "Todos" },
+  { value: "GENERAL", label: "General" },
+  { value: "SERVICIOS", label: "Tienda" },
+];
+
 function Productos() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [scopeFiltro, setScopeFiltro] = useState("GENERAL");
   const [modalOpen, setModalOpen] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingLista, setLoadingLista] = useState(true);
   const [error, setError] = useState("");
 
-  const cargarProductos = async () => {
+  const canManageProductos = useMemo(() => {
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  }, [user]);
+
+  const canFilterScopes = useMemo(() => {
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  }, [user]);
+
+  const cargarProductos = useCallback(async () => {
     try {
       setLoadingLista(true);
       setError("");
-      const data = await getProductos();
+
+      const scope =
+        canFilterScopes && scopeFiltro === "TODOS" ? undefined : scopeFiltro;
+
+      const data = await getProductos({ scope });
       setProductos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
@@ -49,27 +72,28 @@ function Productos() {
     } finally {
       setLoadingLista(false);
     }
-  };
+  }, [canFilterScopes, scopeFiltro]);
 
   useEffect(() => {
+    if (!canFilterScopes && scopeFiltro !== "GENERAL") {
+      setScopeFiltro("GENERAL");
+      return;
+    }
+
     cargarProductos();
-  }, []);
+  }, [cargarProductos, canFilterScopes, scopeFiltro]);
 
   const productosFiltrados = useMemo(() => {
     const texto = busqueda.toLowerCase();
 
-    return productos.filter((p) => {
+    return productos.filter((producto) => {
       return (
-        String(p.nombre || "").toLowerCase().includes(texto) ||
-        String(p.descripcion || "").toLowerCase().includes(texto) ||
-        String(p.codigo_barras || "").toLowerCase().includes(texto)
+        String(producto.nombre || "").toLowerCase().includes(texto) ||
+        String(producto.descripcion || "").toLowerCase().includes(texto) ||
+        String(producto.codigo_barras || "").toLowerCase().includes(texto)
       );
     });
   }, [productos, busqueda]);
-
-  const canManageProductos = useMemo(() => {
-    return userHasRole(user, "ADMIN");
-  }, [user]);
 
   const abrirNuevo = () => {
     setProductoEditando(null);
@@ -108,7 +132,7 @@ function Productos() {
 
   const eliminarProducto = async (producto) => {
     const confirmar = window.confirm(
-      `¿Deseas desactivar el producto "${producto.nombre}"?`
+      `Deseas desactivar el producto "${producto.nombre}"?`
     );
 
     if (!confirmar) return;
@@ -144,7 +168,7 @@ function Productos() {
           </Stack>
 
           <Typography variant="body1" color="text.secondary">
-            Administra el catálogo de productos de tu punto de venta
+            Administra el catalogo general y los productos exclusivos de tienda sin mezclar ambos flujos.
           </Typography>
         </Box>
 
@@ -169,7 +193,8 @@ function Productos() {
 
       {!canManageProductos && (
         <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-          Puedes consultar el catalogo de productos, pero solo un administrador puede crear, editar o desactivar.
+          Puedes consultar el catalogo general, pero solo un administrador
+          puede crear, editar o desactivar productos. Los productos marcados como tienda quedan disponibles solo en Servicios &gt; Tienda.
         </Alert>
       )}
 
@@ -181,13 +206,33 @@ function Productos() {
           borderRadius: 3,
         }}
       >
-        <TextField
-          fullWidth
-          label="Buscar producto"
-          placeholder="Buscar por nombre, descripción o código..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <TextField
+            fullWidth={!canFilterScopes}
+            label="Buscar producto"
+            placeholder="Buscar por nombre, descripcion o codigo..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+
+          {canFilterScopes && (
+            <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
+              <InputLabel id="productos-modulo-label">Modulo</InputLabel>
+              <Select
+                labelId="productos-modulo-label"
+                label="Modulo"
+                value={scopeFiltro}
+                onChange={(e) => setScopeFiltro(e.target.value)}
+              >
+                {MODULO_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </Stack>
       </Paper>
 
       {error && (
@@ -209,9 +254,7 @@ function Productos() {
           }}
         >
           <CircularProgress />
-          <Typography color="text.secondary">
-            Cargando productos...
-          </Typography>
+          <Typography color="text.secondary">Cargando productos...</Typography>
         </Paper>
       ) : (
         <Paper
@@ -227,13 +270,16 @@ function Productos() {
             onDelete={eliminarProducto}
             onViewKardex={verKardexProducto}
             canManage={canManageProductos}
+            showModulo={canFilterScopes}
           />
         </Paper>
       )}
 
       {canManageProductos && (
         <ProductoFormModal
-          key={`${productoEditando?.id_producto ?? "new"}-${modalOpen ? "open" : "closed"}`}
+          key={`${productoEditando?.id_producto ?? "new"}-${
+            modalOpen ? "open" : "closed"
+          }`}
           open={modalOpen}
           onClose={cerrarModal}
           onSave={guardarProducto}

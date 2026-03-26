@@ -18,6 +18,7 @@ const Usuarios = lazy(() => import("../pages/Usuarios"));
 const Auditoria = lazy(() => import("../pages/Auditoria"));
 const Caja = lazy(() => import("../pages/Caja"));
 const Servicios = lazy(() => import("../pages/Servicios"));
+const ServiciosTienda = lazy(() => import("../pages/ServiciosTienda"));
 const CarWashAutolavado = lazy(() => import("../pages/CarWashAutolavado"));
 const CarWashReparacion = lazy(() => import("../pages/CarWashReparacion"));
 
@@ -151,6 +152,14 @@ function AppRouter() {
               element={
                 <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"]}>
                   <Servicios />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/servicios/tienda"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"]}>
+                  <ServiciosTienda />
                 </ProtectedRoute>
               }
             />

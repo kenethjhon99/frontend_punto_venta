@@ -1,5 +1,6 @@
 import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
 import BuildIcon from "@mui/icons-material/Build";
+import StorefrontIcon from "@mui/icons-material/Storefront";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import {
   Box,
@@ -29,6 +30,14 @@ function Servicios() {
       accent: "linear-gradient(135deg, rgba(148,163,184,0.28), rgba(59,130,246,0.12))",
       borderColor: "rgba(148,163,184,0.3)",
     },
+    {
+      title: "Tienda",
+      description: "Registra ventas de productos exclusivos de tienda sin mezclar el catalogo general del POS.",
+      to: "/servicios/tienda",
+      icon: <StorefrontIcon sx={{ fontSize: 34 }} />,
+      accent: "linear-gradient(135deg, rgba(34,197,94,0.24), rgba(16,185,129,0.12))",
+      borderColor: "rgba(34,197,94,0.32)",
+    },
   ];
 
   return (
@@ -39,7 +48,7 @@ function Servicios() {
             Servicios
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Selecciona el area de trabajo para autolavado o reparacion.
+            Selecciona el area de trabajo para autolavado, reparacion o venta de tienda.
           </Typography>
         </Stack>
 
@@ -50,6 +59,7 @@ function Servicios() {
             gridTemplateColumns: {
               xs: "1fr",
               md: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(3, minmax(0, 1fr))",
             },
           }}
         >

@@ -10,6 +10,10 @@ import {
   Grid,
   Typography,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 
 const initialState = {
@@ -21,6 +25,7 @@ const initialState = {
   existencia_inicial: "",
   stock_minimo: "",
   ubicacion: "",
+  modulo_origen: "GENERAL",
 };
 
 const buildFormState = (productoEditando) => {
@@ -37,6 +42,7 @@ const buildFormState = (productoEditando) => {
     existencia_inicial: productoEditando.stock ?? 0,
     stock_minimo: productoEditando.stock_minimo ?? 0,
     ubicacion: productoEditando.ubicacion || "",
+    modulo_origen: productoEditando.modulo_origen || "GENERAL",
   };
 };
 
@@ -49,8 +55,8 @@ function ProductoFormModal({
 }) {
   const [form, setForm] = useState(() => buildFormState(productoEditando));
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
     setForm((prev) => ({
       ...prev,
@@ -58,8 +64,8 @@ function ProductoFormModal({
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     onSave({
       codigo_barras: form.codigo_barras,
@@ -70,16 +76,12 @@ function ProductoFormModal({
       existencia_inicial: Number(form.existencia_inicial || 0),
       stock_minimo: Number(form.stock_minimo || 0),
       ubicacion: form.ubicacion || null,
+      modulo_origen: form.modulo_origen,
     });
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Typography variant="h6" fontWeight="bold">
           {productoEditando ? "Editar producto" : "Nuevo producto"}
@@ -90,7 +92,7 @@ function ProductoFormModal({
         <Grid container spacing={2} mt={1}>
           <Grid item xs={12} md={6}>
             <TextField
-              label="Código de barras"
+              label="Codigo de barras"
               name="codigo_barras"
               value={form.codigo_barras}
               onChange={handleChange}
@@ -110,9 +112,36 @@ function ProductoFormModal({
             />
           </Grid>
 
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel id="producto-modulo-label">Catalogo</InputLabel>
+              <Select
+                labelId="producto-modulo-label"
+                name="modulo_origen"
+                label="Catalogo"
+                value={form.modulo_origen}
+                onChange={handleChange}
+              >
+                <MenuItem value="GENERAL">General</MenuItem>
+                <MenuItem value="SERVICIOS">Tienda</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Ubicacion"
+              name="ubicacion"
+              value={form.ubicacion}
+              onChange={handleChange}
+              fullWidth
+              placeholder="Ej. Estante A-1"
+            />
+          </Grid>
+
           <Grid item xs={12}>
             <TextField
-              label="Descripción"
+              label="Descripcion"
               name="descripcion"
               value={form.descripcion}
               onChange={handleChange}
@@ -163,24 +192,13 @@ function ProductoFormModal({
 
           <Grid item xs={12} md={6}>
             <TextField
-              label="Stock mínimo"
+              label="Stock minimo"
               name="stock_minimo"
               type="number"
               value={form.stock_minimo}
               onChange={handleChange}
               fullWidth
               inputProps={{ min: 0 }}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Ubicación"
-              name="ubicacion"
-              value={form.ubicacion}
-              onChange={handleChange}
-              fullWidth
-              placeholder="Ej. Estante A-1"
             />
           </Grid>
         </Grid>
@@ -191,11 +209,7 @@ function ProductoFormModal({
           Cancelar
         </Button>
 
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={loading}
-        >
+        <Button variant="contained" onClick={handleSubmit} disabled={loading}>
           {loading ? (
             <CircularProgress size={24} color="inherit" />
           ) : productoEditando ? (

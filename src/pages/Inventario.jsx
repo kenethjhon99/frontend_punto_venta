@@ -42,6 +42,12 @@ const MOVIMIENTO_OPTIONS = [
   { value: "AJUSTE", label: "Ajustes" },
 ];
 
+const MODULO_OPTIONS = [
+  { value: "", label: "Todos" },
+  { value: "GENERAL", label: "General" },
+  { value: "SERVICIOS", label: "Tienda" },
+];
+
 const formatDateTime = (value) => {
   if (!value) return "-";
 
@@ -66,6 +72,24 @@ const getTipoColor = (tipo) => {
   return "default";
 };
 
+const getModuloChip = (moduloOrigen) => {
+  const modulo = String(moduloOrigen || "GENERAL").trim().toUpperCase();
+
+  if (modulo === "SERVICIOS") {
+    return {
+      label: "Tienda",
+      color: "success",
+      variant: "filled",
+    };
+  }
+
+  return {
+    label: "General",
+    color: "primary",
+    variant: "outlined",
+  };
+};
+
 const toCsvValue = (value) => {
   const normalized = String(value ?? "");
   return `"${normalized.replaceAll('"', '""')}"`;
@@ -80,6 +104,7 @@ function Inventario() {
   );
   const [busquedaProducto, setBusquedaProducto] = useState("");
   const [busquedaMovimiento, setBusquedaMovimiento] = useState("");
+  const [moduloFiltro, setModuloFiltro] = useState("");
   const [tipoMovimiento, setTipoMovimiento] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
@@ -154,6 +179,10 @@ function Inventario() {
     const texto = busquedaProducto.trim().toLowerCase();
 
     return stockRows.filter((producto) => {
+      const matchesModulo =
+        !moduloFiltro ||
+        String(producto.modulo_origen || "GENERAL").trim().toUpperCase() === moduloFiltro;
+
       const matchesSearch =
         !texto ||
         String(producto.nombre || "").toLowerCase().includes(texto) ||
@@ -162,9 +191,9 @@ function Inventario() {
 
       const matchesLowStock = !soloBajoMinimo || Boolean(producto.bajo_minimo);
 
-      return matchesSearch && matchesLowStock;
+      return matchesModulo && matchesSearch && matchesLowStock;
     });
-  }, [stockRows, busquedaProducto, soloBajoMinimo]);
+  }, [stockRows, busquedaProducto, moduloFiltro, soloBajoMinimo]);
 
   const selectedProduct = useMemo(() => {
     return stockRows.find(
@@ -173,7 +202,7 @@ function Inventario() {
   }, [stockRows, selectedProductId]);
 
   const resumenInventario = useMemo(() => {
-    return stockRows.reduce(
+    return productosFiltrados.reduce(
       (acc, producto) => {
         const existencia = Number(producto.existencia || 0);
         const stockMinimo = Number(producto.stock_minimo || 0);
@@ -186,15 +215,24 @@ function Inventario() {
         return acc;
       },
       {
-        productos: stockRows.length,
+        productos: productosFiltrados.length,
         unidades: 0,
         bajoMinimo: 0,
       }
     );
-  }, [stockRows]);
+  }, [productosFiltrados]);
+
+  const movimientosFiltrados = useMemo(() => {
+    if (!moduloFiltro) return movimientos;
+
+    return movimientos.filter(
+      (movimiento) =>
+        String(movimiento.producto_modulo_origen || "GENERAL").trim().toUpperCase() === moduloFiltro
+    );
+  }, [movimientos, moduloFiltro]);
 
   const resumenMovimientos = useMemo(() => {
-    return movimientos.reduce(
+    return movimientosFiltrados.reduce(
       (acc, movimiento) => {
         const cantidad = Number(movimiento.cantidad || 0);
         if (movimiento.tipo === "ENTRADA") acc.entradas += cantidad;
@@ -204,7 +242,7 @@ function Inventario() {
       },
       { entradas: 0, salidas: 0, ajustes: 0 }
     );
-  }, [movimientos]);
+  }, [movimientosFiltrados]);
 
   const valorEstimadoStock = useMemo(() => {
     if (!selectedProduct) return 0;
@@ -213,12 +251,13 @@ function Inventario() {
   }, [selectedProduct]);
 
   const ultimoMovimiento = useMemo(() => {
-    return movimientos[0] || null;
-  }, [movimientos]);
+    return movimientosFiltrados[0] || null;
+  }, [movimientosFiltrados]);
 
   const limpiarFiltros = () => {
     setBusquedaProducto("");
     setBusquedaMovimiento("");
+    setModuloFiltro("");
     setTipoMovimiento("");
     setDesde("");
     setHasta("");
@@ -268,7 +307,7 @@ function Inventario() {
       setExportingPdf(true);
       setError("");
 
-      if (!movimientos.length) {
+      if (!movimientosFiltrados.length) {
         setError("No hay movimientos visibles para exportar en PDF.");
         return;
       }
@@ -279,10 +318,11 @@ function Inventario() {
           : "Kardex de inventario",
         html: buildKardexHtml({
           producto: selectedProduct,
-          movimientos,
+          movimientos: movimientosFiltrados,
           filtros: {
             desde,
             hasta,
+            modulo: moduloFiltro || "Todos",
             tipo: tipoMovimiento || "Todos",
             q: busquedaMovimiento,
           },
@@ -304,7 +344,7 @@ function Inventario() {
       setExportingExcel(true);
       setError("");
 
-      if (!movimientos.length) {
+      if (!movimientosFiltrados.length) {
         setError("No hay movimientos visibles para exportar a Excel.");
         return;
       }
@@ -313,6 +353,7 @@ function Inventario() {
         ["KARDEX DE INVENTARIO"],
         ["Producto", selectedProduct?.nombre || "Todos los productos"],
         ["Codigo", selectedProduct?.codigo_barras || "Todos"],
+        ["Modulo", moduloFiltro || "Todos"],
         ["Desde", desde || "Sin filtro"],
         ["Hasta", hasta || "Sin filtro"],
         ["Tipo", tipoMovimiento || "Todos"],
@@ -337,7 +378,7 @@ function Inventario() {
           "Motivo",
           "Usuario",
         ],
-        ...movimientos.map((movimiento) => [
+        ...movimientosFiltrados.map((movimiento) => [
           formatDateTime(movimiento.fecha),
           movimiento.producto_nombre || "Producto",
           movimiento.producto_codigo_barras || "Sin codigo",
@@ -495,6 +536,22 @@ function Inventario() {
               fullWidth
             />
 
+            <FormControl fullWidth>
+              <InputLabel id="modulo-inventario-label">Modulo</InputLabel>
+              <Select
+                labelId="modulo-inventario-label"
+                label="Modulo"
+                value={moduloFiltro}
+                onChange={(event) => setModuloFiltro(event.target.value)}
+              >
+                {MODULO_OPTIONS.map((option) => (
+                  <MenuItem key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <FormControlLabel
               control={
                 <Checkbox
@@ -555,6 +612,17 @@ function Inventario() {
                     {selectedProduct.nombre}
                   </Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap">
+                    {(() => {
+                      const moduloChip = getModuloChip(selectedProduct.modulo_origen);
+                      return (
+                        <Chip
+                          size="small"
+                          color={moduloChip.color}
+                          variant={moduloChip.variant}
+                          label={moduloChip.label}
+                        />
+                      );
+                    })()}
                     <Chip
                       size="small"
                       color="primary"
@@ -590,6 +658,7 @@ function Inventario() {
                   <TableHead>
                     <TableRow>
                       <TableCell>Producto</TableCell>
+                      <TableCell>Modulo</TableCell>
                       <TableCell align="right">Stock</TableCell>
                     </TableRow>
                   </TableHead>
@@ -644,6 +713,19 @@ function Inventario() {
                               )}
                             </Stack>
                           </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const moduloChip = getModuloChip(producto.modulo_origen);
+                              return (
+                                <Chip
+                                  size="small"
+                                  color={moduloChip.color}
+                                  variant={moduloChip.variant}
+                                  label={moduloChip.label}
+                                />
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell align="right">
                             <Typography fontWeight="bold">
                               {Number(producto.existencia || 0)}
@@ -658,7 +740,7 @@ function Inventario() {
 
                     {!loadingStock && productosFiltrados.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={2}>
+                        <TableCell colSpan={3}>
                           <Typography color="text.secondary">
                             No hay productos que coincidan con el filtro actual.
                           </Typography>
@@ -705,6 +787,18 @@ function Inventario() {
                     variant="outlined"
                     label={`Stock ${Number(selectedProduct.existencia || 0)}`}
                   />
+                )}
+                {selectedProduct && (
+                  (() => {
+                    const moduloChip = getModuloChip(selectedProduct.modulo_origen);
+                    return (
+                      <Chip
+                        color={moduloChip.color}
+                        variant={moduloChip.variant}
+                        label={`Modulo ${moduloChip.label}`}
+                      />
+                    );
+                  })()
                 )}
                 {selectedProduct && Number(selectedProduct.stock_minimo || 0) > 0 && (
                   <Chip
@@ -904,7 +998,7 @@ function Inventario() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {movimientos.map((movimiento, index) => (
+                    {movimientosFiltrados.map((movimiento, index) => (
                       <TableRow key={`${movimiento.id_producto}-${movimiento.fecha}-${index}`} hover>
                         <TableCell>
                           {formatDateTime(movimiento.fecha)}
@@ -936,7 +1030,7 @@ function Inventario() {
                       </TableRow>
                     ))}
 
-                    {!loadingMovimientos && movimientos.length === 0 && (
+                    {!loadingMovimientos && movimientosFiltrados.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8}>
                           <Typography color="text.secondary">
