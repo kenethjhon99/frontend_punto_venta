@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useThemeMode } from "../../hooks/useThemeMode";
@@ -24,139 +23,124 @@ function Header() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
-  const roleNames = useMemo(() => {
-    return Array.isArray(user?.roles)
-      ? user.roles.map((role) => String(role?.nombre_rol || "").trim().toUpperCase())
-      : [];
-  }, [user?.roles]);
+  const roleNames = [...new Set(
+    (user?.roles ?? [])
+      .map((role) => String(role?.nombre_rol || "").trim().toUpperCase())
+      .filter(Boolean)
+  )];
 
-  const roleMeta = useMemo(() => {
-    if (roleNames.includes("SUPER_ADMIN")) {
-      return {
+  const showIdentityPanel = location.pathname === "/dashboard";
+
+  const roleMeta = roleNames.includes("SUPER_ADMIN")
+    ? {
         label: "Modo super admin",
         chipColor: "error",
         accent: "linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.12))",
         borderColor: "rgba(239,68,68,0.35)",
-      };
-    }
-
-    if (roleNames.includes("ADMIN")) {
-      return {
-        label: "Modo administrativo",
-        chipColor: "primary",
-        accent: "linear-gradient(135deg, rgba(37,99,235,0.2), rgba(14,165,233,0.12))",
-        borderColor: "rgba(37,99,235,0.3)",
-      };
-    }
-
-    if (roleNames.includes("CAJERO")) {
-      return {
-        label: "Modo operativo",
-        chipColor: "success",
-        accent: "linear-gradient(135deg, rgba(22,163,74,0.2), rgba(16,185,129,0.12))",
-        borderColor: "rgba(22,163,74,0.3)",
-      };
-    }
-
-    if (roleNames.includes("MECANICO")) {
-      return {
-        label: "Modo mecanico",
-        chipColor: "warning",
-        accent: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(249,115,22,0.12))",
-        borderColor: "rgba(245,158,11,0.3)",
-      };
-    }
-
-    return {
-      label: "Modo general",
-      chipColor: "default",
-      accent: "linear-gradient(135deg, rgba(148,163,184,0.18), rgba(100,116,139,0.1))",
-      borderColor: "rgba(148,163,184,0.25)",
-    };
-  }, [roleNames]);
-
-  const headerContent = useMemo(() => {
-    const pathname = location.pathname;
-    const isAdminView = userHasRole(user, "SUPER_ADMIN", "ADMIN");
-    const isCashierView = userHasRole(user, "CAJERO");
-    const isMechanicView = userHasRole(user, "MECANICO");
-
-    const sections = {
-      "/dashboard": {
-        title: "Dashboard y reportes",
-        subtitle: "Ventas, compras, utilidad estimada y stock critico en un solo panel.",
-      },
-      "/ventas": {
-        title: isCashierView ? "Caja y ventas" : "Ventas",
-        subtitle: isCashierView
-          ? "Cobros, clientes y operaciones del punto de venta."
-          : "Gestiona ventas, revisa detalles y controla anulaciones.",
-      },
-      "/caja": {
-        title: "Caja",
-        subtitle: "Apertura, movimientos, cierres y control operativo del efectivo.",
-      },
-      "/productos": {
-        title: "Productos",
-        subtitle: isAdminView
-          ? "Administra catalogo, stock y configuraciones de inventario."
-          : "Consulta existencias y disponibilidad del catalogo.",
-      },
-      "/inventario": {
-        title: "Inventario y kardex",
-        subtitle: "Revisa existencias, stock critico y movimientos detallados por producto.",
-      },
-      "/clientes": {
-        title: "Clientes",
-        subtitle: isAdminView
-          ? "Administra el catalogo y los datos de clientes."
-          : "Consulta y registra clientes para las ventas.",
-      },
-      "/compras": {
-        title: "Compras",
-        subtitle: "Registra ingresos de inventario y compras a proveedores.",
-      },
-      "/proveedores": {
-        title: "Proveedores",
-        subtitle: "Gestiona el catalogo de proveedores y su historial.",
-      },
-      "/usuarios": {
-        title: "Usuarios y roles",
-        subtitle: "Configura accesos, roles y permisos del sistema.",
-      },
-      "/auditoria": {
-        title: "Auditoria del sistema",
-        subtitle: "Consulta trazabilidad de altas, cambios e inactivaciones.",
-      },
-      "/servicios": {
-        title: "Servicios",
-        subtitle: isMechanicView
-          ? "Accede a los trabajos de taller y seguimiento del servicio."
-          : "Accede rapidamente a autolavado y reparacion desde un solo modulo.",
-      },
-      "/servicios/catalogo": {
-        title: "Servicios - Catalogo",
-        subtitle: "Administra tipos de vehiculo y servicios desde una pantalla central.",
-      },
-      "/carwash/autolavado": {
-        title: "Servicios - Autolavado",
-        subtitle: "Gestiona el flujo operativo del area de autolavado.",
-      },
-      "/carwash/reparacion": {
-        title: isMechanicView ? "Taller mecanico" : "Servicios - Reparacion",
-        subtitle: "Organiza trabajos de taller, diagnosticos y mantenimientos.",
-      },
-    };
-
-    return (
-      sections[pathname] || {
-        title: "Sistema Punto de Venta",
-        subtitle: isCashierView
-          ? "Area operativa para atender ventas y clientes."
-          : "Gestion general del sistema.",
       }
-    );
-  }, [location.pathname, user]);
+    : roleNames.includes("ADMIN")
+      ? {
+          label: "Modo administrativo",
+          chipColor: "primary",
+          accent: "linear-gradient(135deg, rgba(37,99,235,0.2), rgba(14,165,233,0.12))",
+          borderColor: "rgba(37,99,235,0.3)",
+        }
+      : roleNames.includes("CAJERO")
+        ? {
+            label: "Modo operativo",
+            chipColor: "success",
+            accent: "linear-gradient(135deg, rgba(22,163,74,0.2), rgba(16,185,129,0.12))",
+            borderColor: "rgba(22,163,74,0.3)",
+          }
+        : roleNames.includes("MECANICO")
+          ? {
+              label: "Modo mecanico",
+              chipColor: "warning",
+              accent: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(249,115,22,0.12))",
+              borderColor: "rgba(245,158,11,0.3)",
+            }
+          : {
+              label: "Modo general",
+              chipColor: "default",
+              accent: "linear-gradient(135deg, rgba(148,163,184,0.18), rgba(100,116,139,0.1))",
+              borderColor: "rgba(148,163,184,0.25)",
+            };
+
+  const pathname = location.pathname;
+  const isAdminView = userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  const isCashierView = userHasRole(user, "CAJERO");
+  const isMechanicView = userHasRole(user, "MECANICO");
+
+  const sections = {
+    "/dashboard": {
+      title: "Dashboard y reportes",
+      subtitle: "Ventas, compras, utilidad estimada y stock critico en un solo panel.",
+    },
+    "/ventas": {
+      title: isCashierView ? "Caja y ventas" : "Ventas",
+      subtitle: isCashierView
+        ? "Cobros, clientes y operaciones del punto de venta."
+        : "Gestiona ventas, revisa detalles y controla anulaciones.",
+    },
+    "/caja": {
+      title: "Caja",
+      subtitle: "Apertura, movimientos, cierres y control operativo del efectivo.",
+    },
+    "/productos": {
+      title: "Productos",
+      subtitle: isAdminView
+        ? "Administra catalogo, stock y configuraciones de inventario."
+        : "Consulta existencias y disponibilidad del catalogo.",
+    },
+    "/inventario": {
+      title: "Inventario y kardex",
+      subtitle: "Revisa existencias, stock critico y movimientos detallados por producto.",
+    },
+    "/clientes": {
+      title: "Clientes",
+      subtitle: isAdminView
+        ? "Administra el catalogo y los datos de clientes."
+        : "Consulta y registra clientes para las ventas.",
+    },
+    "/compras": {
+      title: "Compras",
+      subtitle: "Registra ingresos de inventario y compras a proveedores.",
+    },
+    "/proveedores": {
+      title: "Proveedores",
+      subtitle: "Gestiona el catalogo de proveedores y su historial.",
+    },
+    "/usuarios": {
+      title: "Usuarios y roles",
+      subtitle: "Configura accesos, roles y permisos del sistema.",
+    },
+    "/auditoria": {
+      title: "Auditoria del sistema",
+      subtitle: "Consulta trazabilidad de altas, cambios e inactivaciones.",
+    },
+    "/servicios": {
+      title: "Servicios",
+      subtitle: isMechanicView
+        ? "Accede a los trabajos de taller y seguimiento del servicio."
+        : "Accede rapidamente a autolavado y reparacion desde un solo modulo.",
+    },
+    "/carwash/autolavado": {
+      title: "Servicios - Autolavado",
+      subtitle: "Gestiona el flujo operativo del area de autolavado.",
+    },
+    "/carwash/reparacion": {
+      title: isMechanicView ? "Taller mecanico" : "Servicios - Reparacion",
+      subtitle: "Organiza trabajos de taller, diagnosticos y mantenimientos.",
+    },
+  };
+
+  const headerContent =
+    sections[pathname] || {
+      title: "Sistema Punto de Venta",
+      subtitle: isCashierView
+        ? "Area operativa para atender ventas y clientes."
+        : "Gestion general del sistema.",
+    };
 
   const cerrarSesion = () => {
     logout();
@@ -211,21 +195,25 @@ function Header() {
           </IconButton>
 
           <Box textAlign="right">
-            <Typography variant="body2" fontWeight="bold">
-              {user?.nombre || user?.username || "Usuario"}
-            </Typography>
+            {showIdentityPanel && (
+              <>
+                <Typography variant="body2" fontWeight="bold">
+                  {user?.nombre || user?.username || "Usuario"}
+                </Typography>
 
-            <Box display="flex" gap={0.5} flexWrap="wrap" justifyContent="flex-end">
-              {user?.roles?.map((r) => (
-                <Chip
-                  key={r.nombre_rol}
-                  label={r.nombre_rol}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                />
-              ))}
-            </Box>
+                <Box display="flex" gap={0.5} flexWrap="wrap" justifyContent="flex-end">
+                  {roleNames.map((roleName) => (
+                    <Chip
+                      key={roleName}
+                      label={roleName}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              </>
+            )}
           </Box>
 
           <Avatar>

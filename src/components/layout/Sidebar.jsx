@@ -11,6 +11,8 @@ import {
   Toolbar,
   Typography,
   Box,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -24,10 +26,16 @@ import FactCheckIcon from "@mui/icons-material/FactCheck";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 
 const drawerWidth = 240;
+const collapsedDrawerWidth = 88;
 
-function Sidebar() {
+function Sidebar({
+  collapsed = false,
+  onToggleCollapse = () => {},
+  onCollapse = () => {},
+}) {
   const location = useLocation();
   const { user } = useAuth();
 
@@ -104,44 +112,82 @@ function Sidebar() {
     <Drawer
       variant="permanent"
       sx={{
-        width: drawerWidth,
+        width: collapsed ? collapsedDrawerWidth : drawerWidth,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          width: drawerWidth,
+          width: collapsed ? collapsedDrawerWidth : drawerWidth,
           boxSizing: "border-box",
           backgroundColor: "#111827",
           color: "#fff",
+          overflowX: "hidden",
+          transition: (theme) =>
+            theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.standard,
+            }),
         },
       }}
     >
-      <Toolbar>
-        <Typography variant="h6" fontWeight="bold">
-          POS System
-        </Typography>
+      <Toolbar sx={{ display: "flex", justifyContent: collapsed ? "center" : "space-between", gap: 1 }}>
+        {!collapsed && (
+          <Typography variant="h6" fontWeight="bold" noWrap>
+            POS System
+          </Typography>
+        )}
+        <Tooltip title={collapsed ? "Expandir menu" : "Ocultar menu"}>
+          <IconButton
+            onClick={onToggleCollapse}
+            sx={{
+              color: "#fff",
+              border: "2px solid rgba(255,255,255,0.85)",
+              width: 42,
+              height: 42,
+              "&:hover": {
+                backgroundColor: "rgba(255,255,255,0.08)",
+              },
+            }}
+          >
+            <MenuRoundedIcon />
+          </IconButton>
+        </Tooltip>
       </Toolbar>
 
       <Box sx={{ overflow: "auto" }}>
         <List>
           {menu.map((item) => (
-            <ListItemButton
-              key={item.text}
-              component={Link}
-              to={item.path}
-              selected={location.pathname === item.path}
-              sx={{
-                "&.Mui-selected": {
-                  backgroundColor: "#1d4ed8",
-                },
-                "&:hover": {
-                  backgroundColor: "#374151",
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: "#fff" }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
+            <Tooltip key={item.text} title={collapsed ? item.text : ""} placement="right">
+              <ListItemButton
+                component={Link}
+                to={item.path}
+                onClick={() => {
+                  if (!collapsed) onCollapse();
+                }}
+                selected={location.pathname === item.path}
+                sx={{
+                  minHeight: 48,
+                  px: 2,
+                  justifyContent: collapsed ? "center" : "initial",
+                  "&.Mui-selected": {
+                    backgroundColor: "#1d4ed8",
+                  },
+                  "&:hover": {
+                    backgroundColor: "#374151",
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: "#fff",
+                    minWidth: 0,
+                    mr: collapsed ? 0 : 2,
+                    justifyContent: "center",
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                {!collapsed && <ListItemText primary={item.text} />}
+              </ListItemButton>
+            </Tooltip>
           ))}
         </List>
       </Box>
