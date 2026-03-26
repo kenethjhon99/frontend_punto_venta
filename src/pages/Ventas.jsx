@@ -136,7 +136,7 @@ function Ventas() {
   const cargarProductos = useCallback(async () => {
     try {
       setLoadingProductos(true);
-      const data = await getProductos();
+      const data = await getProductos({ scope: "GENERAL" });
       setProductos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
