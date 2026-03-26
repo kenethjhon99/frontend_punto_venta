@@ -101,6 +101,9 @@ const SERVICE_ICON_OPTIONS = [
 
 const ESTADOS = ["RECIBIDO", "DIAGNOSTICO", "EN_REPARACION", "PRUEBAS", "LISTO", "ENTREGADO"];
 
+const isServicioPersonalizado = (servicio) =>
+  String(servicio?.slug || "").trim().toLowerCase() === "otro";
+
 const EMPTY_VEHICULO = { nombre: "", descripcion: "", icono: "directions_car" };
 const EMPTY_SERVICIO = {
   id_tipo_vehiculo: "",
@@ -118,6 +121,7 @@ const EMPTY_COBRO = {
   diagnostico_inicial: "",
   observaciones: "",
   metodo_pago: "EFECTIVO",
+  precio_servicio: "",
   monto_recibido: "",
 };
 const EMPTY_PAGO = {
@@ -234,6 +238,7 @@ function CarWashReparacion() {
       ).toFixed(2);
       setCobroForm((prev) => ({
         ...prev,
+        precio_servicio: precio,
         monto_recibido: priceOrEmpty(prev.metodo_pago, precio),
       }));
     } catch (err) {
@@ -295,16 +300,32 @@ function CarWashReparacion() {
     [servicios, servicioId]
   );
 
+  const servicioPersonalizadoSeleccionado = useMemo(
+    () => isServicioPersonalizado(servicioSeleccionado),
+    [servicioSeleccionado]
+  );
+
+  const precioServicioActual = useMemo(() => {
+    if (servicioPersonalizadoSeleccionado) {
+      return Number(cobroForm.precio_servicio || 0);
+    }
+
+    return Number(servicioSeleccionado?.precio_base || 0);
+  }, [cobroForm.precio_servicio, servicioPersonalizadoSeleccionado, servicioSeleccionado]);
+
   const seleccionarVehiculo = (id) => {
     setVehiculoId(id);
     const nextServicio = servicios.find((item) => item.id_tipo_vehiculo === id);
+    const esPersonalizado = isServicioPersonalizado(nextServicio);
+    const precioBase = String(Number(nextServicio?.precio_base || 0).toFixed(2));
     setServicioId(nextServicio?.id_servicio_catalogo ?? null);
     setProductosSeleccionados([]);
     setCobroForm((prev) => ({
       ...prev,
+      precio_servicio: esPersonalizado ? "" : precioBase,
       monto_recibido: priceOrEmpty(
         prev.metodo_pago,
-        String(Number(nextServicio?.precio_base || 0).toFixed(2))
+        esPersonalizado ? "" : precioBase
       ),
     }));
   };
@@ -312,11 +333,14 @@ function CarWashReparacion() {
   const seleccionarServicio = (id) => {
     setServicioId(id);
     const servicio = servicios.find((item) => item.id_servicio_catalogo === id);
+    const esPersonalizado = isServicioPersonalizado(servicio);
+    const precioBase = String(Number(servicio?.precio_base || 0).toFixed(2));
     setCobroForm((prev) => ({
       ...prev,
+      precio_servicio: esPersonalizado ? "" : precioBase,
       monto_recibido: priceOrEmpty(
         prev.metodo_pago,
-        String(Number(servicio?.precio_base || 0).toFixed(2))
+        esPersonalizado ? "" : precioBase
       ),
     }));
   };
@@ -409,7 +433,7 @@ function CarWashReparacion() {
     0
   );
   const totalOrden = Number(
-    (Number(servicioSeleccionado?.precio_base || 0) + totalProductosCobrados).toFixed(2)
+    (precioServicioActual + totalProductosCobrados).toFixed(2)
   );
   const montoCobrado = Number(ordenPagoActiva?.monto_cobrado || totalOrden || 0);
   const montoRecibido = Number(
@@ -454,6 +478,7 @@ function CarWashReparacion() {
         diagnostico_inicial: cobroForm.diagnostico_inicial,
         observaciones: cobroForm.observaciones,
         metodo_pago: cobroForm.metodo_pago,
+        precio_servicio: precioServicioActual,
         monto_cobrado: totalOrden,
         monto_recibido:
           !noCobroForm.enabled && cobroForm.metodo_pago === "EFECTIVO"
@@ -479,6 +504,9 @@ function CarWashReparacion() {
 
       setCobroForm({
         ...EMPTY_COBRO,
+        precio_servicio: servicioPersonalizadoSeleccionado
+          ? ""
+          : String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
       });
       setProductosSeleccionados([]);
       setNoCobroForm(EMPTY_NO_COBRO_FORM);
@@ -1121,7 +1149,7 @@ function CarWashReparacion() {
                     <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                       <Stack spacing={0.5}>
                         <Typography variant="body2" color="text.secondary">
-                          Servicio base: Q {Number(servicioSeleccionado?.precio_base || 0).toFixed(2)}
+                          Servicio base: Q {Number(precioServicioActual || 0).toFixed(2)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Repuestos cobrables: Q {Number(totalProductosCobrados || 0).toFixed(2)}
@@ -1131,6 +1159,30 @@ function CarWashReparacion() {
                         </Typography>
                       </Stack>
                     </Paper>
+                    {servicioPersonalizadoSeleccionado && (
+                      <TextField
+                        label="Precio variable del trabajo"
+                        type="number"
+                        value={cobroForm.precio_servicio}
+                        onChange={(e) =>
+                          setCobroForm((p) => ({
+                            ...p,
+                            precio_servicio: e.target.value,
+                            monto_recibido:
+                              p.metodo_pago === "EFECTIVO"
+                                ? String(
+                                    Number(
+                                      (Number(e.target.value || 0) + totalProductosCobrados).toFixed(2)
+                                    )
+                                  )
+                                : p.monto_recibido,
+                          }))
+                        }
+                        fullWidth
+                        inputProps={{ min: 0, step: "0.01" }}
+                        helperText="Ingresa el precio personalizado del trabajo mecanico."
+                      />
+                    )}
                     <NoCobroAuthorizationFields
                       enabled={noCobroForm.enabled}
                       onToggle={(checked) =>
@@ -1173,6 +1225,7 @@ function CarWashReparacion() {
                         !cajaActiva ||
                         !vehiculoId ||
                         !servicioId ||
+                        (servicioPersonalizadoSeleccionado && precioServicioActual <= 0) ||
                         saving ||
                         (!noCobroForm.enabled &&
                           cobroForm.metodo_pago === "EFECTIVO" &&

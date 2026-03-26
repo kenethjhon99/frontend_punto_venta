@@ -174,6 +174,9 @@ const getEstadoOrdenColor = (estado) => {
   }
 };
 
+const isServicioPersonalizado = (servicio) =>
+  String(servicio?.slug || "").trim().toLowerCase() === "otro";
+
 const getSiguientesEstadosAutolavado = (estadoActual) => {
   const flujo = ESTADOS_ORDEN_OPTIONS.filter((option) => option.value !== "TODOS");
   const actual = String(estadoActual || "").trim().toUpperCase();
@@ -348,19 +351,28 @@ function CarWashAutolavado() {
     );
   }, [servicioSeleccionadoId, serviciosFiltrados]);
 
+  const servicioPersonalizadoSeleccionado = useMemo(
+    () => isServicioPersonalizado(servicioSeleccionado),
+    [servicioSeleccionado]
+  );
+
   const seleccionarServicio = (servicioId) => {
     setServicioSeleccionadoId(servicioId);
     const servicio = servicios.find((item) => item.id_servicio_catalogo === servicioId);
+    const esPersonalizado = isServicioPersonalizado(servicio);
 
     setCobroForm((prev) => ({
       ...prev,
-      monto_cobrado:
-        servicio?.precio_base != null
+      monto_cobrado: esPersonalizado
+        ? ""
+        : servicio?.precio_base != null
           ? String(Number(servicio.precio_base).toFixed(2))
           : prev.monto_cobrado,
       monto_recibido:
-        prev.metodo_pago === "EFECTIVO" && servicio?.precio_base != null
-          ? String(Number(servicio.precio_base).toFixed(2))
+        prev.metodo_pago === "EFECTIVO" && esPersonalizado
+          ? ""
+          : prev.metodo_pago === "EFECTIVO" && servicio?.precio_base != null
+            ? String(Number(servicio.precio_base).toFixed(2))
           : prev.monto_recibido,
     }));
   };
@@ -548,6 +560,7 @@ function CarWashAutolavado() {
         color: cobroForm.color,
         observaciones: cobroForm.observaciones,
         metodo_pago: cobroForm.metodo_pago,
+        precio_servicio: montoCobradoNumero,
         monto_cobrado: montoCobradoNumero,
         monto_recibido:
           !noCobroForm.enabled && cobroForm.metodo_pago === "EFECTIVO"
@@ -576,8 +589,12 @@ function CarWashAutolavado() {
       setCobroForm({
         ...EMPTY_COBRO_FORM,
         metodo_pago: "EFECTIVO",
-        monto_cobrado: String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
-        monto_recibido: String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
+        monto_cobrado: servicioPersonalizadoSeleccionado
+          ? ""
+          : String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
+        monto_recibido: servicioPersonalizadoSeleccionado
+          ? ""
+          : String(Number(servicioSeleccionado?.precio_base || 0).toFixed(2)),
       });
       setNoCobroForm(EMPTY_NO_COBRO_FORM);
     } catch (err) {
@@ -1157,10 +1174,14 @@ function CarWashAutolavado() {
 
                   <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Precio sugerido
+                      {servicioPersonalizadoSeleccionado ? "Precio variable" : "Precio sugerido"}
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" color="primary.main">
-                      Q {Number(servicioSeleccionado?.precio_base || 0).toFixed(2)}
+                      Q {Number(
+                        servicioPersonalizadoSeleccionado
+                          ? cobroForm.monto_cobrado || 0
+                          : servicioSeleccionado?.precio_base || 0
+                      ).toFixed(2)}
                     </Typography>
                   </Box>
 
@@ -1259,7 +1280,7 @@ function CarWashAutolavado() {
                       </FormControl>
 
                       <TextField
-                        label="Monto a cobrar"
+                        label={servicioPersonalizadoSeleccionado ? "Precio variable" : "Monto a cobrar"}
                         type="number"
                         value={cobroForm.monto_cobrado}
                         onChange={(event) =>
@@ -1270,8 +1291,19 @@ function CarWashAutolavado() {
                         }
                         fullWidth
                         inputProps={{ min: 0, step: "0.01" }}
+                        helperText={
+                          servicioPersonalizadoSeleccionado
+                            ? "Ingresa el precio personalizado para este trabajo."
+                            : "Monto sugerido segun el tipo de servicio seleccionado."
+                        }
                       />
                     </Stack>
+
+                    {servicioPersonalizadoSeleccionado && (
+                      <Alert severity="info" sx={{ borderRadius: 3 }}>
+                        Estas usando el servicio <strong>Otro</strong>. Aqui puedes cobrar un monto variable.
+                      </Alert>
+                    )}
 
                     <NoCobroAuthorizationFields
                       enabled={noCobroForm.enabled}
