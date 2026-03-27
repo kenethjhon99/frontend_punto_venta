@@ -38,7 +38,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
+import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import {
   readPrintPreference,
   writePrintPreference,
@@ -170,6 +170,8 @@ function CarWashReparacion() {
   const { user } = useAuth();
   const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN");
   const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
+  const canOperateReparacion = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
+  const isReadOnly = isReadOnlyUser(user);
   const [vehiculos, setVehiculos] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -527,6 +529,7 @@ function CarWashReparacion() {
   };
 
   const abrirProductoBorradorModal = () => {
+    if (!canOperateReparacion) return;
     setProductoBorradorForm({
       id_producto: productos[0]?.id_producto ? String(productos[0].id_producto) : "",
       cantidad: "1",
@@ -536,6 +539,7 @@ function CarWashReparacion() {
   };
 
   const guardarProductoBorrador = () => {
+    if (!canOperateReparacion) return;
     const producto = productos.find(
       (item) => item.id_producto === Number(productoBorradorForm.id_producto)
     );
@@ -563,10 +567,12 @@ function CarWashReparacion() {
   };
 
   const eliminarProductoBorrador = (index) => {
+    if (!canOperateReparacion) return;
     setProductosSeleccionados((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   };
 
   const abrirModalCobroOrden = (orden) => {
+    if (!canOperateReparacion) return;
     setOrdenPagoActiva(orden);
     setPagoForm({
       metodo_pago: "EFECTIVO",
@@ -577,6 +583,7 @@ function CarWashReparacion() {
   };
 
   const guardarCobroOrden = async () => {
+    if (!canOperateReparacion) return;
     let reservedPrintWindow = null;
 
     try {
@@ -650,6 +657,7 @@ function CarWashReparacion() {
   };
 
   const abrirModalProductoOrden = (orden) => {
+    if (!canOperateReparacion) return;
     setOrdenProductoActiva(orden);
     setProductoOrdenForm({
       id_producto: productos[0]?.id_producto ? String(productos[0].id_producto) : "",
@@ -660,6 +668,7 @@ function CarWashReparacion() {
   };
 
   const guardarProductoOrden = async () => {
+    if (!canOperateReparacion) return;
     try {
       if (!ordenProductoActiva) return;
 
@@ -687,6 +696,7 @@ function CarWashReparacion() {
   };
 
   const cambiarEstado = async (id, estado) => {
+    if (!canManageOrders) return;
     try {
       setActualizandoOrdenId(id);
       setError("");
@@ -703,6 +713,7 @@ function CarWashReparacion() {
   };
 
   const asignarTecnico = async (id, idTecnico) => {
+    if (!canManageOrders) return;
     try {
       setAsignandoTecnicoOrdenId(id);
       setError("");
@@ -769,6 +780,12 @@ function CarWashReparacion() {
             Gestiona servicios de taller, diagnostico, cobro y seguimiento de reparaciones.
           </Typography>
         </Box>
+
+        {isReadOnly && (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            Estas en modo solo lectura. Puedes consultar catalogo, repuestos usados y ordenes de reparacion, pero no crear ordenes, registrar cobros ni actualizar trabajos.
+          </Alert>
+        )}
 
         {error && <Alert severity="error">{error}</Alert>}
         {success && <Alert severity="success">{success}</Alert>}
@@ -1050,7 +1067,7 @@ function CarWashReparacion() {
                         variant="outlined"
                         startIcon={<AddIcon />}
                         onClick={abrirProductoBorradorModal}
-                        disabled={productos.length === 0}
+                        disabled={!canOperateReparacion || productos.length === 0}
                       >
                         Agregar producto
                       </Button>
@@ -1095,6 +1112,7 @@ function CarWashReparacion() {
                                   color="error"
                                   startIcon={<DeleteOutlineIcon />}
                                   onClick={() => eliminarProductoBorrador(index)}
+                                  disabled={!canOperateReparacion}
                                 >
                                   Quitar
                                 </Button>
@@ -1112,133 +1130,141 @@ function CarWashReparacion() {
                 <Paper sx={{ p: 3, borderRadius: 4, height: "100%" }}>
                   <Stack spacing={2}>
                     <Typography variant="h6" fontWeight="bold">Cobro y recepcion</Typography>
-                    {!cajaActiva && <Alert severity="warning">Debes abrir una caja antes de cobrar reparaciones.</Alert>}
-                    <TextField label="Cliente" value={cobroForm.nombre_cliente} onChange={(e) => setCobroForm((p) => ({ ...p, nombre_cliente: e.target.value }))} fullWidth />
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField label="Placa" value={cobroForm.placa} onChange={(e) => setCobroForm((p) => ({ ...p, placa: e.target.value }))} fullWidth />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField label="Color" value={cobroForm.color} onChange={(e) => setCobroForm((p) => ({ ...p, color: e.target.value }))} fullWidth />
-                      </Grid>
-                    </Grid>
-                    <TextField label="Kilometraje" type="number" value={cobroForm.kilometraje} onChange={(e) => setCobroForm((p) => ({ ...p, kilometraje: e.target.value }))} fullWidth />
-                    <TextField label="Diagnostico inicial" value={cobroForm.diagnostico_inicial} onChange={(e) => setCobroForm((p) => ({ ...p, diagnostico_inicial: e.target.value }))} multiline minRows={3} fullWidth />
-                    <TextField label="Observaciones" value={cobroForm.observaciones} onChange={(e) => setCobroForm((p) => ({ ...p, observaciones: e.target.value }))} multiline minRows={2} fullWidth />
-                    <FormControl fullWidth>
-                      <InputLabel>Metodo de pago</InputLabel>
-                      <Select
-                        label="Metodo de pago"
-                        value={cobroForm.metodo_pago}
-                        onChange={(e) =>
-                          setCobroForm((prev) => ({
-                            ...prev,
-                            metodo_pago: e.target.value,
-                            monto_recibido:
-                              e.target.value === "EFECTIVO"
-                                ? String(totalOrden.toFixed(2))
-                                : "",
-                          }))
-                        }
-                      >
-                        <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
-                        <MenuItem value="TARJETA">TARJETA</MenuItem>
-                        <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                      <Stack spacing={0.5}>
-                        <Typography variant="body2" color="text.secondary">
-                          Servicio base: Q {Number(precioServicioActual || 0).toFixed(2)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Repuestos cobrables: Q {Number(totalProductosCobrados || 0).toFixed(2)}
-                        </Typography>
-                        <Typography variant="h5" fontWeight="bold" color="primary.main">
-                          Total a cobrar: Q {Number(totalOrden || 0).toFixed(2)}
-                        </Typography>
-                      </Stack>
-                    </Paper>
-                    {servicioPersonalizadoSeleccionado && (
-                      <TextField
-                        label="Precio variable del trabajo"
-                        type="number"
-                        value={cobroForm.precio_servicio}
-                        onChange={(e) =>
-                          setCobroForm((p) => ({
-                            ...p,
-                            precio_servicio: e.target.value,
-                            monto_recibido:
-                              p.metodo_pago === "EFECTIVO"
-                                ? String(
-                                    Number(
-                                      (Number(e.target.value || 0) + totalProductosCobrados).toFixed(2)
-                                    )
-                                  )
-                                : p.monto_recibido,
-                          }))
-                        }
-                        fullWidth
-                        inputProps={{ min: 0, step: "0.01" }}
-                        helperText="Ingresa el precio personalizado del trabajo mecanico."
-                      />
-                    )}
-                    <NoCobroAuthorizationFields
-                      enabled={noCobroForm.enabled}
-                      onToggle={(checked) =>
-                        setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
-                      }
-                      form={noCobroForm}
-                      onChange={(field, value) =>
-                        setNoCobroForm((prev) => ({ ...prev, [field]: value }))
-                      }
-                      title="Registrar orden sin cobro"
-                      helperText="La reparacion se registrara como no cobrada y quedara pendiente de validacion al cierre de caja por un admin."
-                    />
-                    {cobroForm.metodo_pago === "EFECTIVO" && !noCobroForm.enabled && (
-                      <TextField
-                        label="Monto recibido"
-                        type="number"
-                        value={cobroForm.monto_recibido}
-                        onChange={(e) => setCobroForm((p) => ({ ...p, monto_recibido: e.target.value }))}
-                        fullWidth
-                        helperText={faltante > 0 ? `Faltan Q ${faltante.toFixed(2)}` : `Vuelto Q ${vuelto.toFixed(2)}`}
-                        error={faltante > 0 && totalOrden > 0}
-                      />
-                    )}
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={autoPrintOrdenNueva}
-                          onChange={(event) =>
-                            setAutoPrintOrdenNueva(event.target.checked)
+                    {canOperateReparacion ? (
+                      <>
+                        {!cajaActiva && <Alert severity="warning">Debes abrir una caja antes de cobrar reparaciones.</Alert>}
+                        <TextField label="Cliente" value={cobroForm.nombre_cliente} onChange={(e) => setCobroForm((p) => ({ ...p, nombre_cliente: e.target.value }))} fullWidth />
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField label="Placa" value={cobroForm.placa} onChange={(e) => setCobroForm((p) => ({ ...p, placa: e.target.value }))} fullWidth />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField label="Color" value={cobroForm.color} onChange={(e) => setCobroForm((p) => ({ ...p, color: e.target.value }))} fullWidth />
+                          </Grid>
+                        </Grid>
+                        <TextField label="Kilometraje" type="number" value={cobroForm.kilometraje} onChange={(e) => setCobroForm((p) => ({ ...p, kilometraje: e.target.value }))} fullWidth />
+                        <TextField label="Diagnostico inicial" value={cobroForm.diagnostico_inicial} onChange={(e) => setCobroForm((p) => ({ ...p, diagnostico_inicial: e.target.value }))} multiline minRows={3} fullWidth />
+                        <TextField label="Observaciones" value={cobroForm.observaciones} onChange={(e) => setCobroForm((p) => ({ ...p, observaciones: e.target.value }))} multiline minRows={2} fullWidth />
+                        <FormControl fullWidth>
+                          <InputLabel>Metodo de pago</InputLabel>
+                          <Select
+                            label="Metodo de pago"
+                            value={cobroForm.metodo_pago}
+                            onChange={(e) =>
+                              setCobroForm((prev) => ({
+                                ...prev,
+                                metodo_pago: e.target.value,
+                                monto_recibido:
+                                  e.target.value === "EFECTIVO"
+                                    ? String(totalOrden.toFixed(2))
+                                    : "",
+                              }))
+                            }
+                          >
+                            <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
+                            <MenuItem value="TARJETA">TARJETA</MenuItem>
+                            <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                          <Stack spacing={0.5}>
+                            <Typography variant="body2" color="text.secondary">
+                              Servicio base: Q {Number(precioServicioActual || 0).toFixed(2)}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Repuestos cobrables: Q {Number(totalProductosCobrados || 0).toFixed(2)}
+                            </Typography>
+                            <Typography variant="h5" fontWeight="bold" color="primary.main">
+                              Total a cobrar: Q {Number(totalOrden || 0).toFixed(2)}
+                            </Typography>
+                          </Stack>
+                        </Paper>
+                        {servicioPersonalizadoSeleccionado && (
+                          <TextField
+                            label="Precio variable del trabajo"
+                            type="number"
+                            value={cobroForm.precio_servicio}
+                            onChange={(e) =>
+                              setCobroForm((p) => ({
+                                ...p,
+                                precio_servicio: e.target.value,
+                                monto_recibido:
+                                  p.metodo_pago === "EFECTIVO"
+                                    ? String(
+                                        Number(
+                                          (Number(e.target.value || 0) + totalProductosCobrados).toFixed(2)
+                                        )
+                                      )
+                                    : p.monto_recibido,
+                              }))
+                            }
+                            fullWidth
+                            inputProps={{ min: 0, step: "0.01" }}
+                            helperText="Ingresa el precio personalizado del trabajo mecanico."
+                          />
+                        )}
+                        <NoCobroAuthorizationFields
+                          enabled={noCobroForm.enabled}
+                          onToggle={(checked) =>
+                            setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
                           }
+                          form={noCobroForm}
+                          onChange={(field, value) =>
+                            setNoCobroForm((prev) => ({ ...prev, [field]: value }))
+                          }
+                          title="Registrar orden sin cobro"
+                          helperText="La reparacion se registrara como no cobrada y quedara pendiente de validacion al cierre de caja por un admin."
                         />
-                      }
-                      label="Imprimir ticket al cobrar"
-                    />
-                    <Button
-                      variant="contained"
-                      color="success"
-                      onClick={crearOrden}
-                      disabled={
-                        !cajaActiva ||
-                        !vehiculoId ||
-                        !servicioId ||
-                        (servicioPersonalizadoSeleccionado && precioServicioActual <= 0) ||
-                        saving ||
-                        (!noCobroForm.enabled &&
-                          cobroForm.metodo_pago === "EFECTIVO" &&
-                          faltante > 0) ||
-                        (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
-                      }
-                    >
-                      {saving
-                        ? "Procesando..."
-                        : noCobroForm.enabled
-                          ? "Registrar orden sin cobro"
-                          : "Crear orden y cobrar"}
-                    </Button>
+                        {cobroForm.metodo_pago === "EFECTIVO" && !noCobroForm.enabled && (
+                          <TextField
+                            label="Monto recibido"
+                            type="number"
+                            value={cobroForm.monto_recibido}
+                            onChange={(e) => setCobroForm((p) => ({ ...p, monto_recibido: e.target.value }))}
+                            fullWidth
+                            helperText={faltante > 0 ? `Faltan Q ${faltante.toFixed(2)}` : `Vuelto Q ${vuelto.toFixed(2)}`}
+                            error={faltante > 0 && totalOrden > 0}
+                          />
+                        )}
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={autoPrintOrdenNueva}
+                              onChange={(event) =>
+                                setAutoPrintOrdenNueva(event.target.checked)
+                              }
+                            />
+                          }
+                          label="Imprimir ticket al cobrar"
+                        />
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={crearOrden}
+                          disabled={
+                            !cajaActiva ||
+                            !vehiculoId ||
+                            !servicioId ||
+                            (servicioPersonalizadoSeleccionado && precioServicioActual <= 0) ||
+                            saving ||
+                            (!noCobroForm.enabled &&
+                              cobroForm.metodo_pago === "EFECTIVO" &&
+                              faltante > 0) ||
+                            (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
+                          }
+                        >
+                          {saving
+                            ? "Procesando..."
+                            : noCobroForm.enabled
+                              ? "Registrar orden sin cobro"
+                              : "Crear orden y cobrar"}
+                        </Button>
+                      </>
+                    ) : (
+                      <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        Modo solo lectura: puedes revisar el diagnostico, repuestos y ordenes de reparacion, pero no crear ordenes ni registrar cobros.
+                      </Alert>
+                    )}
                   </Stack>
                 </Paper>
               </Grid>
@@ -1331,7 +1357,11 @@ function CarWashReparacion() {
                                   variant="contained"
                                   startIcon={<AddIcon />}
                                   onClick={() => abrirModalProductoOrden(orden)}
-                                  disabled={productos.length === 0 || orden.estado === "PAGADO"}
+                                  disabled={
+                                    !canOperateReparacion ||
+                                    productos.length === 0 ||
+                                    orden.estado === "PAGADO"
+                                  }
                                 >
                                   Agregar producto
                                 </Button>
@@ -1353,7 +1383,11 @@ function CarWashReparacion() {
                                   color="success"
                                   variant="contained"
                                   onClick={() => abrirModalCobroOrden(orden)}
-                                  disabled={!cajaActiva || orden.estado === "NO_COBRADO"}
+                                  disabled={
+                                    !canOperateReparacion ||
+                                    !cajaActiva ||
+                                    orden.estado === "NO_COBRADO"
+                                  }
                                 >
                                   {orden.estado === "NO_COBRADO" ? "Pendiente de validacion" : "Cobrar orden"}
                                 </Button>

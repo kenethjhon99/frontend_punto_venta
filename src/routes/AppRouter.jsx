@@ -70,7 +70,7 @@ function AppRouter() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
                   <Dashboard />
                 </ProtectedRoute>
               }
@@ -78,7 +78,7 @@ function AppRouter() {
             <Route
               path="/productos"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "LECTURA"]}>
                   <Productos />
                 </ProtectedRoute>
               }
@@ -86,7 +86,7 @@ function AppRouter() {
             <Route
               path="/inventario"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
                   <Inventario />
                 </ProtectedRoute>
               }
@@ -94,7 +94,7 @@ function AppRouter() {
             <Route
               path="/clientes"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "LECTURA"]}>
                   <Clientes />
                 </ProtectedRoute>
               }
@@ -102,7 +102,7 @@ function AppRouter() {
             <Route
               path="/proveedores"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "LECTURA"]}>
                   <Proveedores />
                 </ProtectedRoute>
               }
@@ -110,7 +110,7 @@ function AppRouter() {
             <Route
               path="/ventas"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "LECTURA"]}>
                   <Ventas />
                 </ProtectedRoute>
               }
@@ -118,7 +118,7 @@ function AppRouter() {
             <Route
               path="/caja"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "MECANICO"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "MECANICO", "LECTURA"]}>
                   <Caja />
                 </ProtectedRoute>
               }
@@ -126,7 +126,7 @@ function AppRouter() {
             <Route
               path="/compras"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "LECTURA"]}>
                   <Compras />
                 </ProtectedRoute>
               }
@@ -134,7 +134,7 @@ function AppRouter() {
             <Route
               path="/usuarios"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "LECTURA"]}>
                   <Usuarios />
                 </ProtectedRoute>
               }
@@ -142,7 +142,7 @@ function AppRouter() {
             <Route
               path="/auditoria"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
                   <Auditoria />
                 </ProtectedRoute>
               }
@@ -150,7 +150,7 @@ function AppRouter() {
             <Route
               path="/servicios"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "LECTURA"]}>
                   <Servicios />
                 </ProtectedRoute>
               }
@@ -158,7 +158,7 @@ function AppRouter() {
             <Route
               path="/servicios/tienda"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "LECTURA"]}>
                   <ServiciosTienda />
                 </ProtectedRoute>
               }
@@ -166,7 +166,7 @@ function AppRouter() {
             <Route
               path="/carwash/autolavado"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "LECTURA"]}>
                   <CarWashAutolavado />
                 </ProtectedRoute>
               }
@@ -174,7 +174,7 @@ function AppRouter() {
             <Route
               path="/carwash/reparacion"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "LECTURA"]}>
                   <CarWashReparacion />
                 </ProtectedRoute>
               }

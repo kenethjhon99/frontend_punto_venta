@@ -42,7 +42,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
+import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import {
   readPrintPreference,
   writePrintPreference,
@@ -222,9 +222,15 @@ function CarWashAutolavado() {
     return userHasRole(user, "SUPER_ADMIN", "ADMIN");
   }, [user]);
 
+  const canOperateAutolavado = useMemo(() => {
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
+  }, [user]);
+
   const canManageOrders = useMemo(() => {
     return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
   }, [user]);
+
+  const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);
 
   const cargarOrdenes = useCallback(async (estadoTrabajo = estadoFiltroOrdenes) => {
     try {
@@ -721,6 +727,12 @@ function CarWashAutolavado() {
           </Alert>
         )}
 
+        {isReadOnly && (
+          <Alert severity="info" sx={{ mb: 3, borderRadius: 3 }}>
+            Estas en modo solo lectura. Puedes consultar el catalogo, los servicios y las ordenes de autolavado, pero no registrar cobros ni actualizar el proceso.
+          </Alert>
+        )}
+
         {success && (
           <Alert severity="success" sx={{ mb: 3, borderRadius: 3 }}>
             {success}
@@ -1196,197 +1208,211 @@ function CarWashAutolavado() {
 
                   <Divider />
 
-                  <Stack spacing={2}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <PaidIcon color="primary" />
-                      <Typography variant="h6" fontWeight="bold">
-                        Cobro del servicio
-                      </Typography>
-                    </Stack>
+                  {canOperateAutolavado ? (
+                    <Stack spacing={2}>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <PaidIcon color="primary" />
+                        <Typography variant="h6" fontWeight="bold">
+                          Cobro del servicio
+                        </Typography>
+                      </Stack>
 
-                    {!cajaActiva && (
-                      <Alert severity="warning" sx={{ borderRadius: 3 }}>
-                        Debes abrir una caja antes de cobrar servicios de autolavado.
-                      </Alert>
-                    )}
-
-                    <TextField
-                      label="Nombre del cliente"
-                      value={cobroForm.nombre_cliente}
-                      onChange={(event) =>
-                        setCobroForm((prev) => ({
-                          ...prev,
-                          nombre_cliente: event.target.value,
-                        }))
-                      }
-                      fullWidth
-                    />
-
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                      <TextField
-                        label="Placa"
-                        value={cobroForm.placa}
-                        onChange={(event) =>
-                          setCobroForm((prev) => ({ ...prev, placa: event.target.value }))
-                        }
-                        fullWidth
-                      />
-                      <TextField
-                        label="Color"
-                        value={cobroForm.color}
-                        onChange={(event) =>
-                          setCobroForm((prev) => ({ ...prev, color: event.target.value }))
-                        }
-                        fullWidth
-                      />
-                    </Stack>
-
-                    <TextField
-                      label="Observaciones"
-                      value={cobroForm.observaciones}
-                      onChange={(event) =>
-                        setCobroForm((prev) => ({
-                          ...prev,
-                          observaciones: event.target.value,
-                        }))
-                      }
-                      fullWidth
-                      multiline
-                      minRows={2}
-                    />
-
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                      <FormControl fullWidth>
-                        <InputLabel id="autolavado-metodo-pago-label">Metodo de pago</InputLabel>
-                        <Select
-                          labelId="autolavado-metodo-pago-label"
-                          label="Metodo de pago"
-                          value={cobroForm.metodo_pago}
-                          onChange={(event) =>
-                            setCobroForm((prev) => ({
-                              ...prev,
-                              metodo_pago: event.target.value,
-                              monto_recibido:
-                                event.target.value === "EFECTIVO"
-                                  ? prev.monto_cobrado
-                                  : "",
-                            }))
-                          }
-                        >
-                          <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
-                          <MenuItem value="TARJETA">TARJETA</MenuItem>
-                          <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
-                        </Select>
-                      </FormControl>
+                      {!cajaActiva && (
+                        <Alert severity="warning" sx={{ borderRadius: 3 }}>
+                          Debes abrir una caja antes de cobrar servicios de autolavado.
+                        </Alert>
+                      )}
 
                       <TextField
-                        label={servicioPersonalizadoSeleccionado ? "Precio variable" : "Monto a cobrar"}
-                        type="number"
-                        value={cobroForm.monto_cobrado}
+                        label="Nombre del cliente"
+                        value={cobroForm.nombre_cliente}
                         onChange={(event) =>
                           setCobroForm((prev) => ({
                             ...prev,
-                            monto_cobrado: event.target.value,
+                            nombre_cliente: event.target.value,
                           }))
                         }
                         fullWidth
-                        inputProps={{ min: 0, step: "0.01" }}
-                        helperText={
-                          servicioPersonalizadoSeleccionado
-                            ? "Ingresa el precio personalizado para este trabajo."
-                            : "Monto sugerido segun el tipo de servicio seleccionado."
-                        }
                       />
-                    </Stack>
 
-                    {servicioPersonalizadoSeleccionado && (
-                      <Alert severity="info" sx={{ borderRadius: 3 }}>
-                        Estas usando el servicio <strong>Otro</strong>. Aqui puedes cobrar un monto variable.
-                      </Alert>
-                    )}
-
-                    <NoCobroAuthorizationFields
-                      enabled={noCobroForm.enabled}
-                      onToggle={(checked) =>
-                        setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
-                      }
-                      form={noCobroForm}
-                      onChange={(field, value) =>
-                        setNoCobroForm((prev) => ({ ...prev, [field]: value }))
-                      }
-                      title="Registrar servicio sin cobro"
-                      helperText="El autolavado se registrara como no cobrado y quedara pendiente de validacion al cierre de caja por un admin."
-                    />
-
-                    {cobroForm.metodo_pago === "EFECTIVO" && !noCobroForm.enabled && (
-                      <Stack spacing={2}>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                         <TextField
-                          label="Monto recibido"
+                          label="Placa"
+                          value={cobroForm.placa}
+                          onChange={(event) =>
+                            setCobroForm((prev) => ({ ...prev, placa: event.target.value }))
+                          }
+                          fullWidth
+                        />
+                        <TextField
+                          label="Color"
+                          value={cobroForm.color}
+                          onChange={(event) =>
+                            setCobroForm((prev) => ({ ...prev, color: event.target.value }))
+                          }
+                          fullWidth
+                        />
+                      </Stack>
+
+                      <TextField
+                        label="Observaciones"
+                        value={cobroForm.observaciones}
+                        onChange={(event) =>
+                          setCobroForm((prev) => ({
+                            ...prev,
+                            observaciones: event.target.value,
+                          }))
+                        }
+                        fullWidth
+                        multiline
+                        minRows={2}
+                      />
+
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                        <FormControl fullWidth>
+                          <InputLabel id="autolavado-metodo-pago-label">Metodo de pago</InputLabel>
+                          <Select
+                            labelId="autolavado-metodo-pago-label"
+                            label="Metodo de pago"
+                            value={cobroForm.metodo_pago}
+                            onChange={(event) =>
+                              setCobroForm((prev) => ({
+                                ...prev,
+                                metodo_pago: event.target.value,
+                                monto_recibido:
+                                  event.target.value === "EFECTIVO"
+                                    ? prev.monto_cobrado
+                                    : "",
+                              }))
+                            }
+                          >
+                            <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
+                            <MenuItem value="TARJETA">TARJETA</MenuItem>
+                            <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
+                          </Select>
+                        </FormControl>
+
+                        <TextField
+                          label={servicioPersonalizadoSeleccionado ? "Precio variable" : "Monto a cobrar"}
                           type="number"
-                          value={cobroForm.monto_recibido}
+                          value={cobroForm.monto_cobrado}
                           onChange={(event) =>
                             setCobroForm((prev) => ({
                               ...prev,
-                              monto_recibido: event.target.value,
+                              monto_cobrado: event.target.value,
                             }))
                           }
                           fullWidth
                           inputProps={{ min: 0, step: "0.01" }}
                           helperText={
-                            faltanteEfectivo > 0
-                              ? `Faltan Q ${faltanteEfectivo.toFixed(2)} para completar el cobro.`
-                              : "Ingresa el efectivo recibido del cliente."
+                            servicioPersonalizadoSeleccionado
+                              ? "Ingresa el precio personalizado para este trabajo."
+                              : "Monto sugerido segun el tipo de servicio seleccionado."
                           }
-                          error={montoCobradoNumero > 0 && faltanteEfectivo > 0}
                         />
-
-                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Vuelto a entregar
-                          </Typography>
-                          <Typography variant="h5" fontWeight="bold" color="success.main">
-                            Q {vuelto.toFixed(2)}
-                          </Typography>
-                        </Paper>
                       </Stack>
-                    )}
 
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={autoPrintServicio}
-                          onChange={(event) =>
-                            setAutoPrintServicio(event.target.checked)
-                          }
-                        />
-                      }
-                      label="Imprimir ticket al cobrar"
-                    />
+                      {servicioPersonalizadoSeleccionado && (
+                        <Alert severity="info" sx={{ borderRadius: 3 }}>
+                          Estas usando el servicio <strong>Otro</strong>. Aqui puedes cobrar un monto variable.
+                        </Alert>
+                      )}
 
-                    <Button
-                      variant="contained"
-                      color="success"
-                      onClick={cobrarServicio}
-                      disabled={
-                        !cajaActiva ||
-                        !vehiculoSeleccionadoId ||
-                        !servicioSeleccionadoId ||
-                        !cobroForm.monto_cobrado ||
-                        cobrandoServicio ||
-                        (!noCobroForm.enabled &&
-                          cobroForm.metodo_pago === "EFECTIVO" &&
-                          faltanteEfectivo > 0) ||
-                        (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
-                      }
-                      sx={{ borderRadius: 999, py: 1.4, fontWeight: 700 }}
-                    >
-                      {cobrandoServicio
-                        ? "Registrando..."
-                        : noCobroForm.enabled
-                          ? "Registrar sin cobro"
-                          : "Cobrar servicio"}
-                    </Button>
-                  </Stack>
+                      <NoCobroAuthorizationFields
+                        enabled={noCobroForm.enabled}
+                        onToggle={(checked) =>
+                          setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
+                        }
+                        form={noCobroForm}
+                        onChange={(field, value) =>
+                          setNoCobroForm((prev) => ({ ...prev, [field]: value }))
+                        }
+                        title="Registrar servicio sin cobro"
+                        helperText="El autolavado se registrara como no cobrado y quedara pendiente de validacion al cierre de caja por un admin."
+                      />
+
+                      {cobroForm.metodo_pago === "EFECTIVO" && !noCobroForm.enabled && (
+                        <Stack spacing={2}>
+                          <TextField
+                            label="Monto recibido"
+                            type="number"
+                            value={cobroForm.monto_recibido}
+                            onChange={(event) =>
+                              setCobroForm((prev) => ({
+                                ...prev,
+                                monto_recibido: event.target.value,
+                              }))
+                            }
+                            fullWidth
+                            inputProps={{ min: 0, step: "0.01" }}
+                            helperText={
+                              faltanteEfectivo > 0
+                                ? `Faltan Q ${faltanteEfectivo.toFixed(2)} para completar el cobro.`
+                                : "Ingresa el efectivo recibido del cliente."
+                            }
+                            error={montoCobradoNumero > 0 && faltanteEfectivo > 0}
+                          />
+
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Vuelto a entregar
+                            </Typography>
+                            <Typography variant="h5" fontWeight="bold" color="success.main">
+                              Q {vuelto.toFixed(2)}
+                            </Typography>
+                          </Paper>
+                        </Stack>
+                      )}
+
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={autoPrintServicio}
+                            onChange={(event) =>
+                              setAutoPrintServicio(event.target.checked)
+                            }
+                          />
+                        }
+                        label="Imprimir ticket al cobrar"
+                      />
+
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={cobrarServicio}
+                        disabled={
+                          !cajaActiva ||
+                          !vehiculoSeleccionadoId ||
+                          !servicioSeleccionadoId ||
+                          !cobroForm.monto_cobrado ||
+                          cobrandoServicio ||
+                          (!noCobroForm.enabled &&
+                            cobroForm.metodo_pago === "EFECTIVO" &&
+                            faltanteEfectivo > 0) ||
+                          (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
+                        }
+                        sx={{ borderRadius: 999, py: 1.4, fontWeight: 700 }}
+                      >
+                        {cobrandoServicio
+                          ? "Registrando..."
+                          : noCobroForm.enabled
+                            ? "Registrar sin cobro"
+                            : "Cobrar servicio"}
+                      </Button>
+                    </Stack>
+                  ) : (
+                    <Stack spacing={2}>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <PaidIcon color="primary" />
+                        <Typography variant="h6" fontWeight="bold">
+                          Cobro del servicio
+                        </Typography>
+                      </Stack>
+                      <Alert severity="info" sx={{ borderRadius: 3 }}>
+                        Modo solo lectura: puedes revisar el servicio seleccionado y las ordenes de autolavado, pero no registrar cobros ni crear nuevas ordenes.
+                      </Alert>
+                    </Stack>
+                  )}
                 </Stack>
               </Paper>
             </Box>

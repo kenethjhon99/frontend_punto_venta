@@ -21,6 +21,7 @@ function ProveedorTable({
   onEdit,
   onDeactivate,
   onViewHistory,
+  canManage = true,
 }) {
   if (!proveedores.length) {
     return (
@@ -77,25 +78,29 @@ function ProveedorTable({
                     </span>
                   </Tooltip>
 
-                  <Tooltip title="Editar proveedor">
-                    <span>
-                      <IconButton color="primary" onClick={() => onEdit(proveedor)}>
-                        <EditIcon />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+                  {canManage && (
+                    <>
+                      <Tooltip title="Editar proveedor">
+                        <span>
+                          <IconButton color="primary" onClick={() => onEdit(proveedor)}>
+                            <EditIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
 
-                  <Tooltip title="Desactivar proveedor">
-                    <span>
-                      <IconButton
-                        color="error"
-                        onClick={() => onDeactivate(proveedor)}
-                        disabled={!proveedor.estado}
-                      >
-                        <DeleteOutlineIcon />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+                      <Tooltip title="Desactivar proveedor">
+                        <span>
+                          <IconButton
+                            color="error"
+                            onClick={() => onDeactivate(proveedor)}
+                            disabled={!proveedor.estado}
+                          >
+                            <DeleteOutlineIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </>
+                  )}
                 </Stack>
               </TableCell>
             </TableRow>

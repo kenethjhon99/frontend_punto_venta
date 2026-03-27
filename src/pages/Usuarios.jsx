@@ -15,6 +15,8 @@ import {
 } from "@mui/material";
 import UsuarioTable from "../components/usuarios/UsuarioTable";
 import UsuarioFormModal from "../components/ui/UsuarioFormModal";
+import { useAuth } from "../hooks/useAuth";
+import { userHasRole } from "../utils/roles";
 import { getRoles } from "../services/rolService";
 import {
   activarUsuario,
@@ -65,6 +67,7 @@ const normalizarRoles = (data) => {
 };
 
 function Usuarios() {
+  const { user } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -75,6 +78,7 @@ function Usuarios() {
   const [loadingGuardar, setLoadingGuardar] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const canManageUsuarios = useMemo(() => userHasRole(user, "SUPER_ADMIN"), [user]);
 
   const cargarCatalogos = useCallback(async () => {
     try {
@@ -83,7 +87,7 @@ function Usuarios() {
 
       const [usuariosData, rolesData] = await Promise.all([
         getUsuarios(),
-        getRoles(),
+        canManageUsuarios ? getRoles() : Promise.resolve([]),
       ]);
 
       setUsuarios(normalizarUsuarios(usuariosData));
@@ -94,7 +98,7 @@ function Usuarios() {
     } finally {
       setLoadingLista(false);
     }
-  }, []);
+  }, [canManageUsuarios]);
 
   useEffect(() => {
     cargarCatalogos();
@@ -251,19 +255,29 @@ function Usuarios() {
           </Stack>
 
           <Typography variant="body1" color="text.secondary">
-            Modulo exclusivo para SUPER_ADMIN: crea usuarios, activa cuentas y asigna roles.
+            {canManageUsuarios
+              ? "Modulo exclusivo para SUPER_ADMIN: crea usuarios, activa cuentas y asigna roles."
+              : "Modo solo lectura: puedes consultar usuarios, roles y estados sin realizar cambios."}
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={abrirNuevo}
-          sx={{ width: { xs: "100%", sm: "auto" } }}
-        >
-          Nuevo usuario
-        </Button>
+        {canManageUsuarios && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={abrirNuevo}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
+            Nuevo usuario
+          </Button>
+        )}
       </Stack>
+
+      {!canManageUsuarios && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          Este perfil puede consultar los usuarios y sus roles, pero no crear, editar ni desactivar.
+        </Alert>
+      )}
 
       <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
         <Stack
@@ -325,19 +339,22 @@ function Usuarios() {
             usuarios={usuariosFiltrados}
             onEdit={abrirEditar}
             onToggleActivo={toggleActivoUsuario}
+            canManage={canManageUsuarios}
           />
         </Paper>
       )}
 
-      <UsuarioFormModal
-        key={`${usuarioEditando?.id_usuario ?? "new"}-${modalOpen ? "open" : "closed"}`}
-        open={modalOpen}
-        onClose={cerrarModal}
-        onSave={guardarUsuario}
-        loading={loadingGuardar}
-        usuarioEditando={usuarioEditando}
-        roles={roles}
-      />
+      {canManageUsuarios && (
+        <UsuarioFormModal
+          key={`${usuarioEditando?.id_usuario ?? "new"}-${modalOpen ? "open" : "closed"}`}
+          open={modalOpen}
+          onClose={cerrarModal}
+          onSave={guardarUsuario}
+          loading={loadingGuardar}
+          usuarioEditando={usuarioEditando}
+          roles={roles}
+        />
+      )}
     </Box>
   );
 }

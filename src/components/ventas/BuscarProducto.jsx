@@ -17,7 +17,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 
-function BuscarProducto({ productos, onAgregar }) {
+function BuscarProducto({ productos, onAgregar, disabled = false }) {
   const [busqueda, setBusqueda] = useState("");
   const [codigo, setCodigo] = useState("");
 
@@ -57,7 +57,8 @@ function BuscarProducto({ productos, onAgregar }) {
           placeholder="Escanea o escribe el código de barras"
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}
-          onKeyDown={handleEscanear}
+          onKeyDown={disabled ? undefined : handleEscanear}
+          disabled={disabled}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -73,6 +74,7 @@ function BuscarProducto({ productos, onAgregar }) {
           placeholder="Buscar por nombre, código o descripción"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
+          disabled={disabled}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -111,8 +113,8 @@ function BuscarProducto({ productos, onAgregar }) {
                 return (
                   <Box key={p.id_producto}>
                     <ListItemButton
-                      onClick={() => !sinStock && onAgregar(p)}
-                      disabled={sinStock}
+                      onClick={() => !disabled && !sinStock && onAgregar(p)}
+                      disabled={disabled || sinStock}
                       sx={{
                         py: 1.8,
                         px: 2,

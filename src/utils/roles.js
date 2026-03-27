@@ -4,12 +4,14 @@ export const getUserRoleNames = (user) => {
   return roles
     .map((rol) => {
       if (typeof rol === "string") {
-        return rol.trim().toUpperCase();
+        const normalized = rol.trim().toUpperCase();
+        return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
       }
 
-      return String(rol?.nombre_rol || "")
+      const normalized = String(rol?.nombre_rol || "")
         .trim()
         .toUpperCase();
+      return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
     })
     .filter(Boolean);
 };
@@ -28,6 +30,10 @@ export const getDefaultRoute = (user) => {
     return "/dashboard";
   }
 
+  if (userHasRole(user, "LECTURA")) {
+    return "/dashboard";
+  }
+
   if (userHasRole(user, "CAJERO")) {
     return "/ventas";
   }
@@ -38,3 +44,5 @@ export const getDefaultRoute = (user) => {
 
   return "/login";
 };
+
+export const isReadOnlyUser = (user) => userHasRole(user, "LECTURA");

@@ -42,7 +42,7 @@ import {
   writePrintPreference,
 } from "../utils/printPreferences";
 import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
+import { isReadOnlyUser, userHasRole } from "../utils/roles";
 
 const normalizarComprobantes = (data) => {
   if (Array.isArray(data)) return data;
@@ -74,6 +74,11 @@ function ServiciosTienda() {
     () => userHasRole(user, "SUPER_ADMIN", "ADMIN"),
     [user]
   );
+  const canOperarTienda = useMemo(
+    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"),
+    [user]
+  );
+  const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);
 
   useEffect(() => {
     writePrintPreference(user, "tienda.autoPrint", autoPrint);
@@ -321,6 +326,12 @@ function ServiciosTienda() {
             </Button>
           )}
 
+          {isReadOnly && (
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              Estas en modo solo lectura. Puedes consultar los productos de tienda, pero no registrar ventas.
+            </Alert>
+          )}
+
           {!cajaActiva?.id_sesion && !loadingCaja && (
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
               Debes abrir caja para vender desde tienda.
@@ -408,7 +419,7 @@ function ServiciosTienda() {
                               size="small"
                               startIcon={<AddShoppingCartIcon />}
                               onClick={() => agregarProducto(producto)}
-                              disabled={stock <= 0}
+                              disabled={stock <= 0 || !canOperarTienda}
                             >
                               Agregar
                             </Button>
@@ -466,7 +477,7 @@ function ServiciosTienda() {
                           <IconButton
                             color="primary"
                             onClick={() => actualizarCantidad(item.id_producto, item.cantidad - 1)}
-                            disabled={item.cantidad <= 1}
+                            disabled={item.cantidad <= 1 || !canOperarTienda}
                           >
                             <RemoveCircleOutlineIcon />
                           </IconButton>
@@ -478,6 +489,7 @@ function ServiciosTienda() {
                             onChange={(event) =>
                               actualizarCantidad(item.id_producto, event.target.value)
                             }
+                            disabled={!canOperarTienda}
                             inputProps={{
                               min: 1,
                               max: item.stock,
@@ -488,6 +500,7 @@ function ServiciosTienda() {
                           <IconButton
                             color="error"
                             onClick={() => quitarProducto(item.id_producto)}
+                            disabled={!canOperarTienda}
                           >
                             <DeleteOutlineIcon />
                           </IconButton>
@@ -499,11 +512,12 @@ function ServiciosTienda() {
               </Stack>
             </Paper>
 
-            <Paper sx={{ p: 3, borderRadius: 4 }}>
-              <Stack spacing={2}>
-                <Typography variant="h6" fontWeight="bold">
-                  Resumen de pago
-                </Typography>
+            {canOperarTienda ? (
+              <Paper sx={{ p: 3, borderRadius: 4 }}>
+                <Stack spacing={2}>
+                  <Typography variant="h6" fontWeight="bold">
+                    Resumen de pago
+                  </Typography>
 
                 <Box
                   sx={{
@@ -597,24 +611,34 @@ function ServiciosTienda() {
 
                 <Divider />
 
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="large"
-                  startIcon={<PointOfSaleIcon />}
-                  onClick={finalizarVenta}
-                  disabled={
-                    !items.length ||
-                    loadingVenta ||
-                    loadingCaja ||
-                    !cajaActiva?.id_sesion ||
-                    (metodoPago === "EFECTIVO" && montoRecibidoNumero < total)
-                  }
-                >
-                  {loadingVenta ? "Registrando..." : "Registrar venta de tienda"}
-                </Button>
-              </Stack>
-            </Paper>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="large"
+                    startIcon={<PointOfSaleIcon />}
+                    onClick={finalizarVenta}
+                    disabled={
+                      !items.length ||
+                      loadingVenta ||
+                      loadingCaja ||
+                      !cajaActiva?.id_sesion ||
+                      (metodoPago === "EFECTIVO" && montoRecibidoNumero < total)
+                    }
+                  >
+                    {loadingVenta ? "Registrando..." : "Registrar venta de tienda"}
+                  </Button>
+                </Stack>
+              </Paper>
+            ) : (
+              <Paper sx={{ p: 3, borderRadius: 4 }}>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Resumen de pago
+                </Typography>
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  El rol de solo lectura puede ver el catalogo de tienda, pero no registrar ventas ni cobros.
+                </Alert>
+              </Paper>
+            )}
           </Stack>
         </Box>
       </Box>

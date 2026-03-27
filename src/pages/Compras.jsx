@@ -25,6 +25,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AddIcon from "@mui/icons-material/Add";
 import { useAuth } from "../hooks/useAuth";
+import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import {
   readPrintPreference,
   writePrintPreference,
@@ -122,6 +123,8 @@ function Compras() {
   const [compraSeleccionada, setCompraSeleccionada] = useState(null);
   const [detalleCompraSeleccionado, setDetalleCompraSeleccionado] = useState(null);
   const [compraDetalle, setCompraDetalle] = useState(null);
+  const canManageCompras = useMemo(() => userHasRole(user, "ADMIN"), [user]);
+  const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);
 
   const cargarProductos = useCallback(async () => {
     try {
@@ -614,6 +617,12 @@ function Compras() {
           </Alert>
         )}
 
+        {isReadOnly && (
+          <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+            Estas en modo solo lectura. Puedes revisar compras, detalles e historial, pero no registrar ni anular compras.
+          </Alert>
+        )}
+
         <Grid container spacing={3} alignItems="stretch">
           <Grid item xs={12} lg={5}>
             <Stack spacing={3}>
@@ -638,7 +647,7 @@ function Compras() {
                           value={proveedorId}
                           onChange={(event) => setProveedorId(event.target.value)}
                           displayEmpty
-                          disabled={loadingProveedores}
+                          disabled={loadingProveedores || !canManageCompras}
                         >
                           <MenuItem value="" disabled>
                             {loadingProveedores ? "Cargando proveedores..." : "Selecciona un proveedor"}
@@ -654,14 +663,16 @@ function Compras() {
                         </Select>
                       </Box>
 
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => setProveedorModalOpen(true)}
-                        sx={{ minWidth: { xs: "100%", sm: 180 } }}
-                      >
-                        Nuevo proveedor
-                      </Button>
+                      {canManageCompras && (
+                        <Button
+                          variant="outlined"
+                          startIcon={<AddIcon />}
+                          onClick={() => setProveedorModalOpen(true)}
+                          sx={{ minWidth: { xs: "100%", sm: 180 } }}
+                        >
+                          Nuevo proveedor
+                        </Button>
+                      )}
                     </Stack>
                   </Grid>
 
@@ -672,6 +683,7 @@ function Compras() {
                       placeholder="Factura o referencia"
                       value={documento}
                       onChange={(event) => setDocumento(event.target.value)}
+                      disabled={!canManageCompras}
                     />
                   </Grid>
 
@@ -683,6 +695,7 @@ function Compras() {
                       value={fechaCompra}
                       onChange={(event) => setFechaCompra(event.target.value)}
                       slotProps={{ inputLabel: { shrink: true } }}
+                      disabled={!canManageCompras}
                     />
                   </Grid>
 
@@ -694,6 +707,7 @@ function Compras() {
                       fullWidth
                       value={metodoPago}
                       onChange={(event) => setMetodoPago(event.target.value)}
+                      disabled={!canManageCompras}
                     >
                       <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
                       <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
@@ -710,6 +724,7 @@ function Compras() {
                       placeholder="Notas internas sobre esta compra"
                       value={observaciones}
                       onChange={(event) => setObservaciones(event.target.value)}
+                      disabled={!canManageCompras}
                     />
                   </Grid>
                 </Grid>
@@ -731,6 +746,7 @@ function Compras() {
                   productos={productos}
                   onAgregar={agregarProducto}
                   loading={loadingProductos}
+                  disabled={!canManageCompras}
                 />
               </Paper>
             </Stack>
@@ -748,6 +764,7 @@ function Compras() {
                   onCambiarCantidad={cambiarCantidad}
                   onCambiarCosto={cambiarCosto}
                   onEliminar={eliminarItem}
+                  disabled={!canManageCompras}
                 />
               </Paper>
 
@@ -763,16 +780,18 @@ function Compras() {
 
                 <Divider sx={{ my: 3 }} />
 
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={autoPrintCompra}
-                      onChange={(event) => setAutoPrintCompra(event.target.checked)}
-                    />
-                  }
-                  label="Imprimir comprobante al registrar"
-                  sx={{ mb: 2 }}
-                />
+                {canManageCompras && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={autoPrintCompra}
+                        onChange={(event) => setAutoPrintCompra(event.target.checked)}
+                      />
+                    }
+                    label="Imprimir comprobante al registrar"
+                    sx={{ mb: 2 }}
+                  />
+                )}
 
                 <Box
                   sx={{
@@ -815,7 +834,7 @@ function Compras() {
                     <Button
                       variant="outlined"
                       onClick={limpiarFormulario}
-                      disabled={loadingCompra}
+                      disabled={loadingCompra || !canManageCompras}
                       sx={{ minWidth: 150 }}
                     >
                       Limpiar
@@ -824,7 +843,7 @@ function Compras() {
                       variant="contained"
                       size="large"
                       onClick={registrarCompra}
-                      disabled={!items.length || loadingCompra}
+                      disabled={!items.length || loadingCompra || !canManageCompras}
                       sx={{ minWidth: 220, fontWeight: "bold" }}
                     >
                       {loadingCompra ? "Guardando..." : "Registrar compra"}
@@ -990,7 +1009,7 @@ function Compras() {
                                 variant="outlined"
                                 color="error"
                                 size="small"
-                                disabled={compraAnulada || loadingAnulacionCompra}
+                                disabled={compraAnulada || loadingAnulacionCompra || !canManageCompras}
                                 onClick={() => abrirAnulacionCompra(compra)}
                               >
                                 {compraAnulada ? "Anulada" : "Anular"}
@@ -1010,13 +1029,15 @@ function Compras() {
         </Grid>
       </Box>
 
-      <ProveedorFormModal
-        key={proveedorModalOpen ? "proveedor-open" : "proveedor-closed"}
-        open={proveedorModalOpen}
-        onClose={() => setProveedorModalOpen(false)}
-        onSave={guardarProveedor}
-        loading={loadingNuevoProveedor}
-      />
+      {canManageCompras && (
+        <ProveedorFormModal
+          key={proveedorModalOpen ? "proveedor-open" : "proveedor-closed"}
+          open={proveedorModalOpen}
+          onClose={() => setProveedorModalOpen(false)}
+          onSave={guardarProveedor}
+          loading={loadingNuevoProveedor}
+        />
+      )}
 
       <CompraDetalleModal
         open={compraDetalleOpen}
@@ -1030,25 +1051,30 @@ function Compras() {
         loadingAnulacion={loadingAnulacionCompra}
         loadingAnulacionDetalle={loadingAnulacionDetalle}
         detalleAnulandoId={detalleCompraSeleccionado?.id_detalle_compra ?? null}
+        canAnular={canManageCompras}
       />
 
-      <CompraAnulacionModal
-        open={compraAnulacionOpen}
-        onClose={cerrarAnulacionCompra}
-        onConfirm={confirmarAnulacionCompra}
-        loading={loadingAnulacionCompra}
-        compra={compraSeleccionada || compraDetalle?.compra}
-      />
+      {canManageCompras && (
+        <CompraAnulacionModal
+          open={compraAnulacionOpen}
+          onClose={cerrarAnulacionCompra}
+          onConfirm={confirmarAnulacionCompra}
+          loading={loadingAnulacionCompra}
+          compra={compraSeleccionada || compraDetalle?.compra}
+        />
+      )}
 
-      <CompraDetalleAnulacionModal
-        key={`compra-detalle-anulacion-${detalleCompraSeleccionado?.id_detalle_compra ?? "none"}-${detalleAnulacionOpen ? "open" : "closed"}`}
-        open={detalleAnulacionOpen}
-        onClose={cerrarAnulacionDetalle}
-        onConfirm={confirmarAnulacionDetalle}
-        loading={loadingAnulacionDetalle}
-        compra={compraDetalle?.compra}
-        detalle={detalleCompraSeleccionado}
-      />
+      {canManageCompras && (
+        <CompraDetalleAnulacionModal
+          key={`compra-detalle-anulacion-${detalleCompraSeleccionado?.id_detalle_compra ?? "none"}-${detalleAnulacionOpen ? "open" : "closed"}`}
+          open={detalleAnulacionOpen}
+          onClose={cerrarAnulacionDetalle}
+          onConfirm={confirmarAnulacionDetalle}
+          loading={loadingAnulacionDetalle}
+          compra={compraDetalle?.compra}
+          detalle={detalleCompraSeleccionado}
+        />
+      )}
     </Container>
   );
 }

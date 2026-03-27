@@ -16,7 +16,13 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocalMallIcon from "@mui/icons-material/LocalMall";
 
-function CompraTable({ items, onCambiarCantidad, onCambiarCosto, onEliminar }) {
+function CompraTable({
+  items,
+  onCambiarCantidad,
+  onCambiarCosto,
+  onEliminar,
+  disabled = false,
+}) {
   if (!items.length) {
     return (
       <Paper
@@ -93,6 +99,7 @@ function CompraTable({ items, onCambiarCantidad, onCambiarCosto, onEliminar }) {
                       Number(event.target.value)
                     )
                   }
+                  disabled={disabled}
                   inputProps={{
                     min: 0.01,
                     step: "0.01",
@@ -113,6 +120,7 @@ function CompraTable({ items, onCambiarCantidad, onCambiarCosto, onEliminar }) {
                       Number(event.target.value)
                     )
                   }
+                  disabled={disabled}
                   inputProps={{
                     min: 1,
                     style: { textAlign: "center" },
@@ -135,6 +143,7 @@ function CompraTable({ items, onCambiarCantidad, onCambiarCosto, onEliminar }) {
                   <IconButton
                     color="error"
                     onClick={() => onEliminar(item.id_producto)}
+                    disabled={disabled}
                   >
                     <DeleteIcon />
                   </IconButton>

@@ -20,7 +20,7 @@ import { useTheme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 
-function VentaTable({ items, onCambiarCantidad, onEliminar }) {
+function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -104,6 +104,7 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
                   onChange={(e) =>
                     onCambiarCantidad(item.id_producto, Number(e.target.value))
                   }
+                  disabled={disabled}
                   inputProps={{
                     min: 1,
                     max: item.stock,
@@ -116,6 +117,7 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
                   <IconButton
                     color="error"
                     onClick={() => onEliminar(item.id_producto)}
+                    disabled={disabled}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -218,6 +220,7 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
                   onChange={(e) =>
                     onCambiarCantidad(item.id_producto, Number(e.target.value))
                   }
+                  disabled={disabled}
                   inputProps={{
                     min: 1,
                     max: item.stock,
@@ -238,6 +241,7 @@ function VentaTable({ items, onCambiarCantidad, onEliminar }) {
                   <IconButton
                     color="error"
                     onClick={() => onEliminar(item.id_producto)}
+                    disabled={disabled}
                   >
                     <DeleteIcon />
                   </IconButton>

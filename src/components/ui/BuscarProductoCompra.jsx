@@ -17,7 +17,7 @@ import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import SearchIcon from "@mui/icons-material/Search";
 
-function BuscarProductoCompra({ productos, onAgregar, loading }) {
+function BuscarProductoCompra({ productos, onAgregar, loading, disabled = false }) {
   const [busqueda, setBusqueda] = useState("");
 
   const filtrados = useMemo(() => {
@@ -42,6 +42,7 @@ function BuscarProductoCompra({ productos, onAgregar, loading }) {
         placeholder="Busca por nombre, codigo o descripcion"
         value={busqueda}
         onChange={(event) => setBusqueda(event.target.value)}
+        disabled={disabled}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -86,7 +87,8 @@ function BuscarProductoCompra({ productos, onAgregar, loading }) {
                 return (
                   <Box key={producto.id_producto}>
                     <ListItemButton
-                      onClick={() => onAgregar(producto)}
+                      onClick={() => !disabled && onAgregar(producto)}
+                      disabled={disabled}
                       sx={{
                         py: 1.8,
                         px: 2,

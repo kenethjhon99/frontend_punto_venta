@@ -29,7 +29,7 @@ import VentaDetalleAnulacionModal from "../components/ui/VentaDetalleAnulacionMo
 import VentaDetalleModal from "../components/ui/VentaDetalleModal";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
+import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import {
   readPrintPreference,
   writePrintPreference,
@@ -334,9 +334,15 @@ function Ventas() {
     return userHasRole(user, "ADMIN");
   }, [user]);
 
+  const canOperarVentas = useMemo(() => {
+    return userHasRole(user, "ADMIN", "CAJERO");
+  }, [user]);
+
   const canCreateClientes = useMemo(() => {
     return userHasRole(user, "ADMIN", "CAJERO");
   }, [user]);
+
+  const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);
 
   const abrirNuevoCliente = () => {
     setSuccess("");
@@ -632,6 +638,12 @@ function Ventas() {
           </Alert>
         )}
 
+        {isReadOnly && (
+          <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+            Estas en modo solo lectura. Puedes consultar productos y ventas recientes, pero no registrar ni modificar ventas.
+          </Alert>
+        )}
+
         {!loadingCaja && !cajaActiva && (
           <Alert
             severity="warning"
@@ -674,6 +686,7 @@ function Ventas() {
                 productos={productos}
                 onAgregar={agregarProducto}
                 loading={loadingProductos}
+                disabled={!canOperarVentas}
               />
             </Paper>
           </Box>
@@ -702,19 +715,21 @@ function Ventas() {
                   items={items}
                   onCambiarCantidad={cambiarCantidad}
                   onEliminar={eliminarItem}
+                  disabled={!canOperarVentas}
                 />
               </Paper>
 
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 3,
-                  borderRadius: 4,
-                }}
-              >
-                <Typography variant="h6" fontWeight="bold" mb={2}>
-                  Resumen de pago
-                </Typography>
+              {canOperarVentas ? (
+                <Paper
+                  elevation={3}
+                  sx={{
+                    p: 3,
+                    borderRadius: 4,
+                  }}
+                >
+                  <Typography variant="h6" fontWeight="bold" mb={2}>
+                    Resumen de pago
+                  </Typography>
 
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
@@ -1046,7 +1061,23 @@ function Ventas() {
                             : "Finalizar venta"}
                   </Button>
                 </Box>
-              </Paper>
+                </Paper>
+              ) : (
+                <Paper
+                  elevation={3}
+                  sx={{
+                    p: 3,
+                    borderRadius: 4,
+                  }}
+                >
+                  <Typography variant="h6" fontWeight="bold" mb={2}>
+                    Resumen de pago
+                  </Typography>
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    Este rol solo puede revisar el contenido del carrito y el historial reciente. El registro de ventas esta deshabilitado.
+                  </Alert>
+                </Paper>
+              )}
             </Stack>
           </Box>
         </Box>
@@ -1131,7 +1162,7 @@ function Ventas() {
         </Paper>
       </Box>
 
-      {canCreateClientes && (
+      {canCreateClientes && canOperarVentas && (
         <ClienteFormModal
           key={`venta-cliente-${clienteModalOpen ? "open" : "closed"}`}
           open={clienteModalOpen}

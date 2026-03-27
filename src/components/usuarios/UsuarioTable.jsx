@@ -37,6 +37,7 @@ function UsuarioTable({
   usuarios = [],
   onEdit,
   onToggleActivo,
+  canManage = true,
 }) {
   if (!usuarios.length) {
     return (
@@ -59,7 +60,7 @@ function UsuarioTable({
             <TableCell sx={{ fontWeight: "bold" }}>Roles</TableCell>
             <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
             <TableCell align="center" sx={{ fontWeight: "bold" }}>
-              Acciones
+              {canManage ? "Acciones" : "Modo"}
             </TableCell>
           </TableRow>
         </TableHead>
@@ -103,20 +104,24 @@ function UsuarioTable({
               </TableCell>
 
               <TableCell align="center">
-                <Stack direction="row" spacing={1} justifyContent="center">
-                  <Button size="small" variant="outlined" onClick={() => onEdit(usuario)}>
-                    Editar
-                  </Button>
+                {canManage ? (
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    <Button size="small" variant="outlined" onClick={() => onEdit(usuario)}>
+                      Editar
+                    </Button>
 
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color={usuario.activo ? "error" : "success"}
-                    onClick={() => onToggleActivo(usuario)}
-                  >
-                    {usuario.activo ? "Desactivar" : "Activar"}
-                  </Button>
-                </Stack>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color={usuario.activo ? "error" : "success"}
+                      onClick={() => onToggleActivo(usuario)}
+                    >
+                      {usuario.activo ? "Desactivar" : "Activar"}
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Chip label="Solo lectura" size="small" variant="outlined" />
+                )}
               </TableCell>
             </TableRow>
           ))}

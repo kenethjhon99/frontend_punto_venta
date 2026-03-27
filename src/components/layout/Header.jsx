@@ -26,7 +26,10 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
   const { mode, toggleTheme } = useThemeMode();
   const roleNames = [...new Set(
     (user?.roles ?? [])
-      .map((role) => String(role?.nombre_rol || "").trim().toUpperCase())
+      .map((role) => {
+        const normalized = String(role?.nombre_rol || role || "").trim().toUpperCase();
+        return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
+      })
       .filter(Boolean)
   )];
 
@@ -46,6 +49,13 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
           accent: "linear-gradient(135deg, rgba(37,99,235,0.2), rgba(14,165,233,0.12))",
           borderColor: "rgba(37,99,235,0.3)",
         }
+      : roleNames.includes("LECTURA")
+        ? {
+            label: "Modo lectura",
+            chipColor: "info",
+            accent: "linear-gradient(135deg, rgba(14,165,233,0.20), rgba(148,163,184,0.10))",
+            borderColor: "rgba(14,165,233,0.30)",
+          }
       : roleNames.includes("CAJERO")
         ? {
             label: "Modo operativo",

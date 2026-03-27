@@ -18,6 +18,8 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ProveedorTable from "../components/proveedores/ProveedorTable";
+import { useAuth } from "../hooks/useAuth";
+import { userHasRole } from "../utils/roles";
 import CompraDetalleModal from "../components/ui/CompraDetalleModal";
 import ProveedorFormModal from "../components/ui/ProveedorFormModal";
 import {
@@ -35,6 +37,7 @@ const normalizarProveedores = (data) => {
 };
 
 function Proveedores() {
+  const { user } = useAuth();
   const [proveedores, setProveedores] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [nitFiltro, setNitFiltro] = useState("");
@@ -51,6 +54,7 @@ function Proveedores() {
   const [loadingCompraDetalle, setLoadingCompraDetalle] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const canManageProveedores = useMemo(() => userHasRole(user, "ADMIN"), [user]);
 
   const cargarProveedores = useCallback(async () => {
     try {
@@ -236,19 +240,29 @@ function Proveedores() {
           </Stack>
 
           <Typography variant="body1" color="text.secondary">
-            Administra los proveedores disponibles para el modulo de compras
+            {canManageProveedores
+              ? "Administra los proveedores disponibles para el modulo de compras"
+              : "Modo solo lectura: puedes consultar proveedores y su historial de compras."}
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={abrirNuevo}
-          sx={{ width: { xs: "100%", sm: "auto" } }}
-        >
-          Nuevo proveedor
-        </Button>
+        {canManageProveedores && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={abrirNuevo}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
+            Nuevo proveedor
+          </Button>
+        )}
       </Stack>
+
+      {!canManageProveedores && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          Este perfil puede consultar proveedores y compras relacionadas, pero no crear, editar ni desactivar.
+        </Alert>
+      )}
 
       <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
         <Stack
@@ -318,6 +332,7 @@ function Proveedores() {
             onEdit={abrirEditar}
             onDeactivate={inactivarProveedor}
             onViewHistory={cargarComprasProveedor}
+            canManage={canManageProveedores}
           />
         </Paper>
       )}
@@ -388,14 +403,16 @@ function Proveedores() {
         )}
       </Paper>
 
-      <ProveedorFormModal
-        key={`${proveedorEditando?.id_proveedor ?? "new"}-${modalOpen ? "open" : "closed"}`}
-        open={modalOpen}
-        onClose={cerrarModal}
-        onSave={guardarProveedor}
-        loading={loadingGuardar}
-        proveedorEditando={proveedorEditando}
-      />
+      {canManageProveedores && (
+        <ProveedorFormModal
+          key={`${proveedorEditando?.id_proveedor ?? "new"}-${modalOpen ? "open" : "closed"}`}
+          open={modalOpen}
+          onClose={cerrarModal}
+          onSave={guardarProveedor}
+          loading={loadingGuardar}
+          proveedorEditando={proveedorEditando}
+        />
+      )}
 
       <CompraDetalleModal
         open={Boolean(compraDetalle) || loadingCompraDetalle}

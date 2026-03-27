@@ -31,7 +31,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
+import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import {
   abrirCaja,
   cerrarCaja,
@@ -134,6 +134,8 @@ function Caja() {
   });
 
   const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  const canOperateCaja = userHasRole(user, "ADMIN", "CAJERO", "MECANICO");
+  const isReadOnly = isReadOnlyUser(user);
   const isCajeroOnly = userHasRole(user, "CAJERO") && !canSeeAllSessions;
   const pendientesNoCobroActivos = Number(resumenActivo?.no_cobrados_pendientes_count || 0);
   const movimientosPendientesValidacion = Number(
@@ -796,7 +798,7 @@ function Caja() {
     );
   };
 
-  const renderPendientesPorValidar = () => {
+  const renderPendientesPorValidar = (readOnly = false) => {
     const noCobros = Array.isArray(resumenActivo?.no_cobrados_pendientes)
       ? resumenActivo.no_cobrados_pendientes
       : [];
@@ -899,6 +901,7 @@ function Caja() {
                             size="small"
                             variant="outlined"
                             color="warning"
+                            disabled={readOnly}
                             onClick={() =>
                               setValidacionPendiente({
                                 tipo: "NO_COBRO",
@@ -1046,6 +1049,7 @@ function Caja() {
                             size="small"
                             variant="outlined"
                             color="info"
+                            disabled={readOnly}
                             onClick={() =>
                               setValidacionPendiente({
                                 tipo: "MOVIMIENTO",
@@ -1143,7 +1147,7 @@ function Caja() {
     );
   };
 
-  const renderAutorizacionCierre = () => {
+  const renderAutorizacionCierre = (readOnly = false) => {
     if (!requiereAutorizacionCierre) return null;
 
     return (
@@ -1181,50 +1185,58 @@ function Caja() {
             </Typography>
           </Paper>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Usuario admin"
-                value={validacionNoCobro.admin_username}
-                onChange={(event) =>
-                  setValidacionNoCobro((prev) => ({
-                    ...prev,
-                    admin_username: event.target.value,
-                  }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="password"
-                label="Password admin"
-                value={validacionNoCobro.admin_password}
-                onChange={(event) =>
-                  setValidacionNoCobro((prev) => ({
-                    ...prev,
-                    admin_password: event.target.value,
-                  }))
-                }
-              />
-            </Grid>
-          </Grid>
+          {readOnly ? (
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              Modo solo lectura: la diferencia de cierre esta visible, pero esta cuenta no puede autorizar cierres.
+            </Alert>
+          ) : (
+            <>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Usuario admin"
+                    value={validacionNoCobro.admin_username}
+                    onChange={(event) =>
+                      setValidacionNoCobro((prev) => ({
+                        ...prev,
+                        admin_username: event.target.value,
+                      }))
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="password"
+                    label="Password admin"
+                    value={validacionNoCobro.admin_password}
+                    onChange={(event) =>
+                      setValidacionNoCobro((prev) => ({
+                        ...prev,
+                        admin_password: event.target.value,
+                      }))
+                    }
+                  />
+                </Grid>
+              </Grid>
 
-          <TextField
-            fullWidth
-            multiline
-            minRows={2}
-            label="Nota de validacion"
-            placeholder="Ej. cortesia autorizada, diferencia explicada o ajuste administrativo"
-            value={validacionNoCobro.validacion_no_cobro_nota}
-            onChange={(event) =>
-              setValidacionNoCobro((prev) => ({
-                ...prev,
-                validacion_no_cobro_nota: event.target.value,
-              }))
-            }
-          />
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                label="Nota de validacion"
+                placeholder="Ej. cortesia autorizada, diferencia explicada o ajuste administrativo"
+                value={validacionNoCobro.validacion_no_cobro_nota}
+                onChange={(event) =>
+                  setValidacionNoCobro((prev) => ({
+                    ...prev,
+                    validacion_no_cobro_nota: event.target.value,
+                  }))
+                }
+              />
+            </>
+          )}
         </Stack>
       </Paper>
     );
@@ -1513,6 +1525,12 @@ function Caja() {
         </Alert>
       )}
 
+      {isReadOnly && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          Estas en modo solo lectura. Puedes consultar sesiones, cierres, conciliaciones y pendientes, pero no abrir caja, registrar movimientos ni cerrar sesiones.
+        </Alert>
+      )}
+
       {loading ? (
         <Paper elevation={2} sx={{ p: 5, borderRadius: 3 }}>
           <Typography color="text.secondary">Cargando modulo de caja...</Typography>
@@ -1539,6 +1557,7 @@ function Caja() {
                       setApertura((prev) => ({ ...prev, monto_apertura: event.target.value }))
                     }
                     inputProps={{ min: 0, step: "0.01" }}
+                    disabled={!canOperateCaja}
                   />
                 </Grid>
                 <Grid item xs={12} md={8}>
@@ -1550,19 +1569,26 @@ function Caja() {
                     onChange={(event) =>
                       setApertura((prev) => ({ ...prev, observaciones_apertura: event.target.value }))
                     }
+                    disabled={!canOperateCaja}
                   />
                 </Grid>
               </Grid>
 
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleAbrirCaja}
-                disabled={loadingAction}
-                sx={{ mt: 3 }}
-              >
-                {loadingAction ? "Abriendo..." : "Abrir caja"}
-              </Button>
+              {canOperateCaja ? (
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={handleAbrirCaja}
+                  disabled={loadingAction}
+                  sx={{ mt: 3 }}
+                >
+                  {loadingAction ? "Abriendo..." : "Abrir caja"}
+                </Button>
+              ) : (
+                <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+                  Modo solo lectura: puedes consultar el historial de caja, pero no abrir una sesion nueva.
+                </Alert>
+              )}
             </Paper>
           ) : (
             <>
@@ -1616,6 +1642,7 @@ function Caja() {
                               categoria: "",
                             }))
                           }
+                          disabled={!canOperateCaja}
                         >
                           <MenuItem value="INGRESO">Ingreso</MenuItem>
                           <MenuItem value="EGRESO">Egreso</MenuItem>
@@ -1629,6 +1656,7 @@ function Caja() {
                             setMovimiento((prev) => ({ ...prev, categoria: event.target.value }))
                           }
                           displayEmpty
+                          disabled={!canOperateCaja}
                         >
                           <MenuItem value="" disabled>
                             {movimiento.tipo === "EGRESO"
@@ -1655,6 +1683,7 @@ function Caja() {
                             setMovimiento((prev) => ({ ...prev, monto: event.target.value }))
                           }
                           inputProps={{ min: 0, step: "0.01" }}
+                          disabled={!canOperateCaja}
                         />
                       </Grid>
                       <Grid item xs={12} md={3}>
@@ -1666,6 +1695,7 @@ function Caja() {
                             setMovimiento((prev) => ({ ...prev, descripcion: event.target.value }))
                           }
                           placeholder="Motivo del movimiento"
+                          disabled={!canOperateCaja}
                         />
                       </Grid>
                     </Grid>
@@ -1674,14 +1704,20 @@ function Caja() {
                       Los ingresos y egresos manuales se registran de inmediato, pero quedaran pendientes de validacion administrativa hasta el cierre de caja.
                     </Alert>
 
-                    <Button
-                      variant="contained"
-                      onClick={handleRegistrarMovimiento}
-                      disabled={loadingAction}
-                      sx={{ mt: 2.5 }}
-                    >
-                      {loadingAction ? "Guardando..." : "Registrar movimiento"}
-                    </Button>
+                    {canOperateCaja ? (
+                      <Button
+                        variant="contained"
+                        onClick={handleRegistrarMovimiento}
+                        disabled={loadingAction}
+                        sx={{ mt: 2.5 }}
+                      >
+                        {loadingAction ? "Guardando..." : "Registrar movimiento"}
+                      </Button>
+                    ) : (
+                      <Alert severity="info" sx={{ mt: 2.5, borderRadius: 2 }}>
+                        Modo solo lectura: puedes revisar los movimientos manuales, pero no registrar ingresos o egresos.
+                      </Alert>
+                    )}
 
                     <Divider sx={{ my: 3 }} />
 
@@ -1739,9 +1775,9 @@ function Caja() {
                     </Stack>
 
                     <Stack spacing={2}>
-                      {renderPendientesPorValidar()}
+                      {renderPendientesPorValidar(!canOperateCaja)}
                       {renderNoCobrosValidados(resumenActivo)}
-                      {renderAutorizacionCierre()}
+                      {renderAutorizacionCierre(!canOperateCaja)}
 
                       <TextField
                         fullWidth
@@ -1752,6 +1788,7 @@ function Caja() {
                           setCierre((prev) => ({ ...prev, monto_cierre_reportado: event.target.value }))
                         }
                         inputProps={{ min: 0, step: "0.01" }}
+                        disabled={!canOperateCaja}
                       />
 
                       <TextField
@@ -1764,6 +1801,7 @@ function Caja() {
                           setCierre((prev) => ({ ...prev, observaciones_cierre: event.target.value }))
                         }
                         placeholder="Ej. diferencia explicada, retiro final, entrega de turno"
+                        disabled={!canOperateCaja}
                       />
 
                       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
@@ -1775,19 +1813,25 @@ function Caja() {
                         </Typography>
                       </Paper>
 
-                      <Button
-                        variant="contained"
-                        color="warning"
-                        onClick={handleCerrarCaja}
-                        disabled={
-                          loadingAction ||
-                          (requiereAutorizacionCierre &&
-                            (!String(validacionNoCobro.admin_username || "").trim() ||
-                              !String(validacionNoCobro.admin_password || "").trim()))
-                        }
-                      >
-                        {loadingAction ? "Cerrando..." : "Cerrar caja"}
-                      </Button>
+                      {canOperateCaja ? (
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          onClick={handleCerrarCaja}
+                          disabled={
+                            loadingAction ||
+                            (requiereAutorizacionCierre &&
+                              (!String(validacionNoCobro.admin_username || "").trim() ||
+                                !String(validacionNoCobro.admin_password || "").trim()))
+                          }
+                        >
+                          {loadingAction ? "Cerrando..." : "Cerrar caja"}
+                        </Button>
+                      ) : (
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                          Modo solo lectura: puedes revisar el cierre, pero no validar pendientes ni cerrar caja.
+                        </Alert>
+                      )}
                     </Stack>
                   </Paper>
                 </Grid>
