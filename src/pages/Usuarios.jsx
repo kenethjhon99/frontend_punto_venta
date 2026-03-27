@@ -26,16 +26,36 @@ import {
   quitarRolUsuario,
 } from "../services/usuarioService";
 
+const normalizarNombreRol = (nombreRol) => {
+  const normalized = String(nombreRol || "").trim().toUpperCase();
+  return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
+};
+
+const dedupeRoles = (roles) => {
+  const seen = new Set();
+
+  return (Array.isArray(roles) ? roles : []).filter((rol) => {
+    const key = Number(rol?.id_rol) || normalizarNombreRol(rol?.nombre_rol);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((rol) => ({
+    ...rol,
+    nombre_rol: normalizarNombreRol(rol?.nombre_rol),
+  }));
+};
+
 const normalizarUsuarios = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+  const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+  return rows.map((usuario) => ({
+    ...usuario,
+    roles: dedupeRoles(usuario?.roles),
+  }));
 };
 
 const normalizarRoles = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+  const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+  return dedupeRoles(rows);
 };
 
 function Usuarios() {

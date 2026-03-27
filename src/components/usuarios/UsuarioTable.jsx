@@ -12,6 +12,25 @@ import {
   Typography,
 } from "@mui/material";
 
+const normalizarNombreRol = (nombreRol) => {
+  const normalized = String(nombreRol || "").trim().toUpperCase();
+  return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
+};
+
+const dedupeRoles = (roles) => {
+  const seen = new Set();
+
+  return (Array.isArray(roles) ? roles : []).filter((rol) => {
+    const key = Number(rol?.id_rol) || normalizarNombreRol(rol?.nombre_rol);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((rol) => ({
+    ...rol,
+    nombre_rol: normalizarNombreRol(rol?.nombre_rol),
+  }));
+};
+
 function UsuarioTable({
   usuarios = [],
   onEdit,
@@ -60,7 +79,7 @@ function UsuarioTable({
 
               <TableCell>
                 <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                  {(usuario.roles || []).map((rol) => (
+                  {dedupeRoles(usuario.roles).map((rol) => (
                     <Chip
                       key={`${usuario.id_usuario}-${rol.id_rol}`}
                       label={rol.nombre_rol}

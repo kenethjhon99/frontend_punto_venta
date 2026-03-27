@@ -27,10 +27,21 @@ import {
   Typography,
 } from "@mui/material";
 
+const normalizarNombreRol = (nombreRol) => {
+  const normalized = String(nombreRol || "").trim().toUpperCase();
+  return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
+};
+
+const dedupeRoleIds = (roleIds) => {
+  return [...new Set((Array.isArray(roleIds) ? roleIds : []).map((value) => Number(value)).filter(Number.isInteger))];
+};
+
 const buildFormState = (usuarioEditando) => {
-  const roles = Array.isArray(usuarioEditando?.roles)
-    ? usuarioEditando.roles.map((rol) => Number(rol.id_rol))
-    : [];
+  const roles = dedupeRoleIds(
+    Array.isArray(usuarioEditando?.roles)
+      ? usuarioEditando.roles.map((rol) => Number(rol.id_rol))
+      : []
+  );
 
   return {
     username: usuarioEditando?.username || "",
@@ -92,7 +103,7 @@ function UsuarioFormModal({
     const value = event.target.value;
     setForm((prev) => ({
       ...prev,
-      roles: Array.isArray(value) ? value.map(Number) : [],
+      roles: dedupeRoleIds(value),
     }));
   };
 
@@ -487,13 +498,13 @@ function UsuarioFormModal({
                 input={<OutlinedInput label="Roles" />}
                 renderValue={(selected) => (
                   <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                    {selected.map((idRol) => {
+                    {dedupeRoleIds(selected).map((idRol) => {
                       const rol = roles.find((item) => Number(item.id_rol) === Number(idRol));
                       return (
                         <Chip
                           key={idRol}
                           size="small"
-                          label={rol?.nombre_rol || `Rol ${idRol}`}
+                          label={normalizarNombreRol(rol?.nombre_rol) || `Rol ${idRol}`}
                         />
                       );
                     })}
@@ -502,7 +513,7 @@ function UsuarioFormModal({
               >
                 {roles.map((rol) => (
                   <MenuItem key={rol.id_rol} value={Number(rol.id_rol)}>
-                    {rol.nombre_rol}
+                    {normalizarNombreRol(rol.nombre_rol)}
                   </MenuItem>
                 ))}
               </Select>
