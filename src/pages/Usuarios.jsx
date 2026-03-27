@@ -34,15 +34,21 @@ const normalizarNombreRol = (nombreRol) => {
 const dedupeRoles = (roles) => {
   const seen = new Set();
 
-  return (Array.isArray(roles) ? roles : []).filter((rol) => {
-    const key = Number(rol?.id_rol) || normalizarNombreRol(rol?.nombre_rol);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).map((rol) => ({
-    ...rol,
-    nombre_rol: normalizarNombreRol(rol?.nombre_rol),
-  }));
+  return (Array.isArray(roles) ? roles : [])
+    .map((rol) => ({
+      ...rol,
+      nombre_rol: normalizarNombreRol(rol?.nombre_rol),
+    }))
+    .filter((rol) => {
+      const key = normalizarNombreRol(rol?.nombre_rol);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((rol) => ({
+      ...rol,
+      nombre_rol: normalizarNombreRol(rol?.nombre_rol),
+    }));
 };
 
 const normalizarUsuarios = (data) => {

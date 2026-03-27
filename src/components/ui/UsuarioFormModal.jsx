@@ -33,13 +33,30 @@ const normalizarNombreRol = (nombreRol) => {
 };
 
 const dedupeRoleIds = (roleIds) => {
-  return [...new Set((Array.isArray(roleIds) ? roleIds : []).map((value) => Number(value)).filter(Number.isInteger))];
+  return [
+    ...new Set(
+      (Array.isArray(roleIds) ? roleIds : [])
+        .map((value) => Number(value))
+        .filter(Number.isInteger)
+    ),
+  ];
+};
+
+const dedupeRolesByName = (roles) => {
+  const seen = new Set();
+
+  return (Array.isArray(roles) ? roles : []).filter((rol) => {
+    const key = normalizarNombreRol(rol?.nombre_rol);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 const buildFormState = (usuarioEditando) => {
   const roles = dedupeRoleIds(
     Array.isArray(usuarioEditando?.roles)
-      ? usuarioEditando.roles.map((rol) => Number(rol.id_rol))
+      ? dedupeRolesByName(usuarioEditando.roles).map((rol) => Number(rol.id_rol))
       : []
   );
 
