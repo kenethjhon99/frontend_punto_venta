@@ -779,6 +779,28 @@ function CarWashReparacion() {
           <Typography color="text.secondary">
             Gestiona servicios de taller, diagnostico, cobro y seguimiento de reparaciones.
           </Typography>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            mt={1.5}
+          >
+            <Chip
+              color={cajaActiva?.id_caja_sesion ? "success" : "default"}
+              label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
+              sx={{ fontWeight: 700 }}
+            />
+            {cajaActiva?.id_caja_sesion && (
+              <Chip
+                variant="outlined"
+                color="primary"
+                label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                sx={{ fontWeight: 700 }}
+              />
+            )}
+          </Stack>
         </Box>
 
         {isReadOnly && (

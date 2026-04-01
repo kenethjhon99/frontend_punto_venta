@@ -711,17 +711,38 @@ function CarWashAutolavado() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ maxWidth: 1400, mx: "auto" }}>
-        <Stack spacing={1} mb={3}>
-          <Typography variant="h4" fontWeight="bold">
-            Servicios - Autolavado
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Selecciona primero el tipo de vehiculo y luego el servicio que se le va a realizar.
-          </Typography>
-        </Stack>
+        <Box sx={{ maxWidth: 1400, mx: "auto" }}>
+          <Stack spacing={1} mb={3}>
+            <Typography variant="h4" fontWeight="bold">
+              Servicios - Autolavado
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Selecciona primero el tipo de vehiculo y luego el servicio que se le va a realizar.
+            </Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Chip
+                color={cajaActiva?.id_caja_sesion ? "success" : "default"}
+                label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
+                sx={{ fontWeight: 700 }}
+              />
+              {cajaActiva?.id_caja_sesion && (
+                <Chip
+                  variant="outlined"
+                  color="primary"
+                  label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                  sx={{ fontWeight: 700 }}
+                />
+              )}
+            </Stack>
+          </Stack>
 
-        {error && (
+          {error && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>
             {error}
           </Alert>

@@ -43,11 +43,17 @@ import {
 } from "../utils/printPreferences";
 import { useAuth } from "../hooks/useAuth";
 import { isReadOnlyUser, userHasRole } from "../utils/roles";
+import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 
 const normalizarComprobantes = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
   return [];
+};
+
+const EMPTY_NO_COBRO_FORM = {
+  enabled: false,
+  motivo: "",
 };
 
 function ServiciosTienda() {
@@ -60,6 +66,7 @@ function ServiciosTienda() {
   const [tipoComprobante, setTipoComprobante] = useState("TICKET");
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
   const [montoRecibido, setMontoRecibido] = useState("");
+  const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
   const [autoPrint, setAutoPrint] = useState(() =>
     readPrintPreference(user, "tienda.autoPrint", true)
   );
@@ -239,7 +246,12 @@ function ServiciosTienda() {
       return;
     }
 
-    if (metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
+    if (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim()) {
+      setError("Debes indicar el motivo del no cobro.");
+      return;
+    }
+
+    if (!noCobroForm.enabled && metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
       setError("El monto recibido no cubre el total de la venta.");
       return;
     }
@@ -263,11 +275,12 @@ function ServiciosTienda() {
         tipo_venta: "CONTADO",
         tipo_comprobante: tipoComprobante,
         metodo_pago: metodoPago,
-        monto_recibido: metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
+        monto_recibido:
+          !noCobroForm.enabled && metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
         id_sucursal: 1,
         id_cliente: null,
-        no_cobrar: false,
-        no_cobrado_motivo: null,
+        no_cobrar: noCobroForm.enabled,
+        no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
         items: items.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
@@ -277,8 +290,11 @@ function ServiciosTienda() {
 
       setItems([]);
       setMontoRecibido("");
+      setNoCobroForm(EMPTY_NO_COBRO_FORM);
       setSuccess(
-        response?.venta?.numero_comprobante
+        noCobroForm.enabled
+          ? "Venta de tienda registrada sin cobro. Quedara pendiente de validacion administrativa al cierre de caja."
+          : response?.venta?.numero_comprobante
           ? `Venta de tienda registrada. Comprobante ${response.venta.numero_comprobante}.`
           : "Venta de tienda registrada correctamente."
       );
@@ -580,9 +596,9 @@ function ServiciosTienda() {
                   </Select>
                 </FormControl>
 
-                <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                  <FormControl fullWidth>
-                    <InputLabel id="tienda-metodo-label">Metodo de pago</InputLabel>
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                    <FormControl fullWidth>
+                      <InputLabel id="tienda-metodo-label">Metodo de pago</InputLabel>
                     <Select
                       labelId="tienda-metodo-label"
                       label="Metodo de pago"
@@ -595,7 +611,7 @@ function ServiciosTienda() {
                     </Select>
                   </FormControl>
 
-                  {metodoPago === "EFECTIVO" && (
+                  {metodoPago === "EFECTIVO" && !noCobroForm.enabled && (
                     <TextField
                       fullWidth
                       label="Monto recibido"
@@ -605,9 +621,22 @@ function ServiciosTienda() {
                       inputProps={{ min: 0, step: "0.01" }}
                     />
                   )}
-                </Stack>
+                  </Stack>
 
-                {metodoPago === "EFECTIVO" && (
+                <NoCobroAuthorizationFields
+                  enabled={noCobroForm.enabled}
+                  onToggle={(checked) =>
+                    setNoCobroForm((prev) => ({ ...prev, enabled: checked }))
+                  }
+                  form={noCobroForm}
+                  onChange={(field, value) =>
+                    setNoCobroForm((prev) => ({ ...prev, [field]: value }))
+                  }
+                  title="Registrar como no cobrado"
+                  helperText="La venta de tienda se guardara sin cobro y debera validarse por un admin antes del cierre de caja."
+                />
+
+                {metodoPago === "EFECTIVO" && !noCobroForm.enabled && (
                   <Paper
                     variant="outlined"
                     sx={{
@@ -647,10 +676,17 @@ function ServiciosTienda() {
                       loadingVenta ||
                       loadingCaja ||
                       !cajaActiva?.id_caja_sesion ||
-                      (metodoPago === "EFECTIVO" && montoRecibidoNumero < total)
+                      (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim()) ||
+                      (!noCobroForm.enabled &&
+                        metodoPago === "EFECTIVO" &&
+                        montoRecibidoNumero < total)
                     }
                   >
-                    {loadingVenta ? "Registrando..." : "Registrar venta de tienda"}
+                    {loadingVenta
+                      ? "Registrando..."
+                      : noCobroForm.enabled
+                        ? "Registrar venta sin cobro"
+                        : "Registrar venta de tienda"}
                   </Button>
                 </Stack>
               </Paper>
