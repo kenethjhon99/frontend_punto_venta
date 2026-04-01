@@ -434,6 +434,19 @@ function ServiciosTienda() {
                             justifyContent: "space-between",
                             gap: 2,
                             alignItems: "center",
+                            cursor: stock > 0 && canOperarTienda ? "pointer" : "default",
+                            transition: "transform 180ms ease, box-shadow 180ms ease",
+                            "&:hover": stock > 0 && canOperarTienda
+                              ? {
+                                  transform: "translateY(-2px)",
+                                  boxShadow: 3,
+                                }
+                              : undefined,
+                          }}
+                          onClick={() => {
+                            if (stock > 0 && canOperarTienda) {
+                              agregarProducto(producto);
+                            }
                           }}
                         >
                           <Box>
@@ -459,7 +472,10 @@ function ServiciosTienda() {
                               variant="contained"
                               size="small"
                               startIcon={<AddShoppingCartIcon />}
-                              onClick={() => agregarProducto(producto)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                agregarProducto(producto);
+                              }}
                               disabled={stock <= 0 || !canOperarTienda}
                             >
                               Agregar
