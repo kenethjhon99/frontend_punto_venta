@@ -230,7 +230,11 @@ function ServiciosTienda() {
   const finalizarVenta = async () => {
     if (!items.length) return;
 
-    if (!cajaActiva?.id_sesion) {
+    const cajaActual = await getCajaSesionActiva().catch(() => null);
+    const sesionCaja = cajaActual?.sesion || cajaActual || null;
+    setCajaActiva(sesionCaja);
+
+    if (!sesionCaja?.id_caja_sesion) {
       setError("Debes abrir caja antes de registrar una venta de tienda.");
       return;
     }
@@ -309,6 +313,27 @@ function ServiciosTienda() {
           <Typography variant="body1" color="text.secondary">
             Vende solo productos exclusivos de tienda. Este modulo no mezcla el catalogo general del POS.
           </Typography>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Chip
+              color={cajaActiva?.id_caja_sesion ? "success" : "default"}
+              label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
+              sx={{ fontWeight: 700 }}
+            />
+            {cajaActiva?.id_caja_sesion && (
+              <Chip
+                variant="outlined"
+                color="primary"
+                label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                sx={{ fontWeight: 700 }}
+              />
+            )}
+          </Stack>
         </Stack>
 
         <Stack spacing={2} mb={3}>
@@ -332,7 +357,7 @@ function ServiciosTienda() {
             </Alert>
           )}
 
-          {!cajaActiva?.id_sesion && !loadingCaja && (
+          {!cajaActiva?.id_caja_sesion && !loadingCaja && (
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
               Debes abrir caja para vender desde tienda.
             </Alert>
@@ -621,7 +646,7 @@ function ServiciosTienda() {
                       !items.length ||
                       loadingVenta ||
                       loadingCaja ||
-                      !cajaActiva?.id_sesion ||
+                      !cajaActiva?.id_caja_sesion ||
                       (metodoPago === "EFECTIVO" && montoRecibidoNumero < total)
                     }
                   >
