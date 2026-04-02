@@ -48,6 +48,10 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../utils/tableHeaderStyles";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("es-GT", {
@@ -1961,15 +1965,15 @@ function Caja() {
               <TableContainer>
                 <Table>
                   <TableHead>
-                    <TableRow>
-                      <TableCell>Cajero</TableCell>
-                      <TableCell>Fecha apertura</TableCell>
-                      <TableCell>Fecha cierre</TableCell>
-                      <TableCell>Estado</TableCell>
-                      <TableCell>Monto apertura</TableCell>
-                      <TableCell>Cierre calculado</TableCell>
-                      <TableCell>Diferencia</TableCell>
-                      <TableCell>Accion</TableCell>
+                    <TableRow sx={getTableHeaderRowSx(theme)}>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Cajero</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Fecha apertura</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Fecha cierre</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Monto apertura</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Cierre calculado</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Diferencia</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Accion</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
