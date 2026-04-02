@@ -14,7 +14,27 @@ function Layout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+        position: "relative",
+        overflowX: "clip",
+      }}
+    >
+      <Box
+        aria-hidden
+        sx={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: 0,
+          backgroundImage: theme.customLayout?.shellGlow,
+          opacity: theme.palette.mode === "light" ? 1 : 0.9,
+        }}
+      />
+
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
@@ -25,6 +45,8 @@ function Layout() {
 
       <Box
         sx={{
+          position: "relative",
+          zIndex: 1,
           flexGrow: 1,
           transition: (theme) =>
             theme.transitions.create(["margin", "width"], {
@@ -44,10 +66,24 @@ function Layout() {
         <Box
           component="main"
           sx={{
+            position: "relative",
             p: { xs: 2, md: 3 },
             bgcolor: "background.default",
             color: "text.primary",
             minHeight: "100vh",
+            animation: "app-shell-fade 420ms ease",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              backgroundImage: theme.customLayout?.contentOverlay,
+              opacity: 0.9,
+            },
+            "& > *": {
+              position: "relative",
+              zIndex: 1,
+            },
           }}
         >
           <Outlet />

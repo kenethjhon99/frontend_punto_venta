@@ -15,6 +15,7 @@ import {
   Tooltip,
   useMediaQuery,
   useTheme,
+  alpha,
 } from "@mui/material";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -44,6 +45,10 @@ function Sidebar({
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const drawerBackground =
+    theme.palette.mode === "light"
+      ? "linear-gradient(180deg, #0f172a 0%, #13213d 48%, #172554 100%)"
+      : "linear-gradient(180deg, #08101d 0%, #0f172a 45%, #111827 100%)";
 
   const menu = [
     {
@@ -126,18 +131,36 @@ function Sidebar({
         "& .MuiDrawer-paper": {
           width: isMobile ? drawerWidth : collapsed ? collapsedDrawerWidth : drawerWidth,
           boxSizing: "border-box",
-          backgroundColor: "#111827",
+          background: drawerBackground,
           color: "#fff",
           overflowX: "hidden",
+          borderRight: `1px solid ${alpha("#ffffff", 0.08)}`,
+          boxShadow: "0 24px 48px rgba(2, 6, 23, 0.35)",
           transition: (theme) =>
             theme.transitions.create("width", {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 20%)",
+          },
         },
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: collapsed ? "center" : "space-between", gap: 1 }}>
+      <Toolbar
+        sx={{
+          display: "flex",
+          justifyContent: collapsed ? "center" : "space-between",
+          gap: 1,
+          borderBottom: `1px solid ${alpha("#ffffff", 0.08)}`,
+          minHeight: 78,
+        }}
+      >
         {(!collapsed || isMobile) && (
           <Typography variant="h6" fontWeight="bold" noWrap>
             POS System
@@ -151,6 +174,8 @@ function Sidebar({
               border: "2px solid rgba(255,255,255,0.85)",
               width: 42,
               height: 42,
+              backgroundColor: "rgba(255,255,255,0.03)",
+              animation: collapsed && !isMobile ? "sidebar-float 3.4s ease-in-out infinite" : "none",
               "&:hover": {
                 backgroundColor: "rgba(255,255,255,0.08)",
               },
@@ -180,12 +205,29 @@ function Sidebar({
                 sx={{
                   minHeight: 48,
                   px: 2,
+                  mx: 1.25,
+                  my: 0.5,
                   justifyContent: collapsed && !isMobile ? "center" : "initial",
+                  borderRadius: 4,
+                  position: "relative",
                   "&.Mui-selected": {
-                    backgroundColor: "#1d4ed8",
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
+                    boxShadow: `0 12px 28px ${alpha(theme.palette.primary.main, 0.24)}`,
+                    "&::before": {
+                      content: '""',
+                      position: "absolute",
+                      left: 0,
+                      top: 10,
+                      bottom: 10,
+                      width: 4,
+                      borderRadius: 99,
+                      backgroundColor: "rgba(255,255,255,0.95)",
+                    },
                   },
                   "&:hover": {
-                    backgroundColor: "#374151",
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                    transform:
+                      collapsed && !isMobile ? "none" : "translateX(4px)",
                   },
                 }}
               >
@@ -199,7 +241,14 @@ function Sidebar({
                 >
                   {item.icon}
                 </ListItemIcon>
-                {(!collapsed || isMobile) && <ListItemText primary={item.text} />}
+                {(!collapsed || isMobile) && (
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                    }}
+                  />
+                )}
               </ListItemButton>
             </Tooltip>
           ))}

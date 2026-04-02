@@ -17,6 +17,7 @@ import {
   Avatar,
   Chip,
   IconButton,
+  useTheme,
 } from "@mui/material";
 
 function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
@@ -24,6 +25,7 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
+  const theme = useTheme();
   const roleNames = [...new Set(
     (user?.roles ?? [])
       .map((role) => {
@@ -175,10 +177,12 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
       position="static"
       elevation={2}
       sx={{
-        backgroundColor: "background.paper",
+        backgroundColor:
+          theme.palette.mode === "light" ? "rgba(255,255,255,0.72)" : "rgba(15,23,42,0.74)",
         color: "text.primary",
-        backgroundImage: roleMeta.accent,
+        backgroundImage: `${roleMeta.accent}, linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))`,
         borderBottom: `1px solid ${roleMeta.borderColor}`,
+        backdropFilter: "blur(18px)",
       }}
     >
       <Toolbar
@@ -188,6 +192,7 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
           gap: 2,
           flexWrap: { xs: "wrap", md: "nowrap" },
           alignItems: "center",
+          py: { xs: 1.25, md: 1.5 },
         }}
       >
         <Box sx={{ minWidth: 0, display: "flex", alignItems: "flex-start", gap: 1.5 }}>
@@ -200,6 +205,10 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
                 mt: 0.25,
                 border: "1px solid",
                 borderColor: "divider",
+                backgroundColor:
+                  theme.palette.mode === "light"
+                    ? "rgba(255,255,255,0.6)"
+                    : "rgba(15,23,42,0.35)",
               }}
             >
               <MenuRoundedIcon />
@@ -235,8 +244,22 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
           </IconButton>
 
           <Box textAlign="right">
-            {showIdentityPanel && (
-              <>
+          {showIdentityPanel && (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  backgroundColor:
+                    theme.palette.mode === "light"
+                      ? "rgba(255,255,255,0.52)"
+                      : "rgba(15,23,42,0.35)",
+                  backdropFilter: "blur(10px)",
+                  minWidth: { xs: "100%", md: 260 },
+                }}
+              >
                 <Typography variant="body2" fontWeight="bold">
                   {user?.nombre || user?.username || "Usuario"}
                 </Typography>
@@ -252,7 +275,7 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
                     />
                   ))}
                 </Box>
-              </>
+              </Box>
             )}
           </Box>
 
