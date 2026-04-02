@@ -26,6 +26,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { getAuditoriaCatalogo } from "../services/auditoriaService";
+import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
   getTableHeaderCellSx,
   getTableHeaderRowSx,
@@ -373,7 +374,7 @@ function Auditoria() {
         </Button>
       </Stack>
 
-      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+      <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
         <Stack spacing={2}>
           <Stack
             direction={{ xs: "column", md: "row" }}

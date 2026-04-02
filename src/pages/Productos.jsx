@@ -29,6 +29,7 @@ import AddIcon from "@mui/icons-material/Add";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import { useAuth } from "../hooks/useAuth";
 import { isServiciosManagerUser, userHasRole } from "../utils/roles";
+import { getFilterPanelSx } from "../utils/filterPanelStyles";
 
 const MODULO_OPTIONS = [
   { value: "TODOS", label: "Todos" },
@@ -209,14 +210,7 @@ function Productos() {
         </Alert>
       )}
 
-      <Paper
-        elevation={2}
-        sx={{
-          p: 2,
-          mb: 3,
-          borderRadius: 3,
-        }}
-      >
+      <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
           <TextField
             fullWidth={!canFilterScopes}

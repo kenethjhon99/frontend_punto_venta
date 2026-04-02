@@ -17,6 +17,7 @@ import UsuarioTable from "../components/usuarios/UsuarioTable";
 import UsuarioFormModal from "../components/ui/UsuarioFormModal";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
+import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import { getRoles } from "../services/rolService";
 import {
   activarUsuario,
@@ -279,7 +280,7 @@ function Usuarios() {
         </Alert>
       )}
 
-      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+      <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}

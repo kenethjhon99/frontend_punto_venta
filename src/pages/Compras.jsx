@@ -42,6 +42,7 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import { getProductos } from "../services/productoService";
 import {
   anularCompra,
@@ -870,7 +871,10 @@ function Compras() {
                   </Box>
                 </Stack>
 
-                <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 3 }}>
+                <Paper
+                  variant="outlined"
+                  sx={(theme) => getFilterPanelSx(theme, { compact: true, mb: 2 })}
+                >
                   <Stack
                     direction={{ xs: "column", sm: "row" }}
                     spacing={2}

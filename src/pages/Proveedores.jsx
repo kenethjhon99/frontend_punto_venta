@@ -22,6 +22,7 @@ import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 import CompraDetalleModal from "../components/ui/CompraDetalleModal";
 import ProveedorFormModal from "../components/ui/ProveedorFormModal";
+import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
   crearProveedor,
   desactivarProveedor,
@@ -264,7 +265,7 @@ function Proveedores() {
         </Alert>
       )}
 
-      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+      <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}

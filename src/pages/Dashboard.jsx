@@ -31,6 +31,7 @@ import {
   YAxis,
 } from "recharts";
 import { getReporteGeneral } from "../services/reporteService";
+import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
   getTableHeaderCellSx,
   getTableHeaderRowSx,
@@ -339,7 +340,7 @@ function Dashboard() {
         </Button>
       </Stack>
 
-      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+      <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
           <TextField
             label="Desde"
