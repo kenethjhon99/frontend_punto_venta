@@ -78,11 +78,11 @@ function ServiciosTienda() {
   const [success, setSuccess] = useState("");
 
   const canManageProductos = useMemo(
-    () => userHasRole(user, "SUPER_ADMIN", "ADMIN"),
+    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS"),
     [user]
   );
   const canOperarTienda = useMemo(
-    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO"),
+    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS"),
     [user]
   );
   const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);

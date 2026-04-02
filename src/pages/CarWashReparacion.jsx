@@ -168,9 +168,9 @@ const getSiguientesEstadosReparacion = (estadoActual) => {
 
 function CarWashReparacion() {
   const { user } = useAuth();
-  const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN");
-  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
-  const canOperateReparacion = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
+  const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS");
+  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
+  const canOperateReparacion = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
   const isReadOnly = isReadOnlyUser(user);
   const [vehiculos, setVehiculos] = useState([]);
   const [servicios, setServicios] = useState([]);

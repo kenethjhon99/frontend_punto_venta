@@ -49,6 +49,13 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
           accent: "linear-gradient(135deg, rgba(37,99,235,0.2), rgba(14,165,233,0.12))",
           borderColor: "rgba(37,99,235,0.3)",
         }
+      : roleNames.includes("ENCARGADO_SERVICIOS")
+        ? {
+            label: "Modo servicios",
+            chipColor: "secondary",
+            accent: "linear-gradient(135deg, rgba(147,51,234,0.18), rgba(34,197,94,0.10))",
+            borderColor: "rgba(147,51,234,0.28)",
+          }
       : roleNames.includes("LECTURA")
         ? {
             label: "Modo lectura",
@@ -81,6 +88,7 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
   const isAdminView = userHasRole(user, "SUPER_ADMIN", "ADMIN");
   const isCashierView = userHasRole(user, "CAJERO");
   const isMechanicView = userHasRole(user, "MECANICO");
+  const isServiciosManagerView = userHasRole(user, "ENCARGADO_SERVICIOS");
 
   const sections = {
     "/dashboard": {
@@ -99,7 +107,9 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
     },
     "/productos": {
       title: "Productos",
-      subtitle: isAdminView
+      subtitle: isServiciosManagerView
+        ? "Administra exclusivamente los productos del catalogo de tienda."
+        : isAdminView
         ? "Administra catalogo, stock y configuraciones de inventario."
         : "Consulta existencias y disponibilidad del catalogo.",
     },
@@ -131,7 +141,9 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
     },
     "/servicios": {
       title: "Servicios",
-      subtitle: isMechanicView
+      subtitle: isServiciosManagerView
+        ? "Controla autolavado, reparacion, tienda y la caja operativa de servicios."
+        : isMechanicView
         ? "Accede a los trabajos de taller y seguimiento del servicio."
         : "Accede rapidamente a autolavado y reparacion desde un solo modulo.",
     },

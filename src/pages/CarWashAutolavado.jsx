@@ -219,15 +219,15 @@ function CarWashAutolavado() {
   const [success, setSuccess] = useState("");
 
   const canManageCatalog = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS");
   }, [user]);
 
   const canOperateAutolavado = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
   }, [user]);
 
   const canManageOrders = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
   }, [user]);
 
   const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);

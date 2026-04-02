@@ -28,7 +28,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
+import { isServiciosManagerUser, userHasRole } from "../utils/roles";
 
 const MODULO_OPTIONS = [
   { value: "TODOS", label: "Todos" },
@@ -39,6 +39,7 @@ const MODULO_OPTIONS = [
 function Productos() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isServiciosManager = useMemo(() => isServiciosManagerUser(user), [user]);
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [scopeFiltro, setScopeFiltro] = useState("GENERAL");
@@ -49,7 +50,7 @@ function Productos() {
   const [error, setError] = useState("");
 
   const canManageProductos = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS");
   }, [user]);
 
   const canFilterScopes = useMemo(() => {
@@ -61,8 +62,11 @@ function Productos() {
       setLoadingLista(true);
       setError("");
 
-      const scope =
-        canFilterScopes && scopeFiltro === "TODOS" ? undefined : scopeFiltro;
+      const scope = isServiciosManager
+        ? "SERVICIOS"
+        : canFilterScopes && scopeFiltro === "TODOS"
+          ? undefined
+          : scopeFiltro;
 
       const data = await getProductos({ scope });
       setProductos(Array.isArray(data) ? data : []);
@@ -72,16 +76,21 @@ function Productos() {
     } finally {
       setLoadingLista(false);
     }
-  }, [canFilterScopes, scopeFiltro]);
+  }, [canFilterScopes, isServiciosManager, scopeFiltro]);
 
   useEffect(() => {
+    if (isServiciosManager && scopeFiltro !== "SERVICIOS") {
+      setScopeFiltro("SERVICIOS");
+      return;
+    }
+
     if (!canFilterScopes && scopeFiltro !== "GENERAL") {
       setScopeFiltro("GENERAL");
       return;
     }
 
     cargarProductos();
-  }, [cargarProductos, canFilterScopes, scopeFiltro]);
+  }, [cargarProductos, canFilterScopes, isServiciosManager, scopeFiltro]);
 
   const productosFiltrados = useMemo(() => {
     const texto = busqueda.toLowerCase();
@@ -168,7 +177,9 @@ function Productos() {
           </Stack>
 
           <Typography variant="body1" color="text.secondary">
-            Administra el catalogo general y los productos exclusivos de tienda sin mezclar ambos flujos.
+            {isServiciosManager
+              ? "Administra solo los productos exclusivos de tienda, sin tocar el catalogo general del POS."
+              : "Administra el catalogo general y los productos exclusivos de tienda sin mezclar ambos flujos."}
           </Typography>
         </Box>
 
@@ -270,7 +281,7 @@ function Productos() {
             onDelete={eliminarProducto}
             onViewKardex={verKardexProducto}
             canManage={canManageProductos}
-            showModulo={canFilterScopes}
+            showModulo={canFilterScopes || isServiciosManager}
           />
         </Paper>
       )}
@@ -285,6 +296,8 @@ function Productos() {
           onSave={guardarProducto}
           productoEditando={productoEditando}
           loading={loading}
+          forceModuloOrigen={isServiciosManager ? "SERVICIOS" : null}
+          hideModuloSelector={isServiciosManager}
         />
       )}
     </Box>

@@ -120,6 +120,14 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
                         px: 2,
                         alignItems: "flex-start",
                         opacity: sinStock ? 0.65 : 1,
+                        cursor: disabled || sinStock ? "default" : "pointer",
+                        transition: "transform 180ms ease, background-color 180ms ease",
+                        "&:hover": disabled || sinStock
+                          ? undefined
+                          : {
+                              transform: "translateY(-1px)",
+                              backgroundColor: "action.hover",
+                            },
                       }}
                     >
                       <Box
@@ -167,7 +175,7 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
                               color: sinStock ? "text.disabled" : "success.main",
                             }}
                           >
-                            {sinStock ? "No disponible" : "Agregar"}
+                            {sinStock ? "No disponible" : "Toca para agregar"}
                           </Typography>
                         </Stack>
                       </Box>

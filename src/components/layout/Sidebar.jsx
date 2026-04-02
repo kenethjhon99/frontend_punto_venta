@@ -56,7 +56,7 @@ function Sidebar({
       text: "Productos",
       path: "/productos",
       icon: <InventoryIcon />,
-      visible: userHasRole(user, "ADMIN", "CAJERO", "LECTURA"),
+      visible: userHasRole(user, "ADMIN", "CAJERO", "ENCARGADO_SERVICIOS", "LECTURA"),
     },
     {
       text: "Inventario",
@@ -86,7 +86,7 @@ function Sidebar({
       text: "Caja",
       path: "/caja",
       icon: <AccountBalanceWalletIcon />,
-      visible: userHasRole(user, "ADMIN", "CAJERO", "MECANICO", "LECTURA"),
+      visible: userHasRole(user, "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"),
     },
     {
       text: "Compras",
@@ -110,7 +110,7 @@ function Sidebar({
       text: "Servicios",
       path: "/servicios",
       icon: <LocalCarWashIcon />,
-      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "LECTURA"),
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"),
     },
   ].filter((item) => item.visible ?? true);
 

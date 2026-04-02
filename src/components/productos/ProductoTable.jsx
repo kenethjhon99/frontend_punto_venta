@@ -189,17 +189,17 @@ function ProductoTable({
       <Table sx={{ minWidth: showModulo ? 1120 : 1000 }}>
         <TableHead>
           <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Codigo</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>ID</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Codigo</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Nombre</TableCell>
             {showModulo && (
-              <TableCell sx={{ fontWeight: "bold" }}>Modulo</TableCell>
+              <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Modulo</TableCell>
             )}
-            <TableCell sx={{ fontWeight: "bold" }}>Descripcion</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Compra</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Venta</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Descripcion</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Compra</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Venta</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Stock</TableCell>
+            <TableCell align="center" sx={{ fontWeight: "bold", color: "#0f172a" }}>
               Acciones
             </TableCell>
           </TableRow>

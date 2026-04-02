@@ -52,6 +52,8 @@ function ProductoFormModal({
   onSave,
   productoEditando,
   loading,
+  forceModuloOrigen = null,
+  hideModuloSelector = false,
 }) {
   const [form, setForm] = useState(() => buildFormState(productoEditando));
 
@@ -76,7 +78,7 @@ function ProductoFormModal({
       existencia_inicial: Number(form.existencia_inicial || 0),
       stock_minimo: Number(form.stock_minimo || 0),
       ubicacion: form.ubicacion || null,
-      modulo_origen: form.modulo_origen,
+      modulo_origen: forceModuloOrigen || form.modulo_origen,
     });
   };
 
@@ -112,21 +114,23 @@ function ProductoFormModal({
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel id="producto-modulo-label">Catalogo</InputLabel>
-              <Select
-                labelId="producto-modulo-label"
-                name="modulo_origen"
-                label="Catalogo"
-                value={form.modulo_origen}
-                onChange={handleChange}
-              >
-                <MenuItem value="GENERAL">General</MenuItem>
-                <MenuItem value="SERVICIOS">Tienda</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          {!hideModuloSelector && (
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel id="producto-modulo-label">Catalogo</InputLabel>
+                <Select
+                  labelId="producto-modulo-label"
+                  name="modulo_origen"
+                  label="Catalogo"
+                  value={forceModuloOrigen || form.modulo_origen}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="GENERAL">General</MenuItem>
+                  <MenuItem value="SERVICIOS">Tienda</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
 
           <Grid item xs={12} md={6}>
             <TextField

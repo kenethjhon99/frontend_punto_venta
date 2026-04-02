@@ -25,9 +25,16 @@ export const userHasRole = (user, ...allowedRoles) => {
   return normalizedAllowed.some((rol) => roles.includes(rol));
 };
 
+export const isServiciosManagerUser = (user) =>
+  userHasRole(user, "ENCARGADO_SERVICIOS");
+
 export const getDefaultRoute = (user) => {
   if (userHasRole(user, "SUPER_ADMIN", "ADMIN")) {
     return "/dashboard";
+  }
+
+  if (userHasRole(user, "ENCARGADO_SERVICIOS")) {
+    return "/servicios";
   }
 
   if (userHasRole(user, "LECTURA")) {
