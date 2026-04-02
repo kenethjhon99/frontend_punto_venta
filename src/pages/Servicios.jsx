@@ -10,33 +10,37 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
+import {
+  getSummaryCardSx,
+  getSummaryIconWrapSx,
+  getSummaryValueSx,
+} from "../utils/summaryCardStyles";
 
 function Servicios() {
+  const theme = useTheme();
   const serviceCards = [
     {
       title: "Autolavado",
       description: "Gestiona servicios de lavado, recepcion de vehiculos y seguimiento rapido.",
       to: "/carwash/autolavado",
-      icon: <LocalCarWashIcon sx={{ fontSize: 34 }} />,
-      accent: "linear-gradient(135deg, rgba(59,130,246,0.32), rgba(14,165,233,0.14))",
-      borderColor: "rgba(96,165,250,0.35)",
+      icon: LocalCarWashIcon,
+      tone: "primary",
     },
     {
       title: "Reparacion",
       description: "Administra diagnosticos, trabajos de taller y control de mantenimientos.",
       to: "/carwash/reparacion",
-      icon: <BuildIcon sx={{ fontSize: 34 }} />,
-      accent: "linear-gradient(135deg, rgba(148,163,184,0.28), rgba(59,130,246,0.12))",
-      borderColor: "rgba(148,163,184,0.3)",
+      icon: BuildIcon,
+      tone: "secondary",
     },
     {
       title: "Tienda",
       description: "Registra ventas de productos exclusivos de tienda sin mezclar el catalogo general del POS.",
       to: "/servicios/tienda",
-      icon: <StorefrontIcon sx={{ fontSize: 34 }} />,
-      accent: "linear-gradient(135deg, rgba(34,197,94,0.24), rgba(16,185,129,0.12))",
-      borderColor: "rgba(34,197,94,0.32)",
+      icon: StorefrontIcon,
+      tone: "success",
     },
   ];
 
@@ -69,42 +73,30 @@ function Servicios() {
               component={RouterLink}
               to={service.to}
               elevation={3}
-              sx={{
-                p: 3,
-                borderRadius: 4,
-                minHeight: 220,
+              sx={(currentTheme) => ({
+                ...getSummaryCardSx(currentTheme, service.tone, {
+                  interactive: true,
+                  minHeight: 248,
+                }),
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                background: service.accent,
-                border: `1px solid ${service.borderColor}`,
                 textDecoration: "none",
                 color: "inherit",
-                transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
-                "&:hover": {
-                  transform: "translateY(-4px)",
-                  boxShadow: 8,
-                  borderColor: "rgba(96,165,250,0.45)",
-                },
-              }}
+              })}
             >
               <Stack spacing={2}>
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 3,
-                    display: "grid",
-                    placeItems: "center",
-                    bgcolor: "rgba(255,255,255,0.08)",
-                    color: "#fff",
-                  }}
-                >
-                  {service.icon}
+                <Box sx={getSummaryIconWrapSx(theme, service.tone)}>
+                  <service.icon sx={{ fontSize: 34 }} />
                 </Box>
 
                 <Box>
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
+                  <Typography
+                    variant="h5"
+                    fontWeight="bold"
+                    gutterBottom
+                    sx={getSummaryValueSx(theme, service.tone)}
+                  >
                     {service.title}
                   </Typography>
                   <Typography variant="body1" color="text.secondary">
@@ -122,6 +114,7 @@ function Servicios() {
                   borderRadius: 999,
                   px: 3,
                   fontWeight: 700,
+                  boxShadow: "none",
                 }}
               >
                 Ir a {service.title}

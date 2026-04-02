@@ -17,6 +17,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import {
   getTableHeaderCellSx,
+  getTableContainerSx,
   getTableHeaderRowSx,
 } from "../../utils/tableHeaderStyles";
 
@@ -156,7 +157,7 @@ function VentasRecientesTable({
   }
 
   return (
-    <TableContainer component={Paper} elevation={0}>
+    <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
       <Table sx={{ minWidth: 900 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>

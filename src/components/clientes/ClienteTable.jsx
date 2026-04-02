@@ -17,6 +17,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
   getTableHeaderCellSx,
+  getTableContainerSx,
   getTableHeaderRowSx,
 } from "../../utils/tableHeaderStyles";
 
@@ -39,7 +40,7 @@ function ClienteTable({
   }
 
   return (
-    <TableContainer component={Paper} elevation={0}>
+    <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
       <Table sx={{ minWidth: 950 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>

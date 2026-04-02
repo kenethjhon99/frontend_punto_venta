@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DownloadIcon from "@mui/icons-material/Download";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import PointOfSaleRoundedIcon from "@mui/icons-material/PointOfSaleRounded";
+import ShoppingBagRoundedIcon from "@mui/icons-material/ShoppingBagRounded";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import {
   Alert,
   Box,
   Button,
+  Chip,
   Grid,
   Paper,
   Stack,
@@ -33,7 +39,14 @@ import {
 import { getReporteGeneral } from "../services/reporteService";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
+  getSectionPanelSx,
+  getSummaryCardSx,
+  getSummaryIconWrapSx,
+  getSummaryValueSx,
+} from "../utils/summaryCardStyles";
+import {
   getTableHeaderCellSx,
+  getTableContainerSx,
   getTableHeaderRowSx,
 } from "../utils/tableHeaderStyles";
 
@@ -62,6 +75,15 @@ const defaultHasta = today.toISOString().slice(0, 10);
 const startDate = new Date(today);
 startDate.setDate(startDate.getDate() - 6);
 const defaultDesde = startDate.toISOString().slice(0, 10);
+
+const formatLastUpdated = (value) => {
+  if (!value) return "Sin actualizar";
+
+  return new Intl.DateTimeFormat("es-GT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(value);
+};
 
 const buildDashboardPrintHtml = ({ desde, hasta, data }) => {
   const ventasProductoRows = data.ventas_de_producto
@@ -168,8 +190,10 @@ function Dashboard() {
   const [desde, setDesde] = useState(defaultDesde);
   const [hasta, setHasta] = useState(defaultHasta);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [data, setData] = useState({
     resumen: {},
     ventas_por_dia: [],
@@ -177,17 +201,23 @@ function Dashboard() {
     ventas_de_producto: [],
     productos_stock_bajo: [],
   });
+  const requestInFlightRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
-  useEffect(() => {
-    let ignore = false;
+  const cargarReportes = useCallback(
+    async ({ silent = false } = {}) => {
+      if (requestInFlightRef.current) return;
+      requestInFlightRef.current = true;
 
-    const cargarReportes = async () => {
       try {
-        setLoading(true);
-        setError("");
+        if (silent) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+          setError("");
+        }
 
         const response = await getReporteGeneral({ desde, hasta });
-        if (ignore) return;
 
         setData({
           resumen: response?.resumen || {},
@@ -196,44 +226,87 @@ function Dashboard() {
           ventas_de_producto: Array.isArray(response?.ventas_de_producto) ? response.ventas_de_producto : [],
           productos_stock_bajo: Array.isArray(response?.productos_stock_bajo) ? response.productos_stock_bajo : [],
         });
+        setLastUpdated(new Date());
+        hasLoadedRef.current = true;
+        if (!silent) {
+          setError("");
+        }
       } catch (err) {
-        if (ignore) return;
         console.error(err);
-        setError(err.response?.data?.error || "No se pudieron cargar los reportes");
+        if (!silent || !hasLoadedRef.current) {
+          setError(err.response?.data?.error || "No se pudieron cargar los reportes");
+        }
       } finally {
-        if (!ignore) {
+        if (silent) {
+          setRefreshing(false);
+        } else {
           setLoading(false);
         }
+        requestInFlightRef.current = false;
+      }
+    },
+    [desde, hasta]
+  );
+
+  useEffect(() => {
+    cargarReportes();
+  }, [cargarReportes]);
+
+  useEffect(() => {
+    const handleFocusRefresh = () => {
+      cargarReportes({ silent: true });
+    };
+
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        cargarReportes({ silent: true });
       }
     };
 
-    cargarReportes();
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        cargarReportes({ silent: true });
+      }
+    }, 60000);
+
+    window.addEventListener("focus", handleFocusRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
 
     return () => {
-      ignore = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocusRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
     };
-  }, [desde, hasta]);
+  }, [cargarReportes]);
 
   const summaryCards = [
     {
       label: "Ventas del periodo",
       value: formatCurrency(data.resumen.total_ventas),
       helper: `${data.resumen.ventas_cantidad || 0} venta(s)`,
+      tone: "primary",
+      icon: PointOfSaleRoundedIcon,
     },
     {
       label: "Compras del periodo",
       value: formatCurrency(data.resumen.total_compras),
       helper: `${data.resumen.compras_cantidad || 0} compra(s)`,
+      tone: "info",
+      icon: ShoppingBagRoundedIcon,
     },
     {
       label: "Utilidad estimada",
       value: formatCurrency(data.resumen.utilidad_estimada),
       helper: "Basada en ventas netas y costo registrado",
+      tone: "success",
+      icon: TrendingUpRoundedIcon,
     },
     {
       label: "Productos con poco stock",
       value: String(data.resumen.productos_stock_bajo || 0),
       helper: "Productos por debajo o al limite del minimo",
+      tone: "warning",
+      icon: Inventory2RoundedIcon,
     },
   ];
 
@@ -312,6 +385,29 @@ function Dashboard() {
         <Typography variant="body1" color="text.secondary">
           Revisa comportamiento diario, ventas de producto, compras por fecha, poco stock y utilidad estimada.
         </Typography>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ xs: "stretch", md: "center" }}>
+          <Chip
+            color="primary"
+            variant="outlined"
+            label={`Actualizado: ${formatLastUpdated(lastUpdated)}`}
+            sx={{ alignSelf: "flex-start" }}
+          />
+          <Chip
+            color="secondary"
+            variant="outlined"
+            label="Actualizacion automatica cada 60s"
+            sx={{ alignSelf: "flex-start" }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<RefreshRoundedIcon />}
+            onClick={() => cargarReportes({ silent: true })}
+            disabled={loading || refreshing}
+            sx={{ alignSelf: { xs: "stretch", md: "flex-start" } }}
+          >
+            {refreshing ? "Actualizando..." : "Actualizar ahora"}
+          </Button>
+        </Stack>
       </Stack>
 
       <Stack
@@ -368,27 +464,65 @@ function Dashboard() {
       )}
 
       <Grid container spacing={3}>
-        {summaryCards.map((card) => (
-          <Grid item xs={12} sm={6} lg={3} key={card.label}>
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: "100%" }}>
-              <Typography variant="body2" color="text.secondary" mb={1}>
-                {card.label}
-              </Typography>
-              <Typography variant="h5" fontWeight="bold" mb={1}>
-                {loading ? "..." : card.value}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {card.helper}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
+        {summaryCards.map((card) => {
+          const IconComponent = card.icon;
+
+          return (
+            <Grid item xs={12} sm={6} lg={3} key={card.label}>
+              <Paper elevation={2} sx={(theme) => getSummaryCardSx(theme, card.tone)}>
+                <Stack spacing={2.25} height="100%">
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                    spacing={2}
+                  >
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" mb={0.75}>
+                        {card.label}
+                      </Typography>
+                      <Typography
+                        variant="h5"
+                        fontWeight="bold"
+                        mb={1}
+                        sx={(theme) => getSummaryValueSx(theme, card.tone)}
+                      >
+                        {loading ? "..." : card.value}
+                      </Typography>
+                    </Box>
+                    <Box sx={(theme) => getSummaryIconWrapSx(theme, card.tone)}>
+                      <IconComponent fontSize="small" />
+                    </Box>
+                  </Stack>
+
+                  <Typography variant="body2" color="text.secondary" mt="auto">
+                    {card.helper}
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Grid>
+          );
+        })}
 
         <Grid item xs={12} lg={8}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: "100%" }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Ventas y utilidad por dia
-            </Typography>
+          <Paper elevation={2} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "primary" })}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" mb={2}>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" mb={0.5}>
+                  Ventas y utilidad por dia
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tendencia reciente de ventas netas y margen estimado.
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                color="primary"
+                variant="outlined"
+                label={`${data.ventas_por_dia.length || 0} punto(s)`}
+                sx={{ alignSelf: { xs: "flex-start", md: "center" } }}
+              />
+            </Stack>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={data.ventas_por_dia}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -404,10 +538,24 @@ function Dashboard() {
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: "100%" }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Compras por fecha
-            </Typography>
+          <Paper elevation={2} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "warning" })}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" mb={2}>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" mb={0.5}>
+                  Compras por fecha
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Comportamiento de ingresos de inventario en el periodo.
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                color="warning"
+                variant="outlined"
+                label={`${data.compras_por_fecha.length || 0} punto(s)`}
+                sx={{ alignSelf: { xs: "flex-start", md: "center" } }}
+              />
+            </Stack>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={data.compras_por_fecha}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -422,11 +570,25 @@ function Dashboard() {
         </Grid>
 
         <Grid item xs={12} lg={7}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Ventas de producto
-            </Typography>
-            <TableContainer>
+          <Paper elevation={2} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "info" })}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" mb={2}>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" mb={0.5}>
+                  Ventas de producto
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Productos con mayor salida y mejor rendimiento comercial.
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                color="info"
+                variant="outlined"
+                label={`${data.ventas_de_producto.length || 0} producto(s)`}
+                sx={{ alignSelf: { xs: "flex-start", md: "center" } }}
+              />
+            </Stack>
+            <TableContainer sx={getTableContainerSx(theme)}>
               <Table>
                 <TableHead>
                   <TableRow sx={getTableHeaderRowSx(theme)}>
@@ -462,11 +624,25 @@ function Dashboard() {
         </Grid>
 
         <Grid item xs={12} lg={5}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Productos con poco stock
-            </Typography>
-            <TableContainer>
+          <Paper elevation={2} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "warning" })}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" mb={2}>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" mb={0.5}>
+                  Productos con poco stock
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Detecta rapido los articulos que necesitan reposicion.
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                color="warning"
+                variant="outlined"
+                label={`${data.productos_stock_bajo.length || 0} alerta(s)`}
+                sx={{ alignSelf: { xs: "flex-start", md: "center" } }}
+              />
+            </Stack>
+            <TableContainer sx={getTableContainerSx(theme)}>
               <Table>
                 <TableHead>
                   <TableRow sx={getTableHeaderRowSx(theme)}>

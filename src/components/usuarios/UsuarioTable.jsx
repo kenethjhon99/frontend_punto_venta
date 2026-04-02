@@ -14,6 +14,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import {
   getTableHeaderCellSx,
+  getTableContainerSx,
   getTableHeaderRowSx,
 } from "../../utils/tableHeaderStyles";
 
@@ -57,7 +58,7 @@ function UsuarioTable({
   }
 
   return (
-    <TableContainer component={Paper} elevation={0}>
+    <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
       <Table sx={{ minWidth: 980 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>

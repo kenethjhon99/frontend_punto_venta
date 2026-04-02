@@ -18,6 +18,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import {
   getTableHeaderCellSx,
+  getTableContainerSx,
   getTableHeaderRowSx,
 } from "../../utils/tableHeaderStyles";
 
@@ -41,7 +42,7 @@ function ProveedorTable({
   }
 
   return (
-    <TableContainer component={Paper} elevation={0}>
+    <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
       <Table sx={{ minWidth: 900 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>

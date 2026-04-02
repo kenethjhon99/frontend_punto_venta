@@ -20,6 +20,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import {
   getTableHeaderCellSx,
+  getTableContainerSx,
   getTableHeaderRowSx,
 } from "../../utils/tableHeaderStyles";
 
@@ -189,7 +190,7 @@ function ProductoTable({
   }
 
   return (
-    <TableContainer component={Paper} elevation={0}>
+    <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
       <Table sx={{ minWidth: showModulo ? 1120 : 1000 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>

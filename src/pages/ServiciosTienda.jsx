@@ -25,6 +25,7 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { getProductos } from "../services/productoService";
 import { getCajaSesionActiva } from "../services/cajaService";
 import {
@@ -44,6 +45,12 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
+import {
+  getSectionPanelSx,
+  getSummaryCardSx,
+  getSummaryIconWrapSx,
+  getSummaryValueSx,
+} from "../utils/summaryCardStyles";
 
 const normalizarComprobantes = (data) => {
   if (Array.isArray(data)) return data;
@@ -58,6 +65,7 @@ const EMPTY_NO_COBRO_FORM = {
 
 function ServiciosTienda() {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { user } = useAuth();
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -400,11 +408,21 @@ function ServiciosTienda() {
             alignItems: "start",
           }}
         >
-          <Paper sx={{ p: 3, borderRadius: 4 }}>
+          <Paper sx={(currentTheme) => getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "success" })}>
             <Stack spacing={2}>
-              <Typography variant="h6" fontWeight="bold">
-                Productos de tienda
-              </Typography>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={getSummaryIconWrapSx(theme, "success")}>
+                  <StorefrontIcon fontSize="small" />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold" sx={getSummaryValueSx(theme, "success")}>
+                    Productos de tienda
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Catalogo exclusivo para venta de servicios y tienda.
+                  </Typography>
+                </Box>
+              </Stack>
 
               <TextField
                 fullWidth
@@ -427,22 +445,18 @@ function ServiciosTienda() {
                         <Paper
                           key={producto.id_producto}
                           variant="outlined"
-                          sx={{
-                            p: 2,
-                            borderRadius: 3,
+                          sx={(currentTheme) => ({
+                            ...getSummaryCardSx(currentTheme, stock > 0 ? "success" : "neutral", {
+                              compact: true,
+                              interactive: stock > 0 && canOperarTienda,
+                              minHeight: 138,
+                            }),
                             display: "flex",
                             justifyContent: "space-between",
                             gap: 2,
                             alignItems: "center",
                             cursor: stock > 0 && canOperarTienda ? "pointer" : "default",
-                            transition: "transform 180ms ease, box-shadow 180ms ease",
-                            "&:hover": stock > 0 && canOperarTienda
-                              ? {
-                                  transform: "translateY(-2px)",
-                                  boxShadow: 3,
-                                }
-                              : undefined,
-                          }}
+                          })}
                           onClick={() => {
                             if (stock > 0 && canOperarTienda) {
                               agregarProducto(producto);
@@ -495,11 +509,21 @@ function ServiciosTienda() {
           </Paper>
 
           <Stack spacing={3}>
-            <Paper sx={{ p: 3, borderRadius: 4 }}>
+            <Paper sx={(currentTheme) => getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "primary" })}>
               <Stack spacing={2}>
-                <Typography variant="h6" fontWeight="bold">
-                  Carrito de tienda
-                </Typography>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={getSummaryIconWrapSx(theme, "primary")}>
+                    <AddShoppingCartIcon fontSize="small" />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold" sx={getSummaryValueSx(theme, "primary")}>
+                      Carrito de tienda
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Arma la venta rapida con productos exclusivos de tienda.
+                    </Typography>
+                  </Box>
+                </Stack>
 
                 {!items.length ? (
                   <Alert severity="info" sx={{ borderRadius: 2 }}>
@@ -511,14 +535,16 @@ function ServiciosTienda() {
                       <Paper
                         key={item.id_producto}
                         variant="outlined"
-                        sx={{
-                          p: 2,
-                          borderRadius: 3,
+                        sx={(currentTheme) => ({
+                          ...getSummaryCardSx(currentTheme, "primary", {
+                            compact: true,
+                            minHeight: 118,
+                          }),
                           display: "flex",
                           justifyContent: "space-between",
                           gap: 2,
                           alignItems: "center",
-                        }}
+                        })}
                       >
                         <Box sx={{ minWidth: 0 }}>
                           <Typography fontWeight="bold">{item.nombre}</Typography>
@@ -570,11 +596,21 @@ function ServiciosTienda() {
             </Paper>
 
             {canOperarTienda ? (
-              <Paper sx={{ p: 3, borderRadius: 4 }}>
+              <Paper sx={(currentTheme) => getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "success" })}>
                 <Stack spacing={2}>
-                  <Typography variant="h6" fontWeight="bold">
-                    Resumen de pago
-                  </Typography>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Box sx={getSummaryIconWrapSx(theme, "success")}>
+                      <PointOfSaleIcon fontSize="small" />
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" fontWeight="bold" sx={getSummaryValueSx(theme, "success")}>
+                        Resumen de pago
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Cierra ventas de tienda con el mismo flujo visual del POS.
+                      </Typography>
+                    </Box>
+                  </Stack>
 
                 <Box
                   sx={{
@@ -707,7 +743,7 @@ function ServiciosTienda() {
                 </Stack>
               </Paper>
             ) : (
-              <Paper sx={{ p: 3, borderRadius: 4 }}>
+              <Paper sx={(currentTheme) => getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "info" })}>
                 <Typography variant="h6" fontWeight="bold" mb={2}>
                   Resumen de pago
                 </Typography>

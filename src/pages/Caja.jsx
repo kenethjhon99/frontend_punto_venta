@@ -49,6 +49,12 @@ import {
   openPrintDocument,
 } from "../utils/printDocuments";
 import {
+  getSectionPanelSx,
+  getSummaryCardSx,
+  getSummaryIconWrapSx,
+  getSummaryValueSx,
+} from "../utils/summaryCardStyles";
+import {
   getTableHeaderCellSx,
   getTableHeaderRowSx,
 } from "../utils/tableHeaderStyles";
@@ -459,120 +465,96 @@ function Caja() {
       {
         label: "Apertura",
         value: formatCurrency(resumen.monto_apertura),
-        color: "primary.main",
         tone: "primary",
+        icon: AccountBalanceWalletIcon,
       },
       {
         label: "Ventas en efectivo",
         value: formatCurrency(resumen.total_efectivo),
-        color: "success.main",
         tone: "success",
+        icon: PaidIcon,
       },
       {
         label: "Servicios en efectivo",
         value: formatCurrency(resumen.total_servicios_efectivo || 0),
-        color: "info.main",
         tone: "info",
+        icon: ReceiptLongIcon,
       },
       {
         label: "Servicios cobrados",
         value: String(resumen.servicios_cantidad || 0),
-        color: "text.primary",
         tone: "neutral",
+        icon: ReceiptLongIcon,
       },
       {
         label: "Reparaciones en efectivo",
         value: formatCurrency(resumen.total_reparaciones_efectivo || 0),
-        color: "warning.main",
         tone: "warning",
+        icon: PaidIcon,
       },
       {
         label: "Reparaciones cobradas",
         value: String(resumen.reparaciones_cantidad || 0),
-        color: "text.primary",
         tone: "neutral",
+        icon: ReceiptLongIcon,
       },
       {
         label: "Ingresos manuales",
         value: formatCurrency(resumen.ingresos_manuales),
-        color: "info.main",
         tone: "info",
+        icon: LockOpenIcon,
       },
       {
         label: "Egresos manuales",
         value: formatCurrency(resumen.egresos_manuales),
-        color: "error.main",
         tone: "error",
+        icon: LockIcon,
       },
       {
         label: "Cierre calculado",
         value: formatCurrency(resumen.cierre_calculado),
-        color: "secondary.main",
         tone: "secondary",
+        icon: AccountBalanceWalletIcon,
       },
       {
         label: "Ventas registradas",
         value: String(resumen.ventas_cantidad || 0),
-        color: "text.primary",
         tone: "neutral",
+        icon: ReceiptLongIcon,
       },
     ];
 
     return (
       <Grid container spacing={2}>
-        {cards.map((card) => (
-          <Grid item xs={12} sm={6} lg={4} key={card.label}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.5,
-                borderRadius: 3,
-                height: "100%",
-                borderColor:
-                  card.tone === "success"
-                    ? "success.main"
-                    : card.tone === "error"
-                      ? "error.main"
-                      : card.tone === "warning"
-                        ? "warning.main"
-                        : card.tone === "info"
-                          ? "info.main"
-                          : card.tone === "secondary"
-                            ? "secondary.main"
-                            : card.tone === "primary"
-                              ? "primary.main"
-                              : "divider",
-                background:
-                  card.tone === "success"
-                    ? "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(15,23,42,0.50))"
-                    : card.tone === "error"
-                      ? "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(15,23,42,0.50))"
-                      : card.tone === "warning"
-                        ? "linear-gradient(135deg, rgba(245,158,11,0.16), rgba(15,23,42,0.50))"
-                        : card.tone === "info"
-                          ? "linear-gradient(135deg, rgba(14,165,233,0.16), rgba(15,23,42,0.50))"
-                          : card.tone === "secondary"
-                            ? "linear-gradient(135deg, rgba(168,85,247,0.16), rgba(15,23,42,0.50))"
-                            : card.tone === "primary"
-                              ? "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(15,23,42,0.50))"
-                              : "transparent",
-                boxShadow:
-                  card.tone !== "neutral"
-                    ? "0 0 0 1px rgba(255,255,255,0.04), 0 18px 40px rgba(15,23,42,0.14)"
-                    : "none",
-                transition:
-                  "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
-              }}
-            >
-              <Typography variant="body2" color="text.secondary" mb={1}>
-                {card.label}
-              </Typography>
-              <Typography variant="h6" fontWeight="bold" color={card.color}>
-                {card.value}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
+        {cards.map((card) => {
+          const IconComponent = card.icon;
+
+          return (
+            <Grid item xs={12} sm={6} lg={4} key={card.label}>
+              <Paper variant="outlined" sx={(theme) => getSummaryCardSx(theme, card.tone, { compact: true })}>
+                <Stack spacing={1.6} height="100%">
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" mb={0.8}>
+                        {card.label}
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        fontWeight="bold"
+                        sx={(theme) => getSummaryValueSx(theme, card.tone)}
+                      >
+                        {card.value}
+                      </Typography>
+                    </Box>
+                    <Box sx={(theme) => getSummaryIconWrapSx(theme, card.tone)}>
+                      <IconComponent fontSize="small" />
+                    </Box>
+                  </Stack>
+                </Stack>
+              </Paper>
+            </Grid>
+          );
+        })}
       </Grid>
     );
   };
@@ -581,49 +563,75 @@ function Caja() {
     if (!resumen?.conciliacion) return null;
 
     const conciliacion = resumen.conciliacion;
+    const resumenCards = [
+      {
+        label: "Efectivo segun sistema",
+        value: formatCurrency(conciliacion.efectivo_sistema),
+        tone: "success",
+      },
+      {
+        label: "Tarjeta",
+        value: formatCurrency(conciliacion.total_tarjeta),
+        tone: "primary",
+      },
+      {
+        label: "Transferencia",
+        value: formatCurrency(conciliacion.total_transferencia),
+        tone: "info",
+      },
+      {
+        label: "Credito",
+        value: formatCurrency(conciliacion.total_credito),
+        tone: "warning",
+      },
+    ];
+    const diferenciaConError =
+      conciliacion.efectivo_reportado != null &&
+      Number(conciliacion.diferencia_efectivo || 0) !== 0;
 
     return (
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+      <Paper
+        variant="outlined"
+        sx={(theme) =>
+          getSectionPanelSx(theme, {
+            p: 2.5,
+            radius: 3,
+            accent: diferenciaConError ? "error" : "info",
+          })
+        }
+      >
         <Typography variant="subtitle1" fontWeight="bold" mb={2}>
           Conciliacion por metodo de pago
         </Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          {resumenCards.map((card) => (
+            <Grid item xs={12} md={6} lg={3} key={card.label}>
+              <Paper
+                variant="outlined"
+                sx={(theme) => getSummaryCardSx(theme, card.tone, { compact: true, minHeight: 128 })}
+              >
+                <Typography variant="body2" color="text.secondary" mb={0.8}>
+                  {card.label}
+                </Typography>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={(theme) => getSummaryValueSx(theme, card.tone)}
+                >
+                  {card.value}
+                </Typography>
+              </Paper>
+            </Grid>
+          ))}
+          <Grid item xs={12}>
             <Paper
               variant="outlined"
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                borderColor: "success.main",
-                background:
-                  "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(15,23,42,0.50))",
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Efectivo segun sistema
-              </Typography>
-              <Typography variant="h5" fontWeight="bold" color="success.main">
-                {formatCurrency(conciliacion.efectivo_sistema)}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                borderColor:
-                  conciliacion.efectivo_reportado != null &&
-                  Number(conciliacion.diferencia_efectivo || 0) !== 0
-                    ? "error.main"
-                    : "info.main",
-                background:
-                  conciliacion.efectivo_reportado != null &&
-                  Number(conciliacion.diferencia_efectivo || 0) !== 0
-                    ? "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(15,23,42,0.50))"
-                    : "linear-gradient(135deg, rgba(14,165,233,0.16), rgba(15,23,42,0.50))",
-              }}
+              sx={(theme) =>
+                getSummaryCardSx(theme, diferenciaConError ? "error" : "info", {
+                  compact: true,
+                  minHeight: 138,
+                })
+              }
             >
               <Typography variant="body2" color="text.secondary">
                 Efectivo reportado
@@ -631,11 +639,8 @@ function Caja() {
               <Typography
                 variant="h5"
                 fontWeight="bold"
-                color={
-                  conciliacion.efectivo_reportado != null &&
-                  Number(conciliacion.diferencia_efectivo || 0) !== 0
-                    ? "error.main"
-                    : "info.main"
+                sx={(theme) =>
+                  getSummaryValueSx(theme, diferenciaConError ? "error" : "info")
                 }
               >
                 {conciliacion.efectivo_reportado != null
@@ -644,36 +649,6 @@ function Caja() {
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Diferencia: {formatCurrency(conciliacion.diferencia_efectivo || 0)}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Tarjeta
-              </Typography>
-              <Typography variant="h6" fontWeight="bold" color="primary.main">
-                {formatCurrency(conciliacion.total_tarjeta)}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Transferencia
-              </Typography>
-              <Typography variant="h6" fontWeight="bold" color="info.main">
-                {formatCurrency(conciliacion.total_transferencia)}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Credito
-              </Typography>
-              <Typography variant="h6" fontWeight="bold" color="warning.main">
-                {formatCurrency(conciliacion.total_credito)}
               </Typography>
             </Paper>
           </Grid>
@@ -688,7 +663,10 @@ function Caja() {
       : [];
 
     return (
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+      <Paper
+        variant="outlined"
+        sx={(theme) => getSectionPanelSx(theme, { p: 2.5, radius: 3, accent: "error" })}
+      >
         <Typography variant="subtitle1" fontWeight="bold" mb={2}>
           Gastos de caja por categoria
         </Typography>
@@ -702,7 +680,7 @@ function Caja() {
               <Paper
                 key={gasto.categoria}
                 variant="outlined"
-                sx={{ p: 1.5, borderRadius: 2 }}
+                sx={(theme) => getSummaryCardSx(theme, "error", { compact: true, minHeight: 104 })}
               >
                 <Stack
                   direction={{ xs: "column", md: "row" }}
@@ -1536,13 +1514,13 @@ function Caja() {
       )}
 
       {loading ? (
-        <Paper elevation={2} sx={{ p: 5, borderRadius: 3 }}>
+        <Paper elevation={2} sx={(theme) => getSectionPanelSx(theme, { p: 5, radius: 3, accent: "primary" })}>
           <Typography color="text.secondary">Cargando modulo de caja...</Typography>
         </Paper>
       ) : (
         <Stack spacing={3}>
           {!sesionActiva ? (
-            <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+            <Paper elevation={3} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "success" })}>
               <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
                 <LockOpenIcon color="success" />
                 <Typography variant="h6" fontWeight="bold">
@@ -1596,7 +1574,7 @@ function Caja() {
             </Paper>
           ) : (
             <>
-              <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+              <Paper elevation={3} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "primary" })}>
                 <Stack
                   direction={{ xs: "column", md: "row" }}
                   justifyContent="space-between"
@@ -1626,7 +1604,7 @@ function Caja() {
 
               <Grid container spacing={3}>
                 <Grid item xs={12} lg={7}>
-                  <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: "100%" }}>
+                  <Paper elevation={3} sx={(theme) => ({ ...getSectionPanelSx(theme, { p: 3, radius: 4, accent: "info" }), height: "100%" })}>
                     <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
                       <ReceiptLongIcon color="primary" />
                       <Typography variant="h6" fontWeight="bold">
@@ -1770,7 +1748,7 @@ function Caja() {
                 </Grid>
 
                 <Grid item xs={12} lg={5}>
-                  <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: "100%" }}>
+                  <Paper elevation={3} sx={(theme) => ({ ...getSectionPanelSx(theme, { p: 3, radius: 4, accent: "warning" }), height: "100%" })}>
                     <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
                       <LockIcon color="warning" />
                       <Typography variant="h6" fontWeight="bold">
@@ -1808,7 +1786,7 @@ function Caja() {
                         disabled={!canOperateCaja}
                       />
 
-                      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+                      <Paper variant="outlined" sx={(theme) => getSummaryCardSx(theme, "secondary", { compact: true, minHeight: 112 })}>
                         <Typography variant="body2" color="text.secondary" mb={1}>
                           Cierre esperado segun sistema
                         </Typography>
@@ -1846,7 +1824,7 @@ function Caja() {
             </>
           )}
 
-          <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+          <Paper elevation={3} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "secondary" })}>
             <Stack
               direction={{ xs: "column", md: "row" }}
               justifyContent="space-between"
@@ -2054,7 +2032,7 @@ function Caja() {
           </Paper>
 
           {selectedSesion && selectedResumen && (
-            <Paper ref={resumenSesionRef} elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+            <Paper ref={resumenSesionRef} elevation={3} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "info" })}>
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 justifyContent="space-between"
