@@ -18,6 +18,10 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -188,18 +192,18 @@ function ProductoTable({
     <TableContainer component={Paper} elevation={0}>
       <Table sx={{ minWidth: showModulo ? 1120 : 1000 }}>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>ID</TableCell>
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Codigo</TableCell>
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Nombre</TableCell>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>ID</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Codigo</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
             {showModulo && (
-              <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Modulo</TableCell>
+              <TableCell sx={getTableHeaderCellSx(theme)}>Modulo</TableCell>
             )}
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Descripcion</TableCell>
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Compra</TableCell>
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Venta</TableCell>
-            <TableCell sx={{ fontWeight: "bold", color: "#0f172a" }}>Stock</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold", color: "#0f172a" }}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Descripcion</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Compra</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Venta</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
+            <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
               Acciones
             </TableCell>
           </TableRow>

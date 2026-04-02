@@ -11,6 +11,11 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 const normalizarNombreRol = (nombreRol) => {
   const normalized = String(nombreRol || "").trim().toUpperCase();
@@ -39,6 +44,8 @@ function UsuarioTable({
   onToggleActivo,
   canManage = true,
 }) {
+  const theme = useTheme();
+
   if (!usuarios.length) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }} elevation={0}>
@@ -53,13 +60,13 @@ function UsuarioTable({
     <TableContainer component={Paper} elevation={0}>
       <Table sx={{ minWidth: 980 }}>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>Usuario</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Telefono</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Roles</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Usuario</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Telefono</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Roles</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
+            <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
               {canManage ? "Acciones" : "Modo"}
             </TableCell>
           </TableRow>

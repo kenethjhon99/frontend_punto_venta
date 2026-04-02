@@ -24,7 +24,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { getAuditoriaCatalogo } from "../services/auditoriaService";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../utils/tableHeaderStyles";
 
 const ENTITY_OPTIONS = [
   { value: "PRODUCTOS", label: "Productos" },
@@ -222,6 +227,7 @@ const getEntityHelperText = (entity) => {
 };
 
 function Auditoria() {
+  const theme = useTheme();
   const [registros, setRegistros] = useState([]);
   const [entidad, setEntidad] = useState("PRODUCTOS");
   const [estado, setEstado] = useState("TODOS");
@@ -479,23 +485,23 @@ function Auditoria() {
         ) : (
           <>
             <TableContainer>
-              <Table sx={{ minWidth: 980 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Registro</TableCell>
+                <Table sx={{ minWidth: 980 }}>
+                  <TableHead>
+                  <TableRow sx={getTableHeaderRowSx(theme)}>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Registro</TableCell>
                     {isAnulacionEntity ? (
                       <>
-                        <TableCell>Referencia</TableCell>
-                        <TableCell>Cantidad</TableCell>
-                        <TableCell>Motivo</TableCell>
+                        <TableCell sx={getTableHeaderCellSx(theme)}>Referencia</TableCell>
+                        <TableCell sx={getTableHeaderCellSx(theme)}>Cantidad</TableCell>
+                        <TableCell sx={getTableHeaderCellSx(theme)}>Motivo</TableCell>
                       </>
                     ) : (
-                      <TableCell>Detalle</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Detalle</TableCell>
                     )}
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Creado</TableCell>
-                    <TableCell>Actualizado</TableCell>
-                    <TableCell>Inactivado</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Creado</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Actualizado</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Inactivado</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

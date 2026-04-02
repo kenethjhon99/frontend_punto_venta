@@ -25,6 +25,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -34,6 +35,10 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 
 import { getMovimientosStock, getStock } from "../services/stockService";
 import { buildKardexHtml, openPrintDocument } from "../utils/printDocuments";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../utils/tableHeaderStyles";
 
 const MOVIMIENTO_OPTIONS = [
   { value: "", label: "Todos" },
@@ -96,6 +101,7 @@ const toCsvValue = (value) => {
 };
 
 function Inventario() {
+  const theme = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [stockRows, setStockRows] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
@@ -656,10 +662,10 @@ function Inventario() {
               <TableContainer sx={{ maxHeight: 560, borderRadius: 3 }}>
                 <Table stickyHeader size="small">
                   <TableHead>
-                    <TableRow>
-                      <TableCell>Producto</TableCell>
-                      <TableCell>Modulo</TableCell>
-                      <TableCell align="right">Stock</TableCell>
+                    <TableRow sx={getTableHeaderRowSx(theme)}>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Modulo</TableCell>
+                      <TableCell align="right" sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -986,15 +992,15 @@ function Inventario() {
               <TableContainer sx={{ maxHeight: 620, borderRadius: 3 }}>
                 <Table stickyHeader size="small">
                   <TableHead>
-                    <TableRow>
-                      <TableCell>Fecha</TableCell>
-                      <TableCell>Producto</TableCell>
-                      <TableCell>Tipo</TableCell>
-                      <TableCell align="right">Cantidad</TableCell>
-                      <TableCell align="right">Antes</TableCell>
-                      <TableCell align="right">Despues</TableCell>
-                      <TableCell>Motivo</TableCell>
-                      <TableCell>Usuario</TableCell>
+                    <TableRow sx={getTableHeaderRowSx(theme)}>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Fecha</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Tipo</TableCell>
+                      <TableCell align="right" sx={getTableHeaderCellSx(theme)}>Cantidad</TableCell>
+                      <TableCell align="right" sx={getTableHeaderCellSx(theme)}>Antes</TableCell>
+                      <TableCell align="right" sx={getTableHeaderCellSx(theme)}>Despues</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Motivo</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Usuario</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

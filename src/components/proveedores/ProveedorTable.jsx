@@ -12,9 +12,14 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 function ProveedorTable({
   proveedores = [],
@@ -23,6 +28,8 @@ function ProveedorTable({
   onViewHistory,
   canManage = true,
 }) {
+  const theme = useTheme();
+
   if (!proveedores.length) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }} elevation={0}>
@@ -37,14 +44,14 @@ function ProveedorTable({
     <TableContainer component={Paper} elevation={0}>
       <Table sx={{ minWidth: 900 }}>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>NIT</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Telefono</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Correo</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Direccion</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>NIT</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Telefono</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Correo</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Direccion</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
+            <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
               Acciones
             </TableCell>
           </TableRow>

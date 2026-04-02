@@ -15,6 +15,10 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 const formatFecha = (value) => {
   if (!value) return "-";
@@ -155,14 +159,14 @@ function VentasRecientesTable({
     <TableContainer component={Paper} elevation={0}>
       <Table sx={{ minWidth: 900 }}>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>Venta</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Fecha</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Cliente</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Pago</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Total</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Venta</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Fecha</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Cliente</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Pago</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Total</TableCell>
+            <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
               Acciones
             </TableCell>
           </TableRow>

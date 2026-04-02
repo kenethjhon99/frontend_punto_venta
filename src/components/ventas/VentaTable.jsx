@@ -19,6 +19,10 @@ import { useTheme } from "@mui/material/styles";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) {
   const theme = useTheme();
@@ -148,13 +152,13 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
         }}
       >
         <TableHead>
-          <TableRow sx={{ backgroundColor: "action.hover" }}>
-            <TableCell sx={{ fontWeight: "bold", width: "34%" }}>Producto</TableCell>
-            <TableCell sx={{ fontWeight: "bold", width: "14%" }}>Precio</TableCell>
-            <TableCell sx={{ fontWeight: "bold", width: "10%" }}>Stock</TableCell>
-            <TableCell sx={{ fontWeight: "bold", width: "18%" }}>Cantidad</TableCell>
-            <TableCell sx={{ fontWeight: "bold", width: "16%" }}>Subtotal</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold", width: "8%" }}>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={{ ...getTableHeaderCellSx(theme), width: "34%" }}>Producto</TableCell>
+            <TableCell sx={{ ...getTableHeaderCellSx(theme), width: "14%" }}>Precio</TableCell>
+            <TableCell sx={{ ...getTableHeaderCellSx(theme), width: "10%" }}>Stock</TableCell>
+            <TableCell sx={{ ...getTableHeaderCellSx(theme), width: "18%" }}>Cantidad</TableCell>
+            <TableCell sx={{ ...getTableHeaderCellSx(theme), width: "16%" }}>Subtotal</TableCell>
+            <TableCell align="center" sx={{ ...getTableHeaderCellSx(theme), width: "8%" }}>
               Accion
             </TableCell>
           </TableRow>

@@ -15,6 +15,11 @@ import {
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocalMallIcon from "@mui/icons-material/LocalMall";
+import { useTheme } from "@mui/material/styles";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 function CompraTable({
   items,
@@ -23,6 +28,8 @@ function CompraTable({
   onEliminar,
   disabled = false,
 }) {
+  const theme = useTheme();
+
   if (!items.length) {
     return (
       <Paper
@@ -56,13 +63,13 @@ function CompraTable({
     >
       <Table>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "action.hover" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>Producto</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Stock actual</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Costo unitario</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Cantidad</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Subtotal</TableCell>
-            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Stock actual</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Costo unitario</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Cantidad</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Subtotal</TableCell>
+            <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
               Accion
             </TableCell>
           </TableRow>

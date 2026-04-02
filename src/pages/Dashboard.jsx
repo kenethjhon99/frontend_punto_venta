@@ -17,6 +17,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import {
   Bar,
   BarChart,
@@ -30,6 +31,10 @@ import {
   YAxis,
 } from "recharts";
 import { getReporteGeneral } from "../services/reporteService";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../utils/tableHeaderStyles";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("es-GT", {
@@ -158,6 +163,7 @@ const buildDashboardPrintHtml = ({ desde, hasta, data }) => {
 };
 
 function Dashboard() {
+  const theme = useTheme();
   const [desde, setDesde] = useState(defaultDesde);
   const [hasta, setHasta] = useState(defaultHasta);
   const [loading, setLoading] = useState(true);
@@ -422,11 +428,11 @@ function Dashboard() {
             <TableContainer>
               <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell>Cantidad</TableCell>
-                    <TableCell>Total vendido</TableCell>
-                    <TableCell>Utilidad estimada</TableCell>
+                  <TableRow sx={getTableHeaderRowSx(theme)}>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Cantidad</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Total vendido</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Utilidad estimada</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -462,11 +468,11 @@ function Dashboard() {
             <TableContainer>
               <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell>Stock</TableCell>
-                    <TableCell>Minimo</TableCell>
-                    <TableCell>Faltante</TableCell>
+                  <TableRow sx={getTableHeaderRowSx(theme)}>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Minimo</TableCell>
+                    <TableCell sx={getTableHeaderCellSx(theme)}>Faltante</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

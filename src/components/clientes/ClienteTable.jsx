@@ -12,8 +12,13 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import {
+  getTableHeaderCellSx,
+  getTableHeaderRowSx,
+} from "../../utils/tableHeaderStyles";
 
 function ClienteTable({
   clientes = [],
@@ -21,6 +26,8 @@ function ClienteTable({
   onDeactivate,
   canManage = true,
 }) {
+  const theme = useTheme();
+
   if (!clientes.length) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }} elevation={0}>
@@ -35,16 +42,16 @@ function ClienteTable({
     <TableContainer component={Paper} elevation={0}>
       <Table sx={{ minWidth: 950 }}>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-            <TableCell sx={{ fontWeight: "bold" }}>Codigo</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>NIT</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Telefono</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Correo</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Direccion</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
+          <TableRow sx={getTableHeaderRowSx(theme)}>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Codigo</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>NIT</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Telefono</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Correo</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Direccion</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
             {canManage && (
-              <TableCell align="center" sx={{ fontWeight: "bold" }}>
+              <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
                 Acciones
               </TableCell>
             )}
