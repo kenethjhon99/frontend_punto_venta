@@ -98,12 +98,33 @@ function Login() {
         <Box
           component="form"
           onSubmit={handleSubmit}
+          autoComplete="off"
           sx={{
             display: "flex",
             flexDirection: "column",
             gap: 2.5,
           }}
         >
+          <Box
+            sx={{
+              position: "absolute",
+              width: 0,
+              height: 0,
+              overflow: "hidden",
+              opacity: 0,
+              pointerEvents: "none",
+            }}
+            aria-hidden="true"
+          >
+            <input type="text" name="fake_username" autoComplete="username" tabIndex={-1} />
+            <input
+              type="password"
+              name="fake_password"
+              autoComplete="current-password"
+              tabIndex={-1}
+            />
+          </Box>
+
           <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
             <Avatar
               sx={{
@@ -135,6 +156,14 @@ function Login() {
             fullWidth
             required
             autoFocus
+            autoComplete="off"
+            inputProps={{
+              autoCapitalize: "none",
+              autoCorrect: "off",
+              spellCheck: "false",
+              "data-lpignore": "true",
+              "data-1p-ignore": "true",
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -152,6 +181,14 @@ function Login() {
             onChange={handleChange}
             fullWidth
             required
+            autoComplete="new-password"
+            inputProps={{
+              autoCapitalize: "none",
+              autoCorrect: "off",
+              spellCheck: "false",
+              "data-lpignore": "true",
+              "data-1p-ignore": "true",
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
