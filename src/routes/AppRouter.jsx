@@ -78,7 +78,7 @@ function AppRouter() {
             <Route
               path="/productos"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "CAJERO", "LECTURA"]}>
                   <Productos />
                 </ProtectedRoute>
               }

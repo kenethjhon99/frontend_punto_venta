@@ -61,7 +61,7 @@ function Sidebar({
       text: "Productos",
       path: "/productos",
       icon: <InventoryIcon />,
-      visible: userHasRole(user, "ADMIN", "CAJERO", "ENCARGADO_SERVICIOS", "LECTURA"),
+      visible: userHasRole(user, "ADMIN", "CAJERO", "LECTURA"),
     },
     {
       text: "Inventario",

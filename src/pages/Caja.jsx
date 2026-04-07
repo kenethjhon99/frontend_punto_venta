@@ -144,7 +144,13 @@ function Caja() {
   });
 
   const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN", "ADMIN");
-  const canOperateCaja = userHasRole(user, "ADMIN", "CAJERO", "MECANICO");
+  const canOperateCaja = userHasRole(
+    user,
+    "ADMIN",
+    "CAJERO",
+    "MECANICO",
+    "ENCARGADO_SERVICIOS"
+  );
   const isReadOnly = isReadOnlyUser(user);
   const isCajeroOnly = userHasRole(user, "CAJERO") && !canSeeAllSessions;
   const pendientesNoCobroActivos = Number(resumenActivo?.no_cobrados_pendientes_count || 0);

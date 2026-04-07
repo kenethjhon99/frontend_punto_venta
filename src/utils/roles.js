@@ -28,6 +28,14 @@ export const userHasRole = (user, ...allowedRoles) => {
 export const isServiciosManagerUser = (user) =>
   userHasRole(user, "ENCARGADO_SERVICIOS");
 
+const OPERATIVE_ROLES = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "CAJERO",
+  "MECANICO",
+  "ENCARGADO_SERVICIOS",
+];
+
 export const getDefaultRoute = (user) => {
   if (userHasRole(user, "SUPER_ADMIN", "ADMIN")) {
     return "/dashboard";
@@ -52,4 +60,10 @@ export const getDefaultRoute = (user) => {
   return "/login";
 };
 
-export const isReadOnlyUser = (user) => userHasRole(user, "LECTURA");
+export const isReadOnlyUser = (user) => {
+  const roles = getUserRoleNames(user);
+  const hasLectura = roles.includes("LECTURA");
+  const hasOperativeRole = roles.some((role) => OPERATIVE_ROLES.includes(role));
+
+  return hasLectura && !hasOperativeRole;
+};

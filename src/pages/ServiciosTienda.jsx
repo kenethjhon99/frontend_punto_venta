@@ -86,7 +86,7 @@ function ServiciosTienda() {
   const [success, setSuccess] = useState("");
 
   const canManageProductos = useMemo(
-    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS"),
+    () => userHasRole(user, "SUPER_ADMIN", "ADMIN"),
     [user]
   );
   const canOperarTienda = useMemo(
