@@ -169,6 +169,7 @@ export const buildBarcodeLabelHtml = ({
   subtitle = "Codigo interno generado por el sistema",
 }) => {
   const svg = buildEan13Svg(codigo);
+  const productName = String(nombre || "").trim() || "Producto";
 
   if (!svg) {
     throw new Error("Solo se pueden imprimir etiquetas EAN-13 validas.");
@@ -207,10 +208,20 @@ export const buildBarcodeLabelHtml = ({
             margin-bottom: 10px;
             text-align: center;
           }
+          .eyebrow {
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #475569;
+            font-weight: 800;
+            margin-bottom: 6px;
+            text-align: center;
+          }
           h1 {
             margin: 0 0 6px;
-            font-size: 18px;
+            font-size: 17px;
             text-align: center;
+            line-height: 1.25;
           }
           p {
             margin: 0;
@@ -231,6 +242,20 @@ export const buildBarcodeLabelHtml = ({
             font-size: 15px;
             font-weight: 800;
             letter-spacing: 0.16em;
+          }
+          .meta {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 10px;
+            color: #64748b;
+          }
+          .meta strong {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: #0f172a;
           }
           .note {
             margin-top: 10px;
@@ -261,12 +286,23 @@ export const buildBarcodeLabelHtml = ({
       </head>
       <body>
         <article class="sheet">
+          <div class="eyebrow">Nombre del producto</div>
           <div class="kicker">${escapeHtml(subtitle)}</div>
-          <h1>${escapeHtml(nombre)}</h1>
+          <h1>${escapeHtml(productName)}</h1>
           ${descripcion ? `<p>${escapeHtml(descripcion)}</p>` : ""}
           <div class="svg-wrap">${svg}</div>
           <div class="code">${escapeHtml(codigo)}</div>
-          <div class="note">Etiqueta generada desde el modulo de productos.</div>
+          <div class="meta">
+            <div>
+              Tipo
+              <strong>EAN-13</strong>
+            </div>
+            <div>
+              Origen
+              <strong>Interno</strong>
+            </div>
+          </div>
+          <div class="note">Etiqueta generada desde el modulo de productos con el nombre del producto.</div>
         </article>
       </body>
     </html>

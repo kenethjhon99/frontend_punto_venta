@@ -84,8 +84,8 @@ function ProductoFormModal({
 
   const moduloOrigen = forceModuloOrigen || form.modulo_origen;
   const canPrintBarcode = useMemo(
-    () => isValidEan13(form.codigo_barras),
-    [form.codigo_barras]
+    () => isValidEan13(form.codigo_barras) && Boolean(String(form.nombre || "").trim()),
+    [form.codigo_barras, form.nombre]
   );
 
   const handleChange = (event) => {
@@ -149,16 +149,21 @@ function ProductoFormModal({
 
   const handlePrintBarcode = () => {
     try {
+      if (!String(form.nombre || "").trim()) {
+        setCodigoFeedback("Ingresa el nombre del producto antes de imprimir la etiqueta.");
+        return;
+      }
+
       openPrintDocument({
         title: `Codigo ${form.codigo_barras}`,
         html: buildBarcodeLabelHtml({
           codigo: form.codigo_barras,
-          nombre: form.nombre || "Producto",
+          nombre: String(form.nombre || "").trim(),
           descripcion: form.descripcion || "",
           subtitle:
             moduloOrigen === "SERVICIOS"
-              ? "Codigo interno de tienda"
-              : "Codigo interno de producto",
+              ? "Codigo generado internamente para tienda"
+              : "Codigo generado internamente para inventario",
         }),
         width: 420,
         height: 520,
@@ -237,7 +242,15 @@ function ProductoFormModal({
 
               {canPrintBarcode ? (
                 <Typography variant="caption" color="text.secondary">
-                  Listo para imprimir como etiqueta EAN-13.
+                  Listo para imprimir como etiqueta EAN-13 con el nombre del producto.
+                </Typography>
+              ) : form.codigo_barras && !isValidEan13(form.codigo_barras) ? (
+                <Typography variant="caption" color="warning.main">
+                  El codigo debe ser un EAN-13 valido para poder imprimirse.
+                </Typography>
+              ) : !String(form.nombre || "").trim() ? (
+                <Typography variant="caption" color="text.secondary">
+                  Escribe el nombre del producto para imprimir una etiqueta completa.
                 </Typography>
               ) : null}
             </Stack>
