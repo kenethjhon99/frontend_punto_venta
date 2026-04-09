@@ -69,59 +69,65 @@ function Servicios() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Box
+      ref={backgroundRef}
+      onMouseMove={handleBackgroundMove}
+      onMouseLeave={resetBackgroundMove}
+      sx={{
+        "--services-bg-x": "0px",
+        "--services-bg-y": "0px",
+        "--services-bg-scale": "1.05",
+        position: "relative",
+        minHeight: "calc(100vh - 120px)",
+        mx: { xs: -2, md: -3 },
+        mt: { xs: -2, md: -3 },
+        px: { xs: 2, md: 3 },
+        py: { xs: 3, md: 4 },
+        overflow: "hidden",
+        isolation: "isolate",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          zIndex: -2,
+          backgroundImage: `
+            linear-gradient(135deg, rgba(10, 15, 28, 0.82) 0%, rgba(14, 23, 41, 0.62) 42%, rgba(10, 15, 28, 0.82) 100%),
+            radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 36%),
+            radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.12), transparent 30%),
+            url(${servicesBackgroundUrl})
+          `,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          filter: "saturate(1.04) contrast(1.01)",
+          transform:
+            "translate3d(var(--services-bg-x), var(--services-bg-y), 0) scale(var(--services-bg-scale))",
+          transition: "transform 260ms ease-out, filter 260ms ease-out",
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          zIndex: -1,
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 28%, rgba(255,255,255,0.00) 100%)",
+          pointerEvents: "none",
+        },
+        "&:hover": {
+          "--services-bg-scale": "1.08",
+        },
+        "&:hover::before": {
+          filter: "saturate(1.1) contrast(1.04)",
+        },
+      }}
+    >
+      <Container maxWidth="xl" sx={{ py: 0 }}>
       <Box
-        ref={backgroundRef}
-        onMouseMove={handleBackgroundMove}
-        onMouseLeave={resetBackgroundMove}
         sx={{
-          "--services-bg-x": "0px",
-          "--services-bg-y": "0px",
-          "--services-bg-scale": "1.06",
           maxWidth: 1200,
           mx: "auto",
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: { xs: 5, md: 6 },
-          px: { xs: 1.25, sm: 2, md: 2.5 },
-          py: { xs: 1.25, sm: 2, md: 2.5 },
-          isolation: "isolate",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            zIndex: -2,
-            borderRadius: "inherit",
-            backgroundImage: `
-              linear-gradient(135deg, rgba(10, 15, 28, 0.90) 0%, rgba(14, 23, 41, 0.78) 40%, rgba(10, 15, 28, 0.88) 100%),
-              radial-gradient(circle at top right, rgba(59, 130, 246, 0.24), transparent 38%),
-              radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.14), transparent 34%),
-              url(${servicesBackgroundUrl})
-            `,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            filter: "saturate(1.06) contrast(1.02)",
-            transform:
-              "translate3d(var(--services-bg-x), var(--services-bg-y), 0) scale(var(--services-bg-scale))",
-            transition: "transform 260ms ease-out, filter 260ms ease-out",
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            zIndex: -1,
-            borderRadius: "inherit",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 28%, rgba(255,255,255,0.00) 100%)",
-            pointerEvents: "none",
-          },
-          "&:hover": {
-            "--services-bg-scale": "1.09",
-          },
-          "&:hover::before": {
-            filter: "saturate(1.12) contrast(1.05)",
-          },
+          px: { xs: 0, md: 0 },
+          py: { xs: 0, md: 0 },
         }}
       >
         <Paper
@@ -235,6 +241,7 @@ function Servicios() {
         </Box>
       </Box>
     </Container>
+    </Box>
   );
 }
 
