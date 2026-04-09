@@ -29,6 +29,7 @@ function Login() {
   const { login } = useAuth();
   const theme = useTheme();
   const isLight = theme.palette.mode === "light";
+  const loginBackgroundUrl = "/login.jpeg";
 
   const [form, setForm] = useState({
     username: "",
@@ -87,15 +88,21 @@ function Login() {
         px: 2,
         position: "relative",
         overflow: "hidden",
-        background: isLight
-          ? "linear-gradient(140deg, #eef4ff 0%, #eef2ff 42%, #f5f7ff 100%)"
-          : "linear-gradient(140deg, #070d17 0%, #0b1321 46%, #101827 100%)",
+        backgroundImage: `url(${loginBackgroundUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
         "&::before": {
           content: '""',
           position: "absolute",
           inset: 0,
           pointerEvents: "none",
           background: `
+            linear-gradient(135deg, ${
+              isLight
+                ? "rgba(241,245,249,0.76) 0%, rgba(248,250,252,0.70) 32%, rgba(226,232,240,0.62) 100%)"
+                : "rgba(2,6,23,0.72) 0%, rgba(15,23,42,0.66) 34%, rgba(2,6,23,0.78) 100%)"
+            },
             radial-gradient(circle at 12% 18%, ${isLight ? "rgba(37,99,235,0.18)" : "rgba(37,99,235,0.24)"}, transparent 20%),
             radial-gradient(circle at 88% 16%, ${isLight ? "rgba(147,51,234,0.16)" : "rgba(168,85,247,0.18)"}, transparent 18%),
             radial-gradient(circle at 50% 100%, ${isLight ? "rgba(20,184,166,0.10)" : "rgba(20,184,166,0.12)"}, transparent 24%)
@@ -161,11 +168,14 @@ function Login() {
           overflow: "hidden",
           backdropFilter: "blur(14px)",
           background: isLight
-            ? "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(250,252,255,0.98) 58%, rgba(245,248,255,0.98) 100%)"
-            : "linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(17,24,39,0.96) 58%, rgba(9,14,24,0.98) 100%)",
+            ? "linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(250,252,255,0.88) 58%, rgba(245,248,255,0.90) 100%)"
+            : "linear-gradient(180deg, rgba(15,23,42,0.82) 0%, rgba(17,24,39,0.88) 58%, rgba(9,14,24,0.92) 100%)",
           boxShadow: isLight
-            ? "0 28px 60px rgba(15,23,42,0.18)"
-            : "0 32px 70px rgba(2,6,23,0.46)",
+            ? "0 28px 60px rgba(15,23,42,0.22)"
+            : "0 32px 70px rgba(2,6,23,0.5)",
+          border: isLight
+            ? "1px solid rgba(255,255,255,0.48)"
+            : "1px solid rgba(148,163,184,0.18)",
           "&::before": {
             content: '""',
             position: "absolute",
