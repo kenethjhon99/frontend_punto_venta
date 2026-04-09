@@ -22,7 +22,7 @@ import {
 
 function Servicios() {
   const theme = useTheme();
-  const servicesBackgroundUrl = "/servicios-bg.jpg";
+  const servicesBackgroundUrl = "/fondo-de-servicios.jpeg";
   const backgroundRef = useRef(null);
   const serviceCards = [
     {
