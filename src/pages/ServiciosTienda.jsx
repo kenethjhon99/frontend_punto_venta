@@ -5,6 +5,9 @@ import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import SearchIcon from "@mui/icons-material/Search";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import {
   Alert,
   Box,
@@ -24,6 +27,7 @@ import {
   InputLabel,
   FormControlLabel,
   Checkbox,
+  InputAdornment,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { getProductos } from "../services/productoService";
@@ -45,6 +49,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
+import BarcodeCameraDialog from "../components/ui/BarcodeCameraDialog";
 import {
   getSectionPanelSx,
   getSummaryCardSx,
@@ -69,6 +74,9 @@ function ServiciosTienda() {
   const { user } = useAuth();
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [scanFeedback, setScanFeedback] = useState(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [comprobantes, setComprobantes] = useState([]);
   const [tipoComprobante, setTipoComprobante] = useState("TICKET");
@@ -166,6 +174,30 @@ function ServiciosTienda() {
       );
     });
   }, [productos, busqueda]);
+
+  const handleScannedCode = (rawValue) => {
+    const codigoEscaneado = String(rawValue || "").trim();
+    if (!codigoEscaneado) return false;
+
+    setCodigo(codigoEscaneado);
+
+    const encontrado = productos.find(
+      (producto) => String(producto.codigo_barras || "").trim() === codigoEscaneado
+    );
+
+    if (encontrado) {
+      setScanFeedback(null);
+      agregarProducto(encontrado);
+      setCodigo("");
+      return true;
+    }
+
+    setScanFeedback({
+      severity: "warning",
+      message: `No se encontro un producto de tienda con el codigo ${codigoEscaneado}.`,
+    });
+    return true;
+  };
 
   const total = useMemo(() => {
     return items.reduce(
@@ -441,11 +473,64 @@ function ServiciosTienda() {
 
               <TextField
                 fullWidth
+                label="Escanear codigo"
+                placeholder="Escanea o escribe el codigo de barras"
+                value={codigo}
+                onChange={(event) => {
+                  setCodigo(event.target.value);
+                  if (scanFeedback) {
+                    setScanFeedback(null);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handleScannedCode(codigo);
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <QrCodeScannerIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => {
+                          setScanFeedback(null);
+                          setScannerOpen(true);
+                        }}
+                        edge="end"
+                        color="primary"
+                      >
+                        <CameraAltIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                helperText="Presiona Enter con el lector manual o usa la camara del dispositivo."
+              />
+
+              <TextField
+                fullWidth
                 label="Buscar producto"
                 placeholder="Buscar por nombre, descripcion o codigo"
                 value={busqueda}
                 onChange={(event) => setBusqueda(event.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
               />
+
+              {scanFeedback?.message ? (
+                <Alert severity={scanFeedback.severity || "info"} sx={{ borderRadius: 2 }}>
+                  {scanFeedback.message}
+                </Alert>
+              ) : null}
 
               {loadingLista ? (
                 <Box sx={{ py: 6, display: "grid", placeItems: "center" }}>
@@ -770,6 +855,14 @@ function ServiciosTienda() {
           </Stack>
         </Box>
       </Box>
+
+      <BarcodeCameraDialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetected={handleScannedCode}
+        title="Escanear producto de tienda"
+        description="Apunta la camara al codigo del producto. Si pertenece a tienda, se agregara al carrito automaticamente."
+      />
     </Container>
   );
 }

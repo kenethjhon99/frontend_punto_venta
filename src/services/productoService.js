@@ -10,6 +10,11 @@ export const crearProducto = async (data) => {
   return res.data;
 };
 
+export const generarCodigoBarrasProducto = async () => {
+  const res = await api.get("/productos/codigo-barras/generar");
+  return res.data;
+};
+
 export const editarProducto = async (id, data) => {
   const res = await api.put(`/productos/${id}`, data);
   return res.data;

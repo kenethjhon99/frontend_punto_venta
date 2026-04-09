@@ -1,20 +1,36 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
+  Alert,
   Button,
-  Grid,
-  Typography,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
+  Grid,
+  IconButton,
+  InputAdornment,
   InputLabel,
-  Select,
   MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
 } from "@mui/material";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import PrintIcon from "@mui/icons-material/Print";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+
+import { generarCodigoBarrasProducto } from "../../services/productoService";
+import { openPrintDocument } from "../../utils/printDocuments";
+import {
+  buildBarcodeLabelHtml,
+  isValidEan13,
+} from "../../utils/barcodeUtils";
+import BarcodeCameraDialog from "../ui/BarcodeCameraDialog";
 
 const initialState = {
   codigo_barras: "",
@@ -56,6 +72,21 @@ function ProductoFormModal({
   hideModuloSelector = false,
 }) {
   const [form, setForm] = useState(() => buildFormState(productoEditando));
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [codigoFeedback, setCodigoFeedback] = useState("");
+  const [loadingCodigo, setLoadingCodigo] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setForm(buildFormState(productoEditando));
+    setCodigoFeedback("");
+  }, [open, productoEditando]);
+
+  const moduloOrigen = forceModuloOrigen || form.modulo_origen;
+  const canPrintBarcode = useMemo(
+    () => isValidEan13(form.codigo_barras),
+    [form.codigo_barras]
+  );
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -70,7 +101,7 @@ function ProductoFormModal({
     event.preventDefault();
 
     onSave({
-      codigo_barras: form.codigo_barras,
+      codigo_barras: form.codigo_barras || null,
       nombre: form.nombre,
       descripcion: form.descripcion,
       precio_compra: Number(form.precio_compra),
@@ -78,8 +109,64 @@ function ProductoFormModal({
       existencia_inicial: Number(form.existencia_inicial || 0),
       stock_minimo: Number(form.stock_minimo || 0),
       ubicacion: form.ubicacion || null,
-      modulo_origen: forceModuloOrigen || form.modulo_origen,
+      modulo_origen: moduloOrigen,
     });
+  };
+
+  const handleDetectedBarcode = (rawValue) => {
+    const codigo = String(rawValue || "").trim();
+    if (!codigo) return false;
+
+    setForm((prev) => ({
+      ...prev,
+      codigo_barras: codigo,
+    }));
+    setCodigoFeedback("Codigo capturado con la camara del dispositivo.");
+    return true;
+  };
+
+  const handleGenerateBarcode = async () => {
+    try {
+      setLoadingCodigo(true);
+      setCodigoFeedback("");
+      const response = await generarCodigoBarrasProducto();
+      const codigo = String(response?.codigo_barras || "").trim();
+
+      setForm((prev) => ({
+        ...prev,
+        codigo_barras: codigo,
+      }));
+      setCodigoFeedback("Se genero un codigo unico listo para guardar o imprimir.");
+    } catch (error) {
+      console.error(error);
+      setCodigoFeedback(
+        error.response?.data?.error || "No se pudo generar un codigo unico."
+      );
+    } finally {
+      setLoadingCodigo(false);
+    }
+  };
+
+  const handlePrintBarcode = () => {
+    try {
+      openPrintDocument({
+        title: `Codigo ${form.codigo_barras}`,
+        html: buildBarcodeLabelHtml({
+          codigo: form.codigo_barras,
+          nombre: form.nombre || "Producto",
+          descripcion: form.descripcion || "",
+          subtitle:
+            moduloOrigen === "SERVICIOS"
+              ? "Codigo interno de tienda"
+              : "Codigo interno de producto",
+        }),
+        width: 420,
+        height: 520,
+      });
+    } catch (error) {
+      console.error(error);
+      setCodigoFeedback(error.message || "No se pudo imprimir la etiqueta.");
+    }
   };
 
   return (
@@ -92,7 +179,7 @@ function ProductoFormModal({
 
       <DialogContent dividers>
         <Grid container spacing={2} mt={1}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               label="Codigo de barras"
               name="codigo_barras"
@@ -100,7 +187,69 @@ function ProductoFormModal({
               onChange={handleChange}
               fullWidth
               placeholder="Ej. 7501234567890"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <QrCodeScannerIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setScannerOpen(true)}
+                      edge="end"
+                      color="primary"
+                    >
+                      <CameraAltIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              helperText="Puedes escribirlo, escanearlo con camara o generar uno interno."
             />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              alignItems={{ xs: "stretch", sm: "center" }}
+              flexWrap="wrap"
+              useFlexGap
+            >
+              <Button
+                variant="outlined"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={handleGenerateBarcode}
+                disabled={loadingCodigo}
+              >
+                {loadingCodigo ? "Generando..." : "Generar codigo unico"}
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<PrintIcon />}
+                onClick={handlePrintBarcode}
+                disabled={!canPrintBarcode}
+              >
+                Imprimir codigo
+              </Button>
+
+              {canPrintBarcode ? (
+                <Typography variant="caption" color="text.secondary">
+                  Listo para imprimir como etiqueta EAN-13.
+                </Typography>
+              ) : null}
+            </Stack>
+
+            {codigoFeedback ? (
+              <Alert
+                severity={canPrintBarcode || loadingCodigo ? "success" : "info"}
+                sx={{ mt: 1.5, borderRadius: 2 }}
+              >
+                {codigoFeedback}
+              </Alert>
+            ) : null}
           </Grid>
 
           <Grid item xs={12} md={6}>
@@ -114,7 +263,7 @@ function ProductoFormModal({
             />
           </Grid>
 
-          {!hideModuloSelector && (
+          {!hideModuloSelector ? (
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel id="producto-modulo-label">Catalogo</InputLabel>
@@ -122,7 +271,7 @@ function ProductoFormModal({
                   labelId="producto-modulo-label"
                   name="modulo_origen"
                   label="Catalogo"
-                  value={forceModuloOrigen || form.modulo_origen}
+                  value={moduloOrigen}
                   onChange={handleChange}
                 >
                   <MenuItem value="GENERAL">General</MenuItem>
@@ -130,9 +279,9 @@ function ProductoFormModal({
                 </Select>
               </FormControl>
             </Grid>
-          )}
+          ) : null}
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={hideModuloSelector ? 6 : 6}>
             <TextField
               label="Ubicacion"
               name="ubicacion"
@@ -223,6 +372,14 @@ function ProductoFormModal({
           )}
         </Button>
       </DialogActions>
+
+      <BarcodeCameraDialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetected={handleDetectedBarcode}
+        title="Escanear codigo del producto"
+        description="Usa la camara del dispositivo para capturar el codigo de barras y guardarlo en este producto."
+      />
     </Dialog>
   );
 }
