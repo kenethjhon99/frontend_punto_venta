@@ -12,7 +12,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import {
   getSummaryCardSx,
@@ -24,6 +24,8 @@ function Servicios() {
   const theme = useTheme();
   const servicesBackgroundUrl = "/fondo-de-servicios.jpeg";
   const backgroundRef = useRef(null);
+  const glassTextPrimary = "#f8fafc";
+  const glassTextSecondary = "rgba(226, 232, 240, 0.88)";
   const serviceCards = [
     {
       title: "Autolavado",
@@ -135,35 +137,51 @@ function Servicios() {
           sx={(currentTheme) => ({
             ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
             mb: 3,
+            color: glassTextPrimary,
             background:
-              currentTheme.palette.mode === "dark"
-                ? "linear-gradient(180deg, rgba(15,23,42,0.78) 0%, rgba(15,23,42,0.64) 100%)"
-                : "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.78) 100%)",
-            backdropFilter: "blur(16px)",
-            border:
-              currentTheme.palette.mode === "dark"
-                ? "1px solid rgba(148, 163, 184, 0.20)"
-                : "1px solid rgba(255, 255, 255, 0.68)",
+              "linear-gradient(180deg, rgba(15,23,42,0.80) 0%, rgba(15,23,42,0.70) 100%)",
+            backdropFilter: "blur(18px)",
+            border: `1px solid ${alpha("#93c5fd", 0.16)}`,
             boxShadow:
-              currentTheme.palette.mode === "dark"
-                ? "0 18px 40px rgba(2, 6, 23, 0.26)"
-                : "0 20px 45px rgba(15, 23, 42, 0.12)",
+              "0 20px 45px rgba(2, 6, 23, 0.24)",
           })}
         >
           <Stack spacing={1.5}>
-            <Typography variant="overline" color="primary.main" sx={{ fontWeight: 800, letterSpacing: "0.16em" }}>
+            <Typography
+              variant="overline"
+              sx={{
+                fontWeight: 800,
+                letterSpacing: "0.16em",
+                color: alpha(theme.palette.primary.light, 0.98),
+              }}
+            >
               Operacion diaria
             </Typography>
             <Typography variant="h4" fontWeight="bold">
               Servicios
             </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography variant="body1" sx={{ color: glassTextSecondary }}>
               Selecciona el area de trabajo para autolavado, reparacion o venta de tienda con una interfaz mas clara, visual y rapida.
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
-              <Chip color="primary" variant="outlined" label="Autolavado" />
-              <Chip color="secondary" variant="outlined" label="Reparacion" />
-              <Chip color="success" variant="outlined" label="Tienda" />
+              <Chip
+                color="primary"
+                variant="outlined"
+                label="Autolavado"
+                sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}
+              />
+              <Chip
+                color="secondary"
+                variant="outlined"
+                label="Reparacion"
+                sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1) }}
+              />
+              <Chip
+                color="success"
+                variant="outlined"
+                label="Tienda"
+                sx={{ bgcolor: alpha(theme.palette.success.main, 0.1) }}
+              />
             </Stack>
           </Stack>
         </Paper>
@@ -190,16 +208,22 @@ function Servicios() {
                   interactive: true,
                   minHeight: 248,
                 }),
+                color: glassTextPrimary,
                 background:
-                  currentTheme.palette.mode === "dark"
-                    ? "linear-gradient(180deg, rgba(15,23,42,0.84) 0%, rgba(15,23,42,0.72) 100%)"
-                    : "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.84) 100%)",
-                backdropFilter: "blur(14px)",
+                  "linear-gradient(180deg, rgba(15,23,42,0.78) 0%, rgba(15,23,42,0.68) 100%)",
+                backdropFilter: "blur(16px)",
+                border: `1px solid ${alpha(
+                  service.tone === "primary"
+                    ? currentTheme.palette.primary.main
+                    : service.tone === "secondary"
+                      ? currentTheme.palette.secondary.main
+                      : currentTheme.palette.success.main,
+                  0.24
+                )}`,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 textDecoration: "none",
-                color: "inherit",
               })}
             >
               <Stack spacing={2}>
@@ -216,7 +240,7 @@ function Servicios() {
                   >
                     {service.title}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
+                  <Typography variant="body1" sx={{ color: glassTextSecondary }}>
                     {service.description}
                   </Typography>
                 </Box>
