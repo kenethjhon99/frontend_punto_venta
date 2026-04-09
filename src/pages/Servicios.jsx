@@ -7,6 +7,7 @@ import {
   Button,
   Container,
   Paper,
+  Chip,
   Stack,
   Typography,
 } from "@mui/material";
@@ -47,14 +48,30 @@ function Servicios() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Box sx={{ maxWidth: 1200, mx: "auto" }}>
-        <Stack spacing={1} mb={3}>
-          <Typography variant="h4" fontWeight="bold">
-            Servicios
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Selecciona el area de trabajo para autolavado, reparacion o venta de tienda.
-          </Typography>
-        </Stack>
+        <Paper
+          elevation={0}
+          sx={(currentTheme) => ({
+            ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
+            mb: 3,
+          })}
+        >
+          <Stack spacing={1.5}>
+            <Typography variant="overline" color="primary.main" sx={{ fontWeight: 800, letterSpacing: "0.16em" }}>
+              Operacion diaria
+            </Typography>
+            <Typography variant="h4" fontWeight="bold">
+              Servicios
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Selecciona el area de trabajo para autolavado, reparacion o venta de tienda con una interfaz mas clara, visual y rapida.
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+              <Chip color="primary" variant="outlined" label="Autolavado" />
+              <Chip color="secondary" variant="outlined" label="Reparacion" />
+              <Chip color="success" variant="outlined" label="Tienda" />
+            </Stack>
+          </Stack>
+        </Paper>
 
         <Box
           sx={{

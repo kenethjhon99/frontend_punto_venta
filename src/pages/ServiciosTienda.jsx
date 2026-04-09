@@ -327,38 +327,53 @@ function ServiciosTienda() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Box sx={{ maxWidth: 1400, mx: "auto" }}>
-        <Stack spacing={1} mb={3}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <StorefrontIcon color="primary" />
-            <Typography variant="h4" fontWeight="bold">
-              Tienda
+        <Paper
+          elevation={0}
+          sx={(currentTheme) => ({
+            ...getSummaryCardSx(currentTheme, "success", { minHeight: 0 }),
+            mb: 3,
+          })}
+        >
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box sx={getSummaryIconWrapSx(theme, "success")}>
+                <StorefrontIcon fontSize="small" />
+              </Box>
+              <Box>
+                <Typography variant="overline" color="success.main" sx={{ fontWeight: 800, letterSpacing: "0.16em" }}>
+                  Venta rapida de servicios
+                </Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  Tienda
+                </Typography>
+              </Box>
+            </Stack>
+            <Typography variant="body1" color="text.secondary">
+              Vende solo productos exclusivos de tienda. Este modulo no mezcla el catalogo general del POS y mantiene el mismo estilo visual del resto del sistema.
             </Typography>
-          </Stack>
-          <Typography variant="body1" color="text.secondary">
-            Vende solo productos exclusivos de tienda. Este modulo no mezcla el catalogo general del POS.
-          </Typography>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1}
-            useFlexGap
-            flexWrap="wrap"
-            alignItems={{ xs: "flex-start", sm: "center" }}
-          >
-            <Chip
-              color={cajaActiva?.id_caja_sesion ? "success" : "default"}
-              label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
-              sx={{ fontWeight: 700 }}
-            />
-            {cajaActiva?.id_caja_sesion && (
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
               <Chip
-                variant="outlined"
-                color="primary"
-                label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                color={cajaActiva?.id_caja_sesion ? "success" : "default"}
+                label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
                 sx={{ fontWeight: 700 }}
               />
-            )}
+              {cajaActiva?.id_caja_sesion && (
+                <Chip
+                  variant="outlined"
+                  color="primary"
+                  label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                  sx={{ fontWeight: 700 }}
+                />
+              )}
+            </Stack>
           </Stack>
-        </Stack>
+        </Paper>
 
         <Stack spacing={2} mb={3}>
           <Alert severity="info" sx={{ borderRadius: 2 }}>

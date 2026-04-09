@@ -40,6 +40,10 @@ import {
   openPrintDocument,
 } from "../utils/printDocuments";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
+import {
+  getSectionPanelSx,
+  getSummaryCardSx,
+} from "../utils/summaryCardStyles";
 import { getProductos } from "../services/productoService";
 import {
   anularDetalleVenta,
@@ -618,14 +622,58 @@ function Ventas() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Box sx={{ maxWidth: 1400, mx: "auto" }}>
-        <Stack spacing={1} mb={3}>
-          <Typography variant="h4" fontWeight="bold">
-            Punto de venta
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Registra ventas rapidas, controla existencias y anula ventas con motivo.
-          </Typography>
-        </Stack>
+        <Paper
+          elevation={0}
+          sx={(currentTheme) => ({
+            ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
+            mb: 3,
+          })}
+        >
+          <Stack spacing={1.5}>
+            <Typography
+              variant="overline"
+              color="primary.main"
+              sx={{ fontWeight: 800, letterSpacing: "0.16em" }}
+            >
+              Operacion comercial
+            </Typography>
+            <Typography variant="h4" fontWeight="bold">
+              Punto de venta
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Registra ventas rapidas, controla existencias y anula ventas con motivo con una vista mas clara para cobro y seguimiento.
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+              <Chip
+                color={cajaActiva ? "success" : "default"}
+                label={cajaActiva ? "Caja abierta" : "Caja cerrada"}
+                sx={{ fontWeight: 700 }}
+              />
+              <Chip
+                color="info"
+                variant="outlined"
+                label={`${productos.length} productos`}
+                sx={{ fontWeight: 700 }}
+              />
+              <Chip
+                color="secondary"
+                variant="outlined"
+                label={`${items.length} en carrito`}
+                sx={{ fontWeight: 700 }}
+              />
+              <Chip
+                color={noCobroForm.enabled ? "warning" : "primary"}
+                variant={noCobroForm.enabled ? "filled" : "outlined"}
+                label={
+                  noCobroForm.enabled
+                    ? "Venta sin cobro"
+                    : `${tipoComprobante} - Q ${total.toFixed(2)}`
+                }
+                sx={{ fontWeight: 700 }}
+              />
+            </Stack>
+          </Stack>
+        </Paper>
 
         {error && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
@@ -670,14 +718,93 @@ function Ventas() {
             },
           }}
         >
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(3, minmax(0, 1fr))",
+              },
+              gridColumn: "1 / -1",
+            }}
+          >
+            <Paper
+              variant="outlined"
+              sx={(currentTheme) =>
+                getSummaryCardSx(currentTheme, "info", {
+                  compact: true,
+                  minHeight: 132,
+                })
+              }
+            >
+              <Typography variant="body2" color="text.secondary" mb={0.75}>
+                Clientes cargados
+              </Typography>
+              <Typography variant="h4" fontWeight="bold">
+                {clientes.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Catalogo listo para asignar a la venta
+              </Typography>
+            </Paper>
+
+            <Paper
+              variant="outlined"
+              sx={(currentTheme) =>
+                getSummaryCardSx(currentTheme, "secondary", {
+                  compact: true,
+                  minHeight: 132,
+                })
+              }
+            >
+              <Typography variant="body2" color="text.secondary" mb={0.75}>
+                Venta actual
+              </Typography>
+              <Typography variant="h4" fontWeight="bold">
+                {items.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {items.length === 1 ? "producto en el carrito" : "productos en el carrito"}
+              </Typography>
+            </Paper>
+
+            <Paper
+              variant="outlined"
+              sx={(currentTheme) =>
+                getSummaryCardSx(
+                  currentTheme,
+                  noCobroForm.enabled ? "warning" : metodoPago === "EFECTIVO" ? "success" : "primary",
+                  {
+                    compact: true,
+                    minHeight: 132,
+                  }
+                )
+              }
+            >
+              <Typography variant="body2" color="text.secondary" mb={0.75}>
+                Total a cobrar
+              </Typography>
+              <Typography variant="h4" fontWeight="bold">
+                Q {total.toFixed(2)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {noCobroForm.enabled
+                  ? "Pendiente de validacion al cierre"
+                  : metodoPago === "EFECTIVO"
+                    ? "Cobro inmediato en efectivo"
+                    : `Metodo: ${String(metodoPago || "").toLowerCase()}`}
+              </Typography>
+            </Paper>
+          </Box>
+
           <Box sx={{ minWidth: 0 }}>
             <Paper
               elevation={3}
-              sx={{
-                p: 3,
-                borderRadius: 4,
+              sx={(currentTheme) => ({
+                ...getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "info" }),
                 height: "100%",
-              }}
+              })}
             >
               <Typography variant="h6" fontWeight="bold" mb={2}>
                 Buscar productos
@@ -703,10 +830,9 @@ function Ventas() {
             <Stack spacing={3} sx={{ minWidth: 0 }}>
               <Paper
                 elevation={3}
-                sx={{
-                  p: 3,
-                  borderRadius: 4,
-                }}
+                sx={(currentTheme) =>
+                  getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "secondary" })
+                }
               >
                 <Typography variant="h6" fontWeight="bold" mb={2}>
                   Carrito de venta
@@ -723,10 +849,20 @@ function Ventas() {
               {canOperarVentas ? (
                 <Paper
                   elevation={3}
-                  sx={{
-                    p: 3,
-                    borderRadius: 4,
-                  }}
+                  sx={(currentTheme) =>
+                    getSectionPanelSx(
+                      currentTheme,
+                      {
+                        p: 3,
+                        radius: 4,
+                        accent: noCobroForm.enabled
+                          ? "warning"
+                          : metodoPago === "EFECTIVO"
+                            ? "success"
+                            : "primary",
+                      }
+                    )
+                  }
                 >
                   <Typography variant="h6" fontWeight="bold" mb={2}>
                     Resumen de pago
@@ -1066,10 +1202,9 @@ function Ventas() {
               ) : (
                 <Paper
                   elevation={3}
-                  sx={{
-                    p: 3,
-                    borderRadius: 4,
-                  }}
+                  sx={(currentTheme) =>
+                    getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "warning" })
+                  }
                 >
                   <Typography variant="h6" fontWeight="bold" mb={2}>
                     Resumen de pago
@@ -1083,7 +1218,13 @@ function Ventas() {
           </Box>
         </Box>
 
-        <Paper elevation={3} sx={{ mt: 3, p: 3, borderRadius: 4 }}>
+        <Paper
+          elevation={3}
+          sx={(currentTheme) => ({
+            mt: 3,
+            ...getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "info" }),
+          })}
+        >
           <Stack
             direction={{ xs: "column", md: "row" }}
             spacing={1}

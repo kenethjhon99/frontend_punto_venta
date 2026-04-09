@@ -7,8 +7,8 @@ const buildTheme = (mode) => {
   const isLight = mode === "light";
   const primaryMain = isLight ? "#2563eb" : "#60a5fa";
   const secondaryMain = isLight ? "#0f766e" : "#34d399";
-  const backgroundDefault = isLight ? "#eef4ff" : "#070d17";
-  const backgroundPaper = isLight ? alpha("#ffffff", 0.9) : "#111827";
+  const backgroundDefault = isLight ? "#edf4ff" : "#060d16";
+  const backgroundPaper = isLight ? alpha("#ffffff", 0.9) : alpha("#0f172a", 0.92);
   const dividerColor = alpha(isLight ? "#0f172a" : "#e2e8f0", isLight ? 0.1 : 0.12);
   const textPrimary = isLight ? "#0f172a" : "#f8fafc";
   const textSecondary = isLight ? "#475569" : "#94a3b8";
@@ -48,7 +48,8 @@ const buildTheme = (mode) => {
       borderRadius: 18,
     },
     typography: {
-      fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontFamily:
+        "'Trebuchet MS', 'Segoe UI Variable Text', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
       h4: {
         fontWeight: 800,
         letterSpacing: "-0.03em",
@@ -80,16 +81,33 @@ const buildTheme = (mode) => {
             backgroundColor: backgroundDefault,
             backgroundImage: isLight
               ? `
-                radial-gradient(circle at top left, rgba(37,99,235,0.16), transparent 30%),
-                radial-gradient(circle at 85% 12%, rgba(14,165,233,0.12), transparent 24%),
-                linear-gradient(180deg, #f8fbff 0%, #eef4ff 55%, #edf2ff 100%)
+                radial-gradient(circle at 12% 12%, rgba(37,99,235,0.16), transparent 24%),
+                radial-gradient(circle at 88% 14%, rgba(14,165,233,0.13), transparent 22%),
+                radial-gradient(circle at 52% 100%, rgba(15,118,110,0.08), transparent 22%),
+                linear-gradient(180deg, #f9fcff 0%, #eef4ff 54%, #eaf1ff 100%),
+                repeating-linear-gradient(
+                  135deg,
+                  rgba(255,255,255,0.18) 0px,
+                  rgba(255,255,255,0.18) 1px,
+                  transparent 1px,
+                  transparent 16px
+                )
               `
               : `
-                radial-gradient(circle at top left, rgba(37,99,235,0.22), transparent 26%),
-                radial-gradient(circle at 82% 10%, rgba(16,185,129,0.12), transparent 20%),
-                linear-gradient(180deg, #070d17 0%, #0b1220 48%, #0f172a 100%)
+                radial-gradient(circle at 14% 10%, rgba(37,99,235,0.24), transparent 22%),
+                radial-gradient(circle at 84% 12%, rgba(16,185,129,0.14), transparent 18%),
+                radial-gradient(circle at 50% 100%, rgba(168,85,247,0.10), transparent 24%),
+                linear-gradient(180deg, #060d16 0%, #09101b 42%, #0b1321 100%),
+                repeating-linear-gradient(
+                  135deg,
+                  rgba(255,255,255,0.02) 0px,
+                  rgba(255,255,255,0.02) 1px,
+                  transparent 1px,
+                  transparent 18px
+                )
               `,
             backgroundAttachment: "fixed",
+            backgroundBlendMode: "screen, screen, normal, normal, normal",
             color: textPrimary,
             transition:
               "background-color 220ms ease, background-image 220ms ease, color 220ms ease",
@@ -140,6 +158,33 @@ const buildTheme = (mode) => {
               transform: "translateY(0px)",
             },
           },
+          "@keyframes aurora-drift": {
+            "0%": {
+              transform: "translate3d(0px, 0px, 0) scale(1)",
+            },
+            "50%": {
+              transform: "translate3d(12px, -14px, 0) scale(1.05)",
+            },
+            "100%": {
+              transform: "translate3d(0px, 0px, 0) scale(1)",
+            },
+          },
+          "@keyframes glow-pulse": {
+            "0%, 100%": {
+              opacity: 0.75,
+            },
+            "50%": {
+              opacity: 1,
+            },
+          },
+          "@keyframes sheen-slide": {
+            from: {
+              transform: "translateX(-120%)",
+            },
+            to: {
+              transform: "translateX(120%)",
+            },
+          },
         },
       },
       MuiPaper: {
@@ -150,6 +195,8 @@ const buildTheme = (mode) => {
             boxShadow: isLight
               ? `0 18px 40px ${alpha("#0f172a", 0.08)}`
               : "0 20px 42px rgba(0, 0, 0, 0.35)",
+            transition:
+              "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
           },
         },
       },
@@ -278,9 +325,21 @@ const buildTheme = (mode) => {
           radial-gradient(circle at 88% 14%, rgba(52,211,153,0.12), transparent 18%),
           radial-gradient(circle at 55% 100%, rgba(168,85,247,0.10), transparent 24%)
         `,
+    shellPattern: isLight
+      ? "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 28%, rgba(37,99,235,0.03) 100%)"
+      : "linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 28%, rgba(59,130,246,0.05) 100%)",
     contentOverlay: isLight
       ? "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 28%)"
       : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 28%)",
+    orbPrimary: `radial-gradient(circle at center, ${alpha(primaryMain, isLight ? 0.22 : 0.2)} 0%, transparent 70%)`,
+    orbSecondary: `radial-gradient(circle at center, ${alpha(
+      secondaryMain,
+      isLight ? 0.18 : 0.16
+    )} 0%, transparent 72%)`,
+    orbAccent: `radial-gradient(circle at center, ${alpha(
+      theme.palette.warning.main,
+      isLight ? 0.14 : 0.12
+    )} 0%, transparent 72%)`,
   };
 
   return theme;

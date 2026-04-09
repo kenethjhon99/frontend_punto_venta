@@ -183,6 +183,17 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
         backgroundImage: `${roleMeta.accent}, linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))`,
         borderBottom: `1px solid ${roleMeta.borderColor}`,
         backdropFilter: "blur(18px)",
+        overflow: "hidden",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            theme.palette.mode === "light"
+              ? "linear-gradient(90deg, rgba(255,255,255,0.3), transparent 28%, rgba(37,99,235,0.05) 100%)"
+              : "linear-gradient(90deg, rgba(255,255,255,0.06), transparent 28%, rgba(56,189,248,0.08) 100%)",
+        },
       }}
     >
       <Toolbar
@@ -209,25 +220,47 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
                   theme.palette.mode === "light"
                     ? "rgba(255,255,255,0.6)"
                     : "rgba(15,23,42,0.35)",
+                boxShadow:
+                  theme.palette.mode === "light"
+                    ? "0 10px 20px rgba(15,23,42,0.08)"
+                    : "0 12px 22px rgba(2,6,23,0.24)",
               }}
             >
               <MenuRoundedIcon />
             </IconButton>
           )}
 
-          <Box sx={{ minWidth: 0 }}>
-          <Chip
-            label={roleMeta.label}
-            size="small"
-            color={roleMeta.chipColor}
-            sx={{ mb: 1, fontWeight: 700 }}
-          />
-          <Typography variant="h6" fontWeight="bold">
-            {headerContent.title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {headerContent.subtitle}
-          </Typography>
+          <Box
+            sx={{
+              minWidth: 0,
+              px: { xs: 0, md: 1.75 },
+              py: { xs: 0, md: 1.2 },
+              borderRadius: { xs: 0, md: 3.5 },
+              border: { xs: "none", md: "1px solid" },
+              borderColor: { xs: "transparent", md: "divider" },
+              backgroundColor:
+                theme.palette.mode === "light"
+                  ? { xs: "transparent", md: "rgba(255,255,255,0.46)" }
+                  : { xs: "transparent", md: "rgba(15,23,42,0.36)" },
+              backdropFilter: { xs: "none", md: "blur(12px)" },
+              boxShadow:
+                theme.palette.mode === "light"
+                  ? { xs: "none", md: "0 14px 30px rgba(15,23,42,0.06)" }
+                  : { xs: "none", md: "0 18px 32px rgba(2,6,23,0.22)" },
+            }}
+          >
+            <Chip
+              label={roleMeta.label}
+              size="small"
+              color={roleMeta.chipColor}
+              sx={{ mb: 1, fontWeight: 800 }}
+            />
+            <Typography variant="h6" fontWeight="bold">
+              {headerContent.title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {headerContent.subtitle}
+            </Typography>
           </Box>
         </Box>
 
@@ -239,7 +272,22 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
           justifyContent="flex-end"
           sx={{ ml: "auto" }}
         >
-          <IconButton onClick={toggleTheme} color="inherit">
+          <IconButton
+            onClick={toggleTheme}
+            color="inherit"
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              backgroundColor:
+                theme.palette.mode === "light"
+                  ? "rgba(255,255,255,0.54)"
+                  : "rgba(15,23,42,0.35)",
+              boxShadow:
+                theme.palette.mode === "light"
+                  ? "0 12px 24px rgba(15,23,42,0.06)"
+                  : "0 16px 26px rgba(2,6,23,0.22)",
+            }}
+          >
             {mode === "light" ? <DarkModeIcon /> : <LightModeIcon />}
           </IconButton>
 

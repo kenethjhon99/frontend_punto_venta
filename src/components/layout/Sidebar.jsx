@@ -47,8 +47,8 @@ function Sidebar({
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const drawerBackground =
     theme.palette.mode === "light"
-      ? "linear-gradient(180deg, #0f172a 0%, #13213d 48%, #172554 100%)"
-      : "linear-gradient(180deg, #08101d 0%, #0f172a 45%, #111827 100%)";
+      ? "linear-gradient(180deg, #0c1526 0%, #11203b 42%, #18315f 100%)"
+      : "linear-gradient(180deg, #060d17 0%, #0b1321 44%, #101827 100%)";
 
   const menu = [
     {
@@ -146,8 +146,11 @@ function Sidebar({
             position: "absolute",
             inset: 0,
             pointerEvents: "none",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 20%)",
+            background: `
+              linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 24%),
+              radial-gradient(circle at 15% 12%, rgba(96,165,250,0.16), transparent 28%),
+              radial-gradient(circle at 82% 100%, rgba(52,211,153,0.10), transparent 26%)
+            `,
           },
         },
       }}
@@ -159,10 +162,20 @@ function Sidebar({
           gap: 1,
           borderBottom: `1px solid ${alpha("#ffffff", 0.08)}`,
           minHeight: 78,
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {(!collapsed || isMobile) && (
-          <Typography variant="h6" fontWeight="bold" noWrap>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            noWrap
+            sx={{
+              letterSpacing: "-0.02em",
+              textShadow: "0 6px 14px rgba(15,23,42,0.28)",
+            }}
+          >
             POS System
           </Typography>
         )}
@@ -176,6 +189,7 @@ function Sidebar({
               height: 42,
               backgroundColor: "rgba(255,255,255,0.03)",
               animation: collapsed && !isMobile ? "sidebar-float 3.4s ease-in-out infinite" : "none",
+              boxShadow: "0 10px 22px rgba(2,6,23,0.26)",
               "&:hover": {
                 backgroundColor: "rgba(255,255,255,0.08)",
               },
@@ -210,9 +224,12 @@ function Sidebar({
                   justifyContent: collapsed && !isMobile ? "center" : "initial",
                   borderRadius: 4,
                   position: "relative",
+                  overflow: "hidden",
+                  border: "1px solid transparent",
                   "&.Mui-selected": {
                     background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
                     boxShadow: `0 12px 28px ${alpha(theme.palette.primary.main, 0.24)}`,
+                    borderColor: alpha("#ffffff", 0.16),
                     "&::before": {
                       content: '""',
                       position: "absolute",
@@ -223,11 +240,21 @@ function Sidebar({
                       borderRadius: 99,
                       backgroundColor: "rgba(255,255,255,0.95)",
                     },
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(100deg, rgba(255,255,255,0.16), transparent 32%, transparent 72%, rgba(255,255,255,0.10))",
+                      pointerEvents: "none",
+                    },
                   },
                   "&:hover": {
                     backgroundColor: "rgba(255,255,255,0.08)",
+                    borderColor: alpha("#ffffff", 0.12),
                     transform:
                       collapsed && !isMobile ? "none" : "translateX(4px)",
+                    boxShadow: "0 10px 22px rgba(2,6,23,0.18)",
                   },
                 }}
               >

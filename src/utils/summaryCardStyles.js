@@ -67,6 +67,11 @@ export const getSectionPanelSx = (theme, options = {}) => {
       pointerEvents: "none",
       background: `linear-gradient(90deg, transparent, ${alpha(accentColor, 0.5)}, transparent)`,
     },
+    "&:hover": {
+      boxShadow: isLight
+        ? `0 24px 52px ${alpha("#0f172a", 0.1)}, inset 0 1px 0 rgba(255,255,255,0.76)`
+        : "0 28px 56px rgba(2, 6, 23, 0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+    },
     "& > *": {
       position: "relative",
       zIndex: 1,
@@ -114,6 +119,9 @@ export const getSummaryCardSx = (theme, tone = "primary", options = {}) => {
               ? `0 26px 54px ${alpha("#0f172a", 0.1)}, 0 0 0 1px ${alpha(accentColor, 0.14)}`
               : `0 30px 58px rgba(2, 6, 23, 0.4), 0 0 0 1px ${alpha(accentColor, 0.18)}`,
           },
+          "&:hover::before": {
+            animation: "glow-pulse 2.6s ease-in-out infinite",
+          },
         }
       : {}),
   };
@@ -133,6 +141,15 @@ export const getSummaryIconWrapSx = (theme, tone = "primary") => {
     backgroundColor: alpha(accentColor, isLight ? 0.14 : 0.18),
     border: `1px solid ${alpha(accentColor, isLight ? 0.18 : 0.24)}`,
     boxShadow: `inset 0 1px 0 ${alpha("#ffffff", isLight ? 0.7 : 0.04)}`,
+    position: "relative",
+    overflow: "hidden",
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      background: `linear-gradient(135deg, ${alpha("#ffffff", isLight ? 0.26 : 0.06)}, transparent 58%)`,
+      pointerEvents: "none",
+    },
   };
 };
 

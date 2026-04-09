@@ -1440,60 +1440,75 @@ function Caja() {
 
   return (
     <Box>
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", md: "center" }}
-        spacing={2}
-        mb={3}
+      <Paper
+        elevation={0}
+        sx={(currentTheme) => ({
+          ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
+          mb: 3,
+        })}
       >
-        <Box>
-          <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-            <AccountBalanceWalletIcon color="primary" />
-            <Typography variant="h4" fontWeight="bold">
-              Caja
-            </Typography>
+        <Stack spacing={2.5}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
+            spacing={2}
+          >
+            <Box>
+              <Typography
+                variant="overline"
+                color="primary.main"
+                sx={{ fontWeight: 800, letterSpacing: "0.16em" }}
+              >
+                Control financiero
+              </Typography>
+              <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
+                <AccountBalanceWalletIcon color="primary" />
+                <Typography variant="h4" fontWeight="bold">
+                  Caja
+                </Typography>
+              </Stack>
+
+              <Typography variant="body1" color="text.secondary">
+                {canSeeAllSessions
+                  ? "Administra aperturas, cierres, conciliacion y sesiones de caja por cajero."
+                  : "Opera tu caja, registra movimientos y controla tu cierre con diferencia."}
+              </Typography>
+            </Box>
+
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<PictureAsPdfIcon />}
+              onClick={exportarPdf}
+              disabled={loading || loadingAction || exportingPdf || (!sesionActiva && !selectedSesion)}
+              sx={{ borderRadius: 999, px: 3, py: 1.15, boxShadow: "none" }}
+            >
+              {exportingPdf ? "Generando PDF..." : "Exportar corte PDF"}
+            </Button>
           </Stack>
 
-          <Typography variant="body1" color="text.secondary">
-            {canSeeAllSessions
-              ? "Administra aperturas, cierres, conciliacion y sesiones de caja por cajero."
-              : "Opera tu caja, registra movimientos y controla tu cierre con diferencia."}
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          <Chip
-            color={canSeeAllSessions ? "primary" : "default"}
-            label={canSeeAllSessions ? "Vista global de cajas" : "Vista de mi caja"}
-            sx={{ fontWeight: 700 }}
-          />
-          <Chip
-            color={sesionActiva ? "success" : "default"}
-            icon={sesionActiva ? <LockOpenIcon /> : <LockIcon />}
-            label={sesionActiva ? "Caja abierta" : "Caja cerrada"}
-            sx={{ fontWeight: 700 }}
-          />
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+            <Chip
+              color={canSeeAllSessions ? "primary" : "default"}
+              label={canSeeAllSessions ? "Vista global de cajas" : "Vista de mi caja"}
+              sx={{ fontWeight: 700 }}
+            />
+            <Chip
+              color={sesionActiva ? "success" : "default"}
+              icon={sesionActiva ? <LockOpenIcon /> : <LockIcon />}
+              label={sesionActiva ? "Caja abierta" : "Caja cerrada"}
+              sx={{ fontWeight: 700 }}
+            />
+            <Chip
+              color="info"
+              variant="outlined"
+              label={`${sesiones.length} sesiones visibles`}
+              sx={{ fontWeight: 700 }}
+            />
+          </Stack>
         </Stack>
-      </Stack>
-
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={1.5}
-        justifyContent="flex-end"
-        alignItems={{ xs: "stretch", sm: "center" }}
-        mb={3}
-      >
-        <Button
-          variant="contained"
-          color="error"
-          startIcon={<PictureAsPdfIcon />}
-          onClick={exportarPdf}
-          disabled={loading || loadingAction || exportingPdf || (!sesionActiva && !selectedSesion)}
-        >
-          {exportingPdf ? "Generando PDF..." : "Exportar corte PDF"}
-        </Button>
-      </Stack>
+      </Paper>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>

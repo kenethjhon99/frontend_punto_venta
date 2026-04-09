@@ -48,6 +48,10 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import {
+  getSectionPanelSx,
+  getSummaryCardSx,
+} from "../utils/summaryCardStyles";
 import { getCajaSesionActiva } from "../services/cajaService";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import { getProductos } from "../services/productoService";
@@ -774,34 +778,51 @@ function CarWashReparacion() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Stack spacing={3}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold">Servicios - Reparacion</Typography>
-          <Typography color="text.secondary">
-            Gestiona servicios de taller, diagnostico, cobro y seguimiento de reparaciones.
-          </Typography>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1}
-            useFlexGap
-            flexWrap="wrap"
-            alignItems={{ xs: "flex-start", sm: "center" }}
-            mt={1.5}
-          >
-            <Chip
-              color={cajaActiva?.id_caja_sesion ? "success" : "default"}
-              label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
-              sx={{ fontWeight: 700 }}
-            />
-            {cajaActiva?.id_caja_sesion && (
+        <Paper
+          elevation={0}
+          sx={(currentTheme) => ({
+            ...getSummaryCardSx(currentTheme, "secondary", { minHeight: 0 }),
+            mb: 0,
+          })}
+        >
+          <Stack spacing={1.5}>
+            <Typography
+              variant="overline"
+              color="secondary.main"
+              sx={{ fontWeight: 800, letterSpacing: "0.16em" }}
+            >
+              Taller mecanico
+            </Typography>
+            <Typography variant="h4" fontWeight="bold">
+              Servicios - Reparacion
+            </Typography>
+            <Typography color="text.secondary">
+              Gestiona servicios de taller, diagnostico, cobro y seguimiento de reparaciones con una vista mas clara para trabajo y repuestos.
+            </Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
               <Chip
-                variant="outlined"
-                color="primary"
-                label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                color={cajaActiva?.id_caja_sesion ? "success" : "default"}
+                label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
                 sx={{ fontWeight: 700 }}
               />
-            )}
+              {cajaActiva?.id_caja_sesion && (
+                <Chip
+                  variant="outlined"
+                  color="primary"
+                  label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                  sx={{ fontWeight: 700 }}
+                />
+              )}
+              <Chip color="info" variant="outlined" label={`${ordenes.length} ordenes`} sx={{ fontWeight: 700 }} />
+            </Stack>
           </Stack>
-        </Box>
+        </Paper>
 
         {isReadOnly && (
           <Alert severity="info" sx={{ borderRadius: 2 }}>
@@ -813,7 +834,11 @@ function CarWashReparacion() {
         {success && <Alert severity="success">{success}</Alert>}
 
         {loading ? (
-          <Paper sx={{ p: 6, borderRadius: 4 }}>
+          <Paper
+            sx={(currentTheme) => ({
+              ...getSectionPanelSx(currentTheme, { p: 6, radius: 4, accent: "secondary" }),
+            })}
+          >
             <Stack spacing={2} alignItems="center">
               <CircularProgress />
               <Typography color="text.secondary">Cargando taller mecanico...</Typography>
@@ -831,7 +856,15 @@ function CarWashReparacion() {
                 },
               }}
             >
-              <Paper sx={{ p: 2.5, borderRadius: 4 }}>
+              <Paper
+                variant="outlined"
+                sx={(currentTheme) =>
+                  getSummaryCardSx(currentTheme, "info", {
+                    compact: true,
+                    minHeight: 136,
+                  })
+                }
+              >
                 <Typography variant="body2" color="text.secondary">
                   Tipos de vehiculo
                 </Typography>
@@ -843,7 +876,15 @@ function CarWashReparacion() {
                 </Typography>
               </Paper>
 
-              <Paper sx={{ p: 2.5, borderRadius: 4 }}>
+              <Paper
+                variant="outlined"
+                sx={(currentTheme) =>
+                  getSummaryCardSx(currentTheme, "secondary", {
+                    compact: true,
+                    minHeight: 136,
+                  })
+                }
+              >
                 <Typography variant="body2" color="text.secondary">
                   Servicios mecanicos
                 </Typography>
@@ -855,7 +896,15 @@ function CarWashReparacion() {
                 </Typography>
               </Paper>
 
-              <Paper sx={{ p: 2.5, borderRadius: 4 }}>
+              <Paper
+                variant="outlined"
+                sx={(currentTheme) =>
+                  getSummaryCardSx(currentTheme, "success", {
+                    compact: true,
+                    minHeight: 136,
+                  })
+                }
+              >
                 <Typography variant="body2" color="text.secondary">
                   Servicios del vehiculo
                 </Typography>
@@ -869,7 +918,11 @@ function CarWashReparacion() {
               </Paper>
             </Box>
 
-            <Paper sx={{ p: 3, borderRadius: 4 }}>
+            <Paper
+              sx={(currentTheme) =>
+                getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "info" })
+              }
+            >
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} mb={3}>
                 <Box>
                   <Typography variant="h6" fontWeight="bold">Tipo de vehiculo</Typography>
@@ -982,7 +1035,12 @@ function CarWashReparacion() {
 
             <Grid container spacing={3}>
               <Grid item xs={12} lg={7}>
-                <Paper sx={{ p: 3, borderRadius: 4, height: "100%" }}>
+                <Paper
+                  sx={(currentTheme) => ({
+                    ...getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "secondary" }),
+                    height: "100%",
+                  })}
+                >
                   <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} mb={3}>
                     <Box>
                       <Typography variant="h6" fontWeight="bold">Servicio mecanico</Typography>
@@ -1149,7 +1207,19 @@ function CarWashReparacion() {
               </Grid>
 
               <Grid item xs={12} lg={5}>
-                <Paper sx={{ p: 3, borderRadius: 4, height: "100%" }}>
+                <Paper
+                  sx={(currentTheme) => ({
+                    ...getSectionPanelSx(
+                      currentTheme,
+                      {
+                        p: 3,
+                        radius: 4,
+                        accent: noCobroForm.enabled ? "warning" : "primary",
+                      }
+                    ),
+                    height: "100%",
+                  })}
+                >
                   <Stack spacing={2}>
                     <Typography variant="h6" fontWeight="bold">Cobro y recepcion</Typography>
                     {canOperateReparacion ? (
@@ -1188,7 +1258,15 @@ function CarWashReparacion() {
                             <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
                           </Select>
                         </FormControl>
-                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                        <Paper
+                          variant="outlined"
+                          sx={(currentTheme) =>
+                            getSummaryCardSx(currentTheme, "primary", {
+                              compact: true,
+                              minHeight: 126,
+                            })
+                          }
+                        >
                           <Stack spacing={0.5}>
                             <Typography variant="body2" color="text.secondary">
                               Servicio base: Q {Number(precioServicioActual || 0).toFixed(2)}
@@ -1292,7 +1370,11 @@ function CarWashReparacion() {
               </Grid>
             </Grid>
 
-            <Paper sx={{ p: 3, borderRadius: 4 }}>
+            <Paper
+              sx={(currentTheme) =>
+                getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "secondary" })
+              }
+            >
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} mb={3}>
                 <Box>
                   <Typography variant="h6" fontWeight="bold">Ordenes de reparacion</Typography>
@@ -1326,7 +1408,18 @@ function CarWashReparacion() {
                     </Alert>
                   ) : (
                     ordenes.map((orden) => (
-                      <Paper key={orden.id_reparacion_orden} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                      <Paper
+                        key={orden.id_reparacion_orden}
+                        variant="outlined"
+                        sx={(currentTheme) => ({
+                          ...getSummaryCardSx(currentTheme, "neutral", {
+                            compact: true,
+                            minHeight: 0,
+                          }),
+                          p: 2,
+                          borderRadius: 3,
+                        })}
+                      >
                         <Stack spacing={1.5}>
                           <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
                             <Box>

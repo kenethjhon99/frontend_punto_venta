@@ -378,37 +378,88 @@ function Dashboard() {
 
   return (
     <Box>
-      <Stack spacing={2} mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          Reportes del negocio
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Revisa comportamiento diario, ventas de producto, compras por fecha, poco stock y utilidad estimada.
-        </Typography>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ xs: "stretch", md: "center" }}>
-          <Chip
-            color="primary"
-            variant="outlined"
-            label={`Actualizado: ${formatLastUpdated(lastUpdated)}`}
-            sx={{ alignSelf: "flex-start" }}
-          />
-          <Chip
-            color="secondary"
-            variant="outlined"
-            label="Actualizacion automatica cada 60s"
-            sx={{ alignSelf: "flex-start" }}
-          />
-          <Button
-            variant="outlined"
-            startIcon={<RefreshRoundedIcon />}
-            onClick={() => cargarReportes({ silent: true })}
-            disabled={loading || refreshing}
-            sx={{ alignSelf: { xs: "stretch", md: "flex-start" } }}
+      <Paper
+        elevation={0}
+        sx={(currentTheme) =>
+          getSectionPanelSx(currentTheme, {
+            p: { xs: 2.4, md: 3 },
+            radius: 4,
+            accent: "primary",
+          })
+        }
+      >
+        <Stack spacing={2}>
+          <Stack
+            direction={{ xs: "column", lg: "row" }}
+            spacing={2}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", lg: "flex-start" }}
           >
-            {refreshing ? "Actualizando..." : "Actualizar ahora"}
-          </Button>
+            <Box maxWidth={760}>
+              <Typography variant="overline" color="primary.main" sx={{ fontWeight: 800, letterSpacing: "0.16em" }}>
+                Centro de control
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+                Reportes del negocio
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Revisa comportamiento diario, ventas de producto, compras por fecha, poco stock y utilidad estimada con una vista gerencial mas clara y siempre actualizada.
+              </Typography>
+            </Box>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems={{ xs: "stretch", sm: "center" }}
+            >
+              <Chip
+                color="primary"
+                variant="outlined"
+                label={`Actualizado: ${formatLastUpdated(lastUpdated)}`}
+                sx={{ alignSelf: "flex-start" }}
+              />
+              <Chip
+                color="secondary"
+                variant="outlined"
+                label="Actualizacion automatica cada 60s"
+                sx={{ alignSelf: "flex-start" }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<RefreshRoundedIcon />}
+                onClick={() => cargarReportes({ silent: true })}
+                disabled={loading || refreshing}
+                sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+              >
+                {refreshing ? "Actualizando..." : "Actualizar ahora"}
+              </Button>
+            </Stack>
+          </Stack>
+
+          <Stack direction={{ xs: "column", md: "row" }} spacing={1.2} useFlexGap flexWrap="wrap">
+            <Chip
+              size="small"
+              color="success"
+              variant="outlined"
+              label={`${data.resumen.ventas_cantidad || 0} venta(s) registradas`}
+            />
+            <Chip
+              size="small"
+              color="info"
+              variant="outlined"
+              label={`${data.resumen.compras_cantidad || 0} compra(s) en el periodo`}
+            />
+            <Chip
+              size="small"
+              color="warning"
+              variant="outlined"
+              label={`${data.resumen.productos_stock_bajo || 0} alerta(s) de stock`}
+            />
+          </Stack>
         </Stack>
-      </Stack>
+      </Paper>
 
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -416,6 +467,7 @@ function Dashboard() {
         justifyContent="flex-end"
         alignItems={{ xs: "stretch", sm: "center" }}
         mb={3}
+        mt={3}
       >
         <Button
           variant="outlined"

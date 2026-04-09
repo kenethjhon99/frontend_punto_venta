@@ -31,12 +31,26 @@ export const getFilterPanelSx = (theme, options = {}) => {
       ? `
           linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 52%, rgba(241,245,249,0.98) 100%),
           radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 34%),
-          radial-gradient(circle at bottom left, rgba(14,165,233,0.08), transparent 32%)
+          radial-gradient(circle at bottom left, rgba(14,165,233,0.08), transparent 32%),
+          repeating-linear-gradient(
+            135deg,
+            rgba(255,255,255,0.12) 0px,
+            rgba(255,255,255,0.12) 1px,
+            transparent 1px,
+            transparent 18px
+          )
         `
       : `
           linear-gradient(135deg, rgba(16,23,37,0.96) 0%, rgba(11,18,31,0.98) 55%, rgba(8,14,24,0.98) 100%),
           radial-gradient(circle at top right, rgba(37,99,235,0.18), transparent 34%),
-          radial-gradient(circle at bottom left, rgba(14,165,233,0.10), transparent 32%)
+          radial-gradient(circle at bottom left, rgba(14,165,233,0.10), transparent 32%),
+          repeating-linear-gradient(
+            135deg,
+            rgba(255,255,255,0.018) 0px,
+            rgba(255,255,255,0.018) 1px,
+            transparent 1px,
+            transparent 18px
+          )
         `,
     boxShadow: isLight
       ? `0 18px 40px ${alpha("#0f172a", 0.08)}, inset 0 1px 0 rgba(255,255,255,0.74)`
@@ -62,6 +76,11 @@ export const getFilterPanelSx = (theme, options = {}) => {
       background: isLight
         ? "linear-gradient(90deg, transparent, rgba(59,130,246,0.38), transparent)"
         : "linear-gradient(90deg, transparent, rgba(56,189,248,0.34), transparent)",
+    },
+    "&:hover": {
+      boxShadow: isLight
+        ? `0 22px 44px ${alpha("#0f172a", 0.1)}, inset 0 1px 0 rgba(255,255,255,0.78)`
+        : "0 28px 58px rgba(2, 6, 23, 0.4), inset 0 1px 0 rgba(255,255,255,0.03)",
     },
     "& > *": {
       position: "relative",

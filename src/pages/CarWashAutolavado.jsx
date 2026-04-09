@@ -52,6 +52,10 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import {
+  getSectionPanelSx,
+  getSummaryCardSx,
+} from "../utils/summaryCardStyles";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import { getCajaSesionActiva } from "../services/cajaService";
 import {
@@ -712,35 +716,51 @@ function CarWashAutolavado() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
         <Box sx={{ maxWidth: 1400, mx: "auto" }}>
-          <Stack spacing={1} mb={3}>
-            <Typography variant="h4" fontWeight="bold">
-              Servicios - Autolavado
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Selecciona primero el tipo de vehiculo y luego el servicio que se le va a realizar.
-            </Typography>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1}
-              useFlexGap
-              flexWrap="wrap"
-              alignItems={{ xs: "flex-start", sm: "center" }}
-            >
-              <Chip
-                color={cajaActiva?.id_caja_sesion ? "success" : "default"}
-                label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
-                sx={{ fontWeight: 700 }}
-              />
-              {cajaActiva?.id_caja_sesion && (
+          <Paper
+            elevation={0}
+            sx={(currentTheme) => ({
+              ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
+              mb: 3,
+            })}
+          >
+            <Stack spacing={1.5}>
+              <Typography
+                variant="overline"
+                color="primary.main"
+                sx={{ fontWeight: 800, letterSpacing: "0.16em" }}
+              >
+                Operacion de servicio
+              </Typography>
+              <Typography variant="h4" fontWeight="bold">
+                Servicios - Autolavado
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Selecciona primero el tipo de vehiculo y luego el servicio que se le va a realizar con una interfaz mas clara para recepcion, cobro y seguimiento.
+              </Typography>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                useFlexGap
+                flexWrap="wrap"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+              >
                 <Chip
-                  variant="outlined"
-                  color="primary"
-                  label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                  color={cajaActiva?.id_caja_sesion ? "success" : "default"}
+                  label={cajaActiva?.id_caja_sesion ? "Caja abierta" : "Caja cerrada"}
                   sx={{ fontWeight: 700 }}
                 />
-              )}
+                {cajaActiva?.id_caja_sesion && (
+                  <Chip
+                    variant="outlined"
+                    color="primary"
+                    label={`Sesion #${cajaActiva.id_caja_sesion}`}
+                    sx={{ fontWeight: 700 }}
+                  />
+                )}
+                <Chip color="info" variant="outlined" label={`${ordenes.length} ordenes`} sx={{ fontWeight: 700 }} />
+              </Stack>
             </Stack>
-          </Stack>
+          </Paper>
 
           {error && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>
@@ -763,12 +783,12 @@ function CarWashAutolavado() {
         {loading ? (
           <Paper
             elevation={3}
-            sx={{
+            sx={(currentTheme) => ({
+              ...getSectionPanelSx(currentTheme, { p: 5, radius: 4, accent: "primary" }),
               minHeight: 320,
-              borderRadius: 4,
               display: "grid",
               placeItems: "center",
-            }}
+            })}
           >
             <Stack spacing={2} alignItems="center">
               <CircularProgress />
@@ -789,7 +809,15 @@ function CarWashAutolavado() {
                 },
               }}
             >
-              <Paper elevation={2} sx={{ p: 2.5, borderRadius: 4 }}>
+              <Paper
+                variant="outlined"
+                sx={(currentTheme) =>
+                  getSummaryCardSx(currentTheme, "info", {
+                    compact: true,
+                    minHeight: 136,
+                  })
+                }
+              >
                 <Typography variant="body2" color="text.secondary">
                   Tipos de vehiculo
                 </Typography>
@@ -801,7 +829,15 @@ function CarWashAutolavado() {
                 </Typography>
               </Paper>
 
-              <Paper elevation={2} sx={{ p: 2.5, borderRadius: 4 }}>
+              <Paper
+                variant="outlined"
+                sx={(currentTheme) =>
+                  getSummaryCardSx(currentTheme, "secondary", {
+                    compact: true,
+                    minHeight: 136,
+                  })
+                }
+              >
                 <Typography variant="body2" color="text.secondary">
                   Servicios disponibles
                 </Typography>
@@ -813,7 +849,15 @@ function CarWashAutolavado() {
                 </Typography>
               </Paper>
 
-              <Paper elevation={2} sx={{ p: 2.5, borderRadius: 4 }}>
+              <Paper
+                variant="outlined"
+                sx={(currentTheme) =>
+                  getSummaryCardSx(currentTheme, "success", {
+                    compact: true,
+                    minHeight: 136,
+                  })
+                }
+              >
                 <Typography variant="body2" color="text.secondary">
                   Servicios del vehiculo
                 </Typography>
@@ -826,7 +870,12 @@ function CarWashAutolavado() {
               </Paper>
             </Box>
 
-            <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+            <Paper
+              elevation={3}
+              sx={(currentTheme) =>
+                getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "info" })
+              }
+            >
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
@@ -1018,7 +1067,12 @@ function CarWashAutolavado() {
                 alignItems: "start",
               }}
             >
-              <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+              <Paper
+                elevation={3}
+                sx={(currentTheme) =>
+                  getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "secondary" })
+                }
+              >
                 <Stack
                   direction={{ xs: "column", md: "row" }}
                   spacing={2}
@@ -1181,7 +1235,19 @@ function CarWashAutolavado() {
                 </Box>
               </Paper>
 
-              <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+              <Paper
+                elevation={3}
+                sx={(currentTheme) =>
+                  getSectionPanelSx(
+                    currentTheme,
+                    {
+                      p: 3,
+                      radius: 4,
+                      accent: noCobroForm.enabled ? "warning" : "primary",
+                    }
+                  )
+                }
+              >
                 <Stack spacing={2}>
                   <Typography variant="h5" fontWeight="bold">
                     Resumen de seleccion
@@ -1374,7 +1440,19 @@ function CarWashAutolavado() {
                             error={montoCobradoNumero > 0 && faltanteEfectivo > 0}
                           />
 
-                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                          <Paper
+                            variant="outlined"
+                            sx={(currentTheme) =>
+                              getSummaryCardSx(
+                                currentTheme,
+                                faltanteEfectivo > 0 ? "error" : "success",
+                                {
+                                  compact: true,
+                                  minHeight: 120,
+                                }
+                              )
+                            }
+                          >
                             <Typography variant="body2" color="text.secondary">
                               Vuelto a entregar
                             </Typography>
@@ -1438,7 +1516,12 @@ function CarWashAutolavado() {
               </Paper>
             </Box>
 
-            <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+            <Paper
+              elevation={3}
+              sx={(currentTheme) =>
+                getSectionPanelSx(currentTheme, { p: 3, radius: 4, accent: "secondary" })
+              }
+            >
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
@@ -1506,7 +1589,14 @@ function CarWashAutolavado() {
                       <Paper
                         key={orden.id_autolavado_orden}
                         variant="outlined"
-                        sx={{ p: 2.5, borderRadius: 4 }}
+                        sx={(currentTheme) => ({
+                          ...getSummaryCardSx(currentTheme, "neutral", {
+                            compact: true,
+                            minHeight: 0,
+                          }),
+                          p: 2.5,
+                          borderRadius: 4,
+                        })}
                       >
                         <Stack spacing={2}>
                           <Stack

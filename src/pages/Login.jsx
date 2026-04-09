@@ -5,6 +5,7 @@ import api from "../services/api";
 import { getDefaultRoute } from "../utils/roles";
 
 import {
+  Chip,
   Box,
   Paper,
   Typography,
@@ -16,6 +17,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
@@ -25,6 +27,8 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const theme = useTheme();
+  const isLight = theme.palette.mode === "light";
 
   const [form, setForm] = useState({
     username: "",
@@ -81,18 +85,96 @@ function Login() {
         alignItems: "center",
         justifyContent: "center",
         px: 2,
-        background:
-          "linear-gradient(135deg, rgba(25,118,210,0.12) 0%, rgba(156,39,176,0.10) 100%)",
+        position: "relative",
+        overflow: "hidden",
+        background: isLight
+          ? "linear-gradient(140deg, #eef4ff 0%, #eef2ff 42%, #f5f7ff 100%)"
+          : "linear-gradient(140deg, #070d17 0%, #0b1321 46%, #101827 100%)",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background: `
+            radial-gradient(circle at 12% 18%, ${isLight ? "rgba(37,99,235,0.18)" : "rgba(37,99,235,0.24)"}, transparent 20%),
+            radial-gradient(circle at 88% 16%, ${isLight ? "rgba(147,51,234,0.16)" : "rgba(168,85,247,0.18)"}, transparent 18%),
+            radial-gradient(circle at 50% 100%, ${isLight ? "rgba(20,184,166,0.10)" : "rgba(20,184,166,0.12)"}, transparent 24%)
+          `,
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            `repeating-linear-gradient(135deg, ${
+              isLight ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)"
+            } 0px, ${isLight ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)"} 1px, transparent 1px, transparent 18px)`,
+          opacity: isLight ? 0.8 : 1,
+        },
       }}
     >
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          top: { xs: -40, md: -70 },
+          right: { xs: -60, md: -80 },
+          width: { xs: 180, md: 280 },
+          height: { xs: 180, md: 280 },
+          borderRadius: "50%",
+          background:
+            isLight
+              ? "radial-gradient(circle at center, rgba(37,99,235,0.22) 0%, transparent 70%)"
+              : "radial-gradient(circle at center, rgba(37,99,235,0.28) 0%, transparent 72%)",
+          filter: "blur(10px)",
+          animation: "aurora-drift 16s ease-in-out infinite",
+        }}
+      />
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          left: { xs: -80, md: -40 },
+          bottom: { xs: -80, md: -90 },
+          width: { xs: 200, md: 320 },
+          height: { xs: 200, md: 320 },
+          borderRadius: "50%",
+          background:
+            isLight
+              ? "radial-gradient(circle at center, rgba(16,185,129,0.16) 0%, transparent 72%)"
+              : "radial-gradient(circle at center, rgba(16,185,129,0.18) 0%, transparent 74%)",
+          filter: "blur(16px)",
+          animation: "aurora-drift 18s ease-in-out infinite reverse",
+        }}
+      />
+
       <Paper
         elevation={10}
         sx={{
+          position: "relative",
+          zIndex: 1,
           width: "100%",
           maxWidth: 420,
           p: 4,
-          borderRadius: 4,
-          backdropFilter: "blur(8px)",
+          borderRadius: 5,
+          overflow: "hidden",
+          backdropFilter: "blur(14px)",
+          background: isLight
+            ? "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(250,252,255,0.98) 58%, rgba(245,248,255,0.98) 100%)"
+            : "linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(17,24,39,0.96) 58%, rgba(9,14,24,0.98) 100%)",
+          boxShadow: isLight
+            ? "0 28px 60px rgba(15,23,42,0.18)"
+            : "0 32px 70px rgba(2,6,23,0.46)",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            background: isLight
+              ? "linear-gradient(180deg, rgba(255,255,255,0.3), transparent 30%), radial-gradient(circle at top right, rgba(37,99,235,0.12), transparent 28%)"
+              : "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 30%), radial-gradient(circle at top right, rgba(37,99,235,0.14), transparent 30%)",
+          },
         }}
       >
         <Box
@@ -103,6 +185,8 @@ function Login() {
             display: "flex",
             flexDirection: "column",
             gap: 2.5,
+            position: "relative",
+            zIndex: 1,
           }}
         >
           <Box
@@ -129,13 +213,23 @@ function Login() {
             <Avatar
               sx={{
                 bgcolor: "primary.main",
-                width: 60,
-                height: 60,
-                boxShadow: 3,
+                width: 64,
+                height: 64,
+                boxShadow: "0 16px 34px rgba(37,99,235,0.28)",
               }}
             >
               <LockOutlinedIcon fontSize="large" />
             </Avatar>
+
+            <Chip
+              label="Acceso seguro"
+              color="primary"
+              variant="outlined"
+              sx={{
+                fontWeight: 700,
+                backgroundColor: "rgba(37,99,235,0.06)",
+              }}
+            />
 
             <Typography variant="h4" fontWeight="bold" textAlign="center">
               Iniciar sesion
@@ -210,9 +304,9 @@ function Login() {
             disabled={loading}
             sx={{
               py: 1.5,
-              borderRadius: 3,
+              borderRadius: 999,
               fontWeight: "bold",
-              boxShadow: 4,
+              boxShadow: "0 16px 34px rgba(37,99,235,0.28)",
             }}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : "Ingresar"}
