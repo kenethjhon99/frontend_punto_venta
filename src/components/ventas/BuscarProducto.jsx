@@ -43,6 +43,7 @@ const BARCODE_FORMATS = [
 function BuscarProducto({ productos, onAgregar, disabled = false }) {
   const [busqueda, setBusqueda] = useState("");
   const [codigo, setCodigo] = useState("");
+  const [scanFeedback, setScanFeedback] = useState(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerSupported, setScannerSupported] = useState(false);
   const [scannerLoading, setScannerLoading] = useState(false);
@@ -69,14 +70,25 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
 
   const handleEscanear = (e) => {
     if (e.key === "Enter") {
+      const codigoEscaneado = codigo.trim();
+
+      if (!codigoEscaneado) return;
+
       const encontrado = productos.find(
-        (p) => String(p.codigo_barras || "") === codigo.trim()
+        (p) => String(p.codigo_barras || "") === codigoEscaneado
       );
 
       if (encontrado) {
+        setScanFeedback(null);
         onAgregar(encontrado);
         setCodigo("");
+        return;
       }
+
+      setScanFeedback({
+        severity: "warning",
+        message: `No se encontro un producto con el codigo ${codigoEscaneado}.`,
+      });
     }
   };
 
@@ -185,15 +197,17 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
                 );
 
                 if (encontrado) {
+                  setScanFeedback(null);
                   onAgregar(encontrado);
                   setCodigo("");
                   setScannerOpen(false);
                   return;
                 }
 
-                setScannerError(
-                  `No se encontro un producto con el codigo ${rawValue}. Puedes corregirlo manualmente.`
-                );
+                setScanFeedback({
+                  severity: "warning",
+                  message: `No se encontro un producto con el codigo ${rawValue}. Puedes corregirlo manualmente.`,
+                });
                 setScannerOpen(false);
                 return;
               }
@@ -239,7 +253,12 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
           label="Escanear código"
           placeholder="Escanea o escribe el código de barras"
           value={codigo}
-          onChange={(e) => setCodigo(e.target.value)}
+          onChange={(e) => {
+            setCodigo(e.target.value);
+            if (scanFeedback) {
+              setScanFeedback(null);
+            }
+          }}
           onKeyDown={disabled ? undefined : handleEscanear}
           disabled={disabled}
           InputProps={{
@@ -253,6 +272,7 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
                 <IconButton
                   onClick={() => {
                     setScannerError("");
+                    setScanFeedback(null);
                     setScannerOpen(true);
                   }}
                   disabled={disabled}
@@ -282,6 +302,12 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
             ),
           }}
         />
+
+        {scanFeedback?.message ? (
+          <Alert severity={scanFeedback.severity || "info"}>
+            {scanFeedback.message}
+          </Alert>
+        ) : null}
       </Stack>
 
       <Box sx={{ mt: 3 }}>
