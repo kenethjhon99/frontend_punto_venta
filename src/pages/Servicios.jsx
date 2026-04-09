@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
 import BuildIcon from "@mui/icons-material/Build";
 import StorefrontIcon from "@mui/icons-material/Storefront";
@@ -21,6 +22,8 @@ import {
 
 function Servicios() {
   const theme = useTheme();
+  const servicesBackgroundUrl = "/servicios-bg.jpg";
+  const backgroundRef = useRef(null);
   const serviceCards = [
     {
       title: "Autolavado",
@@ -45,14 +48,100 @@ function Servicios() {
     },
   ];
 
+  const handleBackgroundMove = (event) => {
+    const element = backgroundRef.current;
+    if (!element) return;
+
+    const bounds = element.getBoundingClientRect();
+    const xRatio = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const yRatio = (event.clientY - bounds.top) / bounds.height - 0.5;
+
+    element.style.setProperty("--services-bg-x", `${xRatio * 16}px`);
+    element.style.setProperty("--services-bg-y", `${yRatio * 12}px`);
+  };
+
+  const resetBackgroundMove = () => {
+    const element = backgroundRef.current;
+    if (!element) return;
+
+    element.style.setProperty("--services-bg-x", "0px");
+    element.style.setProperty("--services-bg-y", "0px");
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+      <Box
+        ref={backgroundRef}
+        onMouseMove={handleBackgroundMove}
+        onMouseLeave={resetBackgroundMove}
+        sx={{
+          "--services-bg-x": "0px",
+          "--services-bg-y": "0px",
+          "--services-bg-scale": "1.06",
+          maxWidth: 1200,
+          mx: "auto",
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: { xs: 5, md: 6 },
+          px: { xs: 1.25, sm: 2, md: 2.5 },
+          py: { xs: 1.25, sm: 2, md: 2.5 },
+          isolation: "isolate",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            zIndex: -2,
+            borderRadius: "inherit",
+            backgroundImage: `
+              linear-gradient(135deg, rgba(10, 15, 28, 0.90) 0%, rgba(14, 23, 41, 0.78) 40%, rgba(10, 15, 28, 0.88) 100%),
+              radial-gradient(circle at top right, rgba(59, 130, 246, 0.24), transparent 38%),
+              radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.14), transparent 34%),
+              url(${servicesBackgroundUrl})
+            `,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            filter: "saturate(1.06) contrast(1.02)",
+            transform:
+              "translate3d(var(--services-bg-x), var(--services-bg-y), 0) scale(var(--services-bg-scale))",
+            transition: "transform 260ms ease-out, filter 260ms ease-out",
+          },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            zIndex: -1,
+            borderRadius: "inherit",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 28%, rgba(255,255,255,0.00) 100%)",
+            pointerEvents: "none",
+          },
+          "&:hover": {
+            "--services-bg-scale": "1.09",
+          },
+          "&:hover::before": {
+            filter: "saturate(1.12) contrast(1.05)",
+          },
+        }}
+      >
         <Paper
           elevation={0}
           sx={(currentTheme) => ({
             ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
             mb: 3,
+            background:
+              currentTheme.palette.mode === "dark"
+                ? "linear-gradient(180deg, rgba(15,23,42,0.78) 0%, rgba(15,23,42,0.64) 100%)"
+                : "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.78) 100%)",
+            backdropFilter: "blur(16px)",
+            border:
+              currentTheme.palette.mode === "dark"
+                ? "1px solid rgba(148, 163, 184, 0.20)"
+                : "1px solid rgba(255, 255, 255, 0.68)",
+            boxShadow:
+              currentTheme.palette.mode === "dark"
+                ? "0 18px 40px rgba(2, 6, 23, 0.26)"
+                : "0 20px 45px rgba(15, 23, 42, 0.12)",
           })}
         >
           <Stack spacing={1.5}>
@@ -95,6 +184,11 @@ function Servicios() {
                   interactive: true,
                   minHeight: 248,
                 }),
+                background:
+                  currentTheme.palette.mode === "dark"
+                    ? "linear-gradient(180deg, rgba(15,23,42,0.84) 0%, rgba(15,23,42,0.72) 100%)"
+                    : "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.84) 100%)",
+                backdropFilter: "blur(14px)",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
