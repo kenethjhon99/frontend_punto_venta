@@ -39,6 +39,10 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import {
+  calculateDiscountSummary,
+  normalizeDiscountPercentage,
+} from "../utils/discountUtils";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
   getSectionPanelSx,
@@ -109,6 +113,7 @@ function Ventas() {
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
   const [montoRecibido, setMontoRecibido] = useState("");
   const [tipoVenta, setTipoVenta] = useState("CONTADO");
+  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState("0");
   const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
   const [autoPrintVenta, setAutoPrintVenta] = useState(() =>
     readPrintPreference(user, "ventas.autoPrint", true)
@@ -278,6 +283,7 @@ function Ventas() {
           nombre: producto.nombre,
           codigo_barras: producto.codigo_barras,
           precio_venta: Number(producto.precio_venta),
+          precio_compra: Number(producto.precio_compra || 0),
           cantidad,
           stock,
         },
@@ -303,6 +309,11 @@ function Ventas() {
     return items.reduce((acc, item) => acc + item.precio_venta * item.cantidad, 0);
   }, [items]);
 
+  const descuentoPorcentajeNormalizado = useMemo(
+    () => normalizeDiscountPercentage(descuentoPorcentaje),
+    [descuentoPorcentaje]
+  );
+
   const montoRecibidoNumero = useMemo(() => {
     const value = Number(montoRecibido);
     return Number.isFinite(value) ? value : 0;
@@ -310,17 +321,38 @@ function Ventas() {
 
   const vuelto = useMemo(() => {
     if (metodoPago !== "EFECTIVO") return 0;
-    return Math.max(0, montoRecibidoNumero - total);
-  }, [metodoPago, montoRecibidoNumero, total]);
+    return Math.max(0, montoRecibidoNumero - totalConDescuento);
+  }, [metodoPago, montoRecibidoNumero, totalConDescuento]);
 
   const faltanteEfectivo = useMemo(() => {
     if (metodoPago !== "EFECTIVO") return 0;
-    return Math.max(0, total - montoRecibidoNumero);
-  }, [metodoPago, montoRecibidoNumero, total]);
+    return Math.max(0, totalConDescuento - montoRecibidoNumero);
+  }, [metodoPago, montoRecibidoNumero, totalConDescuento]);
 
   const clienteSeleccionado = useMemo(() => {
     return clientes.find((cliente) => cliente.id_cliente === Number(clienteId)) || null;
   }, [clientes, clienteId]);
+
+  const clientePermiteDescuento = useMemo(() => {
+    if (!clienteSeleccionado) return false;
+    return ["NORMAL", "MAYORISTA"].includes(
+      String(clienteSeleccionado.tipo_cliente || "NORMAL").toUpperCase()
+    );
+  }, [clienteSeleccionado]);
+
+  const resumenDescuento = useMemo(
+    () =>
+      calculateDiscountSummary(
+        items,
+        clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0
+      ),
+    [clientePermiteDescuento, descuentoPorcentajeNormalizado, items]
+  );
+
+  const totalConDescuento = useMemo(
+    () => (clientePermiteDescuento ? resumenDescuento.totalFinal : total),
+    [clientePermiteDescuento, resumenDescuento.totalFinal, total]
+  );
 
   const ultimoCodigoGenerado = useMemo(() => {
     return obtenerUltimoCodigoCliente(clientes);
@@ -545,7 +577,23 @@ function Ventas() {
       return;
     }
 
-    if (!noCobroForm.enabled && metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
+    if (descuentoPorcentajeNormalizado > 0) {
+      if (!clienteSeleccionado) {
+        setError("Selecciona un cliente para aplicar descuento.");
+        return;
+      }
+
+      if (!clientePermiteDescuento) {
+        setError("El descuento solo aplica a clientes normales o mayoristas.");
+        return;
+      }
+    }
+
+    if (
+      !noCobroForm.enabled &&
+      metodoPago === "EFECTIVO" &&
+      montoRecibidoNumero < totalConDescuento
+    ) {
       setError("El monto recibido no cubre el total de la venta.");
       return;
     }
@@ -575,6 +623,8 @@ function Ventas() {
               : null,
           id_sucursal: 1,
           id_cliente: clienteId ? Number(clienteId) : null,
+          descuento_porcentaje:
+            clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0,
           no_cobrar: noCobroForm.enabled,
           no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
           items: items.map((item) => ({
@@ -589,6 +639,7 @@ function Ventas() {
       setTipoVenta("CONTADO");
       setMetodoPago("EFECTIVO");
       setMontoRecibido("");
+      setDescuentoPorcentaje("0");
       setNoCobroForm(EMPTY_NO_COBRO_FORM);
         setSuccess(
           response?.venta?.numero_comprobante
@@ -620,7 +671,7 @@ function Ventas() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 3 }} className="pos-surface">
       <Box sx={{ maxWidth: 1400, mx: "auto" }}>
         <Paper
           elevation={0}
@@ -667,7 +718,7 @@ function Ventas() {
                 label={
                   noCobroForm.enabled
                     ? "Venta sin cobro"
-                    : `${tipoComprobante} - Q ${total.toFixed(2)}`
+                    : `${tipoComprobante} - Q ${totalConDescuento.toFixed(2)}`
                 }
                 sx={{ fontWeight: 700 }}
               />
@@ -785,12 +836,14 @@ function Ventas() {
               <Typography variant="body2" color="text.secondary" mb={0.75}>
                 Total a cobrar
               </Typography>
-              <Typography variant="h4" fontWeight="bold">
-                Q {total.toFixed(2)}
+              <Typography variant="h4" fontWeight="bold" className="pos-total">
+                Q {totalConDescuento.toFixed(2)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {noCobroForm.enabled
                   ? "Pendiente de validacion al cierre"
+                  : resumenDescuento.totalDescuento > 0
+                    ? `Descuento aplicado Q ${resumenDescuento.totalDescuento.toFixed(2)}`
                   : metodoPago === "EFECTIVO"
                     ? "Cobro inmediato en efectivo"
                     : `Metodo: ${String(metodoPago || "").toLowerCase()}`}
@@ -843,6 +896,9 @@ function Ventas() {
                   onCambiarCantidad={cambiarCantidad}
                   onEliminar={eliminarItem}
                   disabled={!canOperarVentas}
+                  discountPercentage={
+                    clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0
+                  }
                 />
               </Paper>
 
@@ -914,7 +970,7 @@ function Ventas() {
                       sx={{ mt: 1, minHeight: { xs: "auto", md: 44 } }}
                     >
                       {clienteSeleccionado
-                        ? `Cliente seleccionado: ${clienteSeleccionado.nombre}${clienteSeleccionado.nit ? ` - NIT ${clienteSeleccionado.nit}` : ""}`
+                        ? `Cliente seleccionado: ${clienteSeleccionado.nombre}${clienteSeleccionado.nit ? ` - NIT ${clienteSeleccionado.nit}` : ""} · Tipo ${String(clienteSeleccionado.tipo_cliente || "NORMAL").toUpperCase()}`
                         : !canCreateClientes
                           ? "Puedes asignar un cliente existente a la venta."
                           : ultimoCodigoGenerado?.codigo
@@ -984,6 +1040,80 @@ function Ventas() {
                       </Select>
                   </Grid>
 
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Descuento sobre ganancia (%)"
+                      value={descuentoPorcentaje}
+                      onChange={(event) => setDescuentoPorcentaje(event.target.value)}
+                      disabled={!clienteSeleccionado}
+                      inputProps={{ min: 0, max: 100, step: 0.01 }}
+                      helperText={
+                        !clienteSeleccionado
+                          ? "Selecciona un cliente para habilitar descuentos."
+                          : !clientePermiteDescuento
+                            ? "Solo clientes NORMAL o MAYORISTA pueden recibir descuento."
+                            : "Se descuenta solo sobre la ganancia, nunca debajo del costo."
+                      }
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        borderColor:
+                          resumenDescuento.totalDescuento > 0 ? "success.main" : "divider",
+                        backgroundColor: (currentTheme) =>
+                          currentTheme.palette.mode === "dark"
+                            ? "rgba(15, 23, 42, 0.6)"
+                            : "rgba(255, 255, 255, 0.72)",
+                      }}
+                    >
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={2}
+                        justifyContent="space-between"
+                      >
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Total lista
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold">
+                            Q {resumenDescuento.totalLista.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Descuento aplicado
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            fontWeight="bold"
+                            color={
+                              resumenDescuento.totalDescuento > 0
+                                ? "success.main"
+                                : "text.primary"
+                            }
+                          >
+                            Q {resumenDescuento.totalDescuento.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Total final
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold" color="primary.main">
+                            Q {totalConDescuento.toFixed(2)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Paper>
+                  </Grid>
+
                   <Grid item xs={12}>
                     <NoCobroAuthorizationFields
                       enabled={noCobroForm.enabled}
@@ -1043,7 +1173,7 @@ function Ventas() {
                           Total a pagar
                         </Typography>
                         <Typography variant="h4" fontWeight="bold" color="primary.main">
-                          Q {total.toFixed(2)}
+                          Q {totalConDescuento.toFixed(2)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {comprobanteSeleccionado?.siguiente_numero
@@ -1077,11 +1207,11 @@ function Ventas() {
                           onChange={(event) => setMontoRecibido(event.target.value)}
                           inputProps={{ min: 0, step: "0.01" }}
                           helperText={
-                            total > 0 && faltanteEfectivo > 0
+                            totalConDescuento > 0 && faltanteEfectivo > 0
                               ? `Faltan Q ${faltanteEfectivo.toFixed(2)} para completar el pago.`
                               : "Ingresa el efectivo recibido del cliente."
                           }
-                          error={total > 0 && faltanteEfectivo > 0}
+                          error={totalConDescuento > 0 && faltanteEfectivo > 0}
                         />
                       </Grid>
 
@@ -1096,15 +1226,15 @@ function Ventas() {
                             flexDirection: "column",
                             justifyContent: "center",
                             borderColor:
-                              total > 0 && faltanteEfectivo > 0
+                              totalConDescuento > 0 && faltanteEfectivo > 0
                                 ? "error.main"
                                 : "success.main",
                             background:
-                              total > 0 && faltanteEfectivo > 0
+                              totalConDescuento > 0 && faltanteEfectivo > 0
                                 ? "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(15,23,42,0.55))"
                                 : "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(15,23,42,0.55))",
                             boxShadow:
-                              total > 0 && faltanteEfectivo > 0
+                              totalConDescuento > 0 && faltanteEfectivo > 0
                                 ? "0 0 0 1px rgba(239,68,68,0.10), 0 18px 40px rgba(15,23,42,0.16)"
                                 : "0 0 0 1px rgba(34,197,94,0.10), 0 18px 40px rgba(15,23,42,0.16)",
                             transition:
@@ -1118,7 +1248,7 @@ function Ventas() {
                             variant="h5"
                             fontWeight="bold"
                             color={
-                              total > 0 && faltanteEfectivo > 0
+                              totalConDescuento > 0 && faltanteEfectivo > 0
                                 ? "error.main"
                                 : "success.main"
                             }
@@ -1128,7 +1258,7 @@ function Ventas() {
                           <Typography
                             variant="caption"
                             color={
-                              total > 0 && faltanteEfectivo > 0
+                              totalConDescuento > 0 && faltanteEfectivo > 0
                                 ? "error.light"
                                 : "text.secondary"
                             }
@@ -1175,8 +1305,8 @@ function Ventas() {
                       !cajaActiva ||
                       (!noCobroForm.enabled &&
                         metodoPago === "EFECTIVO" &&
-                        total > 0 &&
-                        montoRecibidoNumero < total) ||
+                        totalConDescuento > 0 &&
+                        montoRecibidoNumero < totalConDescuento) ||
                       (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim())
                     }
                     sx={{

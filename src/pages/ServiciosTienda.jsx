@@ -37,6 +37,7 @@ import {
   getCatalogoComprobantesVenta,
   getVentaCompleta,
 } from "../services/ventaService";
+import { getClientes } from "../services/clienteService";
 import {
   buildVentaTicketHtml,
   openPrintDocument,
@@ -51,6 +52,10 @@ import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
 import BarcodeCameraDialog from "../components/ui/BarcodeCameraDialog";
 import {
+  calculateDiscountSummary,
+  normalizeDiscountPercentage,
+} from "../utils/discountUtils";
+import {
   getSectionPanelSx,
   getSummaryCardSx,
   getSummaryIconWrapSx,
@@ -58,6 +63,12 @@ import {
 } from "../utils/summaryCardStyles";
 
 const normalizarComprobantes = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+};
+
+const normalizarClientes = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
   return [];
@@ -73,21 +84,25 @@ function ServiciosTienda() {
   const theme = useTheme();
   const { user } = useAuth();
   const [productos, setProductos] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [codigo, setCodigo] = useState("");
   const [scanFeedback, setScanFeedback] = useState(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [items, setItems] = useState([]);
+  const [clienteId, setClienteId] = useState("");
   const [comprobantes, setComprobantes] = useState([]);
   const [tipoComprobante, setTipoComprobante] = useState("TICKET");
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
   const [montoRecibido, setMontoRecibido] = useState("");
+  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState("0");
   const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
   const [autoPrint, setAutoPrint] = useState(() =>
     readPrintPreference(user, "tienda.autoPrint", true)
   );
   const [cajaActiva, setCajaActiva] = useState(null);
   const [loadingLista, setLoadingLista] = useState(true);
+  const [loadingClientes, setLoadingClientes] = useState(true);
   const [loadingCaja, setLoadingCaja] = useState(true);
   const [loadingVenta, setLoadingVenta] = useState(false);
   const [error, setError] = useState("");
@@ -98,7 +113,7 @@ function ServiciosTienda() {
     [user]
   );
   const canOperarTienda = useMemo(
-    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS"),
+    () => userHasRole(user, "SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS"),
     [user]
   );
   const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);
@@ -119,6 +134,19 @@ function ServiciosTienda() {
       setError(err.response?.data?.error || "No se pudo cargar la tienda.");
     } finally {
       setLoadingLista(false);
+    }
+  }, []);
+
+  const cargarClientes = useCallback(async () => {
+    try {
+      setLoadingClientes(true);
+      const data = await getClientes();
+      setClientes(normalizarClientes(data));
+    } catch (err) {
+      console.error(err);
+      setClientes([]);
+    } finally {
+      setLoadingClientes(false);
     }
   }, []);
 
@@ -158,9 +186,10 @@ function ServiciosTienda() {
 
   useEffect(() => {
     cargarProductos();
+    cargarClientes();
     cargarCajaActiva();
     cargarComprobantes();
-  }, [cargarProductos, cargarCajaActiva, cargarComprobantes]);
+  }, [cargarProductos, cargarClientes, cargarCajaActiva, cargarComprobantes]);
 
   const productosFiltrados = useMemo(() => {
     const texto = busqueda.toLowerCase().trim();
@@ -206,9 +235,41 @@ function ServiciosTienda() {
     );
   }, [items]);
 
+  const clienteSeleccionado = useMemo(() => {
+    return clientes.find((cliente) => cliente.id_cliente === Number(clienteId)) || null;
+  }, [clienteId, clientes]);
+
+  const descuentoPorcentajeNormalizado = useMemo(
+    () => normalizeDiscountPercentage(descuentoPorcentaje),
+    [descuentoPorcentaje]
+  );
+
+  const clientePermiteDescuento = useMemo(() => {
+    if (!clienteSeleccionado) return false;
+    return ["NORMAL", "MAYORISTA"].includes(
+      String(clienteSeleccionado.tipo_cliente || "NORMAL").toUpperCase()
+    );
+  }, [clienteSeleccionado]);
+
+  const resumenDescuento = useMemo(
+    () =>
+      calculateDiscountSummary(
+        items,
+        clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0
+      ),
+    [clientePermiteDescuento, descuentoPorcentajeNormalizado, items]
+  );
+
+  const totalConDescuento = useMemo(
+    () => (clientePermiteDescuento ? resumenDescuento.totalFinal : total),
+    [clientePermiteDescuento, resumenDescuento.totalFinal, total]
+  );
+
   const montoRecibidoNumero = Number(montoRecibido || 0);
-  const vuelto = metodoPago === "EFECTIVO" ? Math.max(montoRecibidoNumero - total, 0) : 0;
-  const pendiente = metodoPago === "EFECTIVO" ? Math.max(total - montoRecibidoNumero, 0) : 0;
+  const vuelto =
+    metodoPago === "EFECTIVO" ? Math.max(montoRecibidoNumero - totalConDescuento, 0) : 0;
+  const pendiente =
+    metodoPago === "EFECTIVO" ? Math.max(totalConDescuento - montoRecibidoNumero, 0) : 0;
 
   const agregarProducto = (producto) => {
     setItems((prev) => {
@@ -232,6 +293,7 @@ function ServiciosTienda() {
           nombre: producto.nombre,
           codigo_barras: producto.codigo_barras,
           precio_venta: Number(producto.precio_venta),
+          precio_compra: Number(producto.precio_compra || 0),
           stock: Number(producto.stock ?? 0),
           cantidad: 1,
         },
@@ -291,7 +353,23 @@ function ServiciosTienda() {
       return;
     }
 
-    if (!noCobroForm.enabled && metodoPago === "EFECTIVO" && montoRecibidoNumero < total) {
+    if (descuentoPorcentajeNormalizado > 0) {
+      if (!clienteSeleccionado) {
+        setError("Selecciona un cliente para aplicar descuento en tienda.");
+        return;
+      }
+
+      if (!clientePermiteDescuento) {
+        setError("El descuento solo aplica a clientes normales o mayoristas.");
+        return;
+      }
+    }
+
+    if (
+      !noCobroForm.enabled &&
+      metodoPago === "EFECTIVO" &&
+      montoRecibidoNumero < totalConDescuento
+    ) {
       setError("El monto recibido no cubre el total de la venta.");
       return;
     }
@@ -318,7 +396,9 @@ function ServiciosTienda() {
         monto_recibido:
           !noCobroForm.enabled && metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
         id_sucursal: 1,
-        id_cliente: null,
+        id_cliente: clienteId ? Number(clienteId) : null,
+        descuento_porcentaje:
+          clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0,
         no_cobrar: noCobroForm.enabled,
         no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
         items: items.map((item) => ({
@@ -330,6 +410,8 @@ function ServiciosTienda() {
 
       setItems([]);
       setMontoRecibido("");
+      setClienteId("");
+      setDescuentoPorcentaje("0");
       setNoCobroForm(EMPTY_NO_COBRO_FORM);
       setSuccess(
         noCobroForm.enabled
@@ -725,9 +807,32 @@ function ServiciosTienda() {
                     Total a pagar
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="success.main">
-                    Q {total.toFixed(2)}
+                    Q {totalConDescuento.toFixed(2)}
                   </Typography>
                 </Box>
+
+                <FormControl fullWidth disabled={loadingClientes}>
+                  <InputLabel id="tienda-cliente-label">Cliente</InputLabel>
+                  <Select
+                    labelId="tienda-cliente-label"
+                    label="Cliente"
+                    value={clienteId}
+                    onChange={(event) => setClienteId(event.target.value)}
+                  >
+                    <MenuItem value="">Consumidor final / Sin cliente</MenuItem>
+                    {clientes.map((cliente) => (
+                      <MenuItem key={cliente.id_cliente} value={String(cliente.id_cliente)}>
+                        {cliente.codigo} - {cliente.nombre}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Typography variant="body2" color="text.secondary">
+                  {clienteSeleccionado
+                    ? `Cliente seleccionado: ${clienteSeleccionado.nombre}${clienteSeleccionado.nit ? ` - NIT ${clienteSeleccionado.nit}` : ""} · Tipo ${String(clienteSeleccionado.tipo_cliente || "NORMAL").toUpperCase()}`
+                    : "Selecciona un cliente si deseas aplicar descuento sobre la ganancia."}
+                </Typography>
 
                 <FormControl fullWidth>
                   <InputLabel id="tienda-comprobante-label">Comprobante</InputLabel>
@@ -774,6 +879,76 @@ function ServiciosTienda() {
                     />
                   )}
                   </Stack>
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Descuento sobre ganancia (%)"
+                  value={descuentoPorcentaje}
+                  onChange={(event) => setDescuentoPorcentaje(event.target.value)}
+                  disabled={!clienteSeleccionado}
+                  inputProps={{ min: 0, max: 100, step: 0.01 }}
+                  helperText={
+                    !clienteSeleccionado
+                      ? "Selecciona un cliente para habilitar descuentos."
+                      : !clientePermiteDescuento
+                        ? "Solo clientes NORMAL o MAYORISTA pueden recibir descuento."
+                        : "El descuento se aplica solo sobre la ganancia, nunca debajo del costo."
+                  }
+                />
+
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    borderColor:
+                      resumenDescuento.totalDescuento > 0 ? "success.main" : "divider",
+                    backgroundColor: (currentTheme) =>
+                      currentTheme.palette.mode === "dark"
+                        ? "rgba(15, 23, 42, 0.6)"
+                        : "rgba(255, 255, 255, 0.72)",
+                  }}
+                >
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    spacing={2}
+                    justifyContent="space-between"
+                  >
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Total lista
+                      </Typography>
+                      <Typography variant="h6" fontWeight="bold">
+                        Q {resumenDescuento.totalLista.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Descuento aplicado
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        fontWeight="bold"
+                        color={
+                          resumenDescuento.totalDescuento > 0
+                            ? "success.main"
+                            : "text.primary"
+                        }
+                      >
+                        Q {resumenDescuento.totalDescuento.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Total final
+                      </Typography>
+                      <Typography variant="h6" fontWeight="bold" color="primary.main">
+                        Q {totalConDescuento.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
 
                 <NoCobroAuthorizationFields
                   enabled={noCobroForm.enabled}
@@ -831,7 +1006,7 @@ function ServiciosTienda() {
                       (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim()) ||
                       (!noCobroForm.enabled &&
                         metodoPago === "EFECTIVO" &&
-                        montoRecibidoNumero < total)
+                        montoRecibidoNumero < totalConDescuento)
                     }
                   >
                     {loadingVenta

@@ -90,6 +90,11 @@ export const getOrdenesReparacion = async (params = {}) => {
   return res.data;
 };
 
+export const getReciboReparacion = async (id) => {
+  const res = await api.get(`/servicios/reparacion/ordenes/${id}/recibo`);
+  return res.data;
+};
+
 export const cobrarOrdenReparacion = async (id, data) => {
   const res = await api.post(`/servicios/reparacion/ordenes/${id}/cobro`, data);
   return res.data;

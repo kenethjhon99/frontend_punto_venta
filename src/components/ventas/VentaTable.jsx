@@ -23,8 +23,15 @@ import {
   getTableHeaderCellSx,
   getTableHeaderRowSx,
 } from "../../utils/tableHeaderStyles";
+import { calculateDiscountedPreviewLine } from "../../utils/discountUtils";
 
-function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) {
+function VentaTable({
+  items,
+  onCambiarCantidad,
+  onEliminar,
+  disabled = false,
+  discountPercentage = 0,
+}) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -55,6 +62,15 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
     return (
       <Stack spacing={1.5}>
         {items.map((item) => (
+          (() => {
+            const preview = calculateDiscountedPreviewLine({
+              salePrice: item.precio_venta,
+              costPrice: item.precio_compra,
+              quantity: item.cantidad,
+              discountPercentage,
+            });
+
+            return (
           <Paper
             key={item.id_producto}
             variant="outlined"
@@ -84,9 +100,20 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
                   <Typography variant="body2" color="text.secondary">
                     Precio
                   </Typography>
-                  <Typography fontWeight={600}>
-                    Q {Number(item.precio_venta).toFixed(2)}
-                  </Typography>
+                  <Stack spacing={0.25}>
+                    <Typography fontWeight={600}>
+                      Q {preview.precioFinalUnitario.toFixed(2)}
+                    </Typography>
+                    {preview.descuentoAplicadoUnitario > 0 && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ textDecoration: "line-through" }}
+                      >
+                        Q {preview.precioListaUnitario.toFixed(2)}
+                      </Typography>
+                    )}
+                  </Stack>
                 </Box>
 
                 <Box>
@@ -94,8 +121,13 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
                     Subtotal
                   </Typography>
                   <Typography fontWeight="bold" color="primary.main">
-                    Q {(Number(item.precio_venta) * Number(item.cantidad)).toFixed(2)}
+                    Q {preview.subtotal.toFixed(2)}
                   </Typography>
+                  {preview.descuentoTotal > 0 && (
+                    <Typography variant="caption" color="success.main">
+                      Descuento Q {preview.descuentoTotal.toFixed(2)}
+                    </Typography>
+                  )}
                 </Box>
               </Stack>
 
@@ -129,6 +161,8 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
               </Stack>
             </Stack>
           </Paper>
+            );
+          })()
         ))}
       </Stack>
     );
@@ -165,19 +199,28 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
         </TableHead>
 
         <TableBody>
-          {items.map((item) => (
+          {items.map((item) => {
+            const preview = calculateDiscountedPreviewLine({
+              salePrice: item.precio_venta,
+              costPrice: item.precio_compra,
+              quantity: item.cantidad,
+              discountPercentage,
+            });
+
+            return (
             <TableRow key={item.id_producto} hover>
               <TableCell sx={{ minWidth: 0 }}>
                 <Box sx={{ minWidth: 0 }}>
                   <Tooltip title={item.nombre}>
                     <Typography
-                      fontWeight={600}
+                      fontWeight={700}
                       noWrap
                       sx={{
                         display: "block",
                         maxWidth: "100%",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
+                        fontSize: "1rem",
                       }}
                     >
                       {item.nombre}
@@ -202,9 +245,21 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
               </TableCell>
 
               <TableCell sx={{ whiteSpace: "nowrap" }}>
-                <Typography fontWeight={600} noWrap>
-                  Q {Number(item.precio_venta).toFixed(2)}
-                </Typography>
+                <Stack spacing={0.25}>
+                  <Typography fontWeight={600} noWrap>
+                    Q {preview.precioFinalUnitario.toFixed(2)}
+                  </Typography>
+                  {preview.descuentoAplicadoUnitario > 0 && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      noWrap
+                      sx={{ textDecoration: "line-through" }}
+                    >
+                      Q {preview.precioListaUnitario.toFixed(2)}
+                    </Typography>
+                  )}
+                </Stack>
               </TableCell>
 
               <TableCell>
@@ -235,9 +290,21 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
               </TableCell>
 
               <TableCell sx={{ whiteSpace: "nowrap" }}>
-                <Typography fontWeight="bold" color="primary.main" noWrap>
-                  Q {(Number(item.precio_venta) * Number(item.cantidad)).toFixed(2)}
-                </Typography>
+                <Stack spacing={0.25}>
+                  <Typography
+                    fontWeight={800}
+                    color="primary.main"
+                    noWrap
+                    sx={{ fontSize: "1.05rem" }}
+                  >
+                    Q {preview.subtotal.toFixed(2)}
+                  </Typography>
+                  {preview.descuentoTotal > 0 && (
+                    <Typography variant="caption" color="success.main" noWrap>
+                      Desc. Q {preview.descuentoTotal.toFixed(2)}
+                    </Typography>
+                  )}
+                </Stack>
               </TableCell>
 
               <TableCell align="center">
@@ -252,7 +319,8 @@ function VentaTable({ items, onCambiarCantidad, onEliminar, disabled = false }) 
                 </Tooltip>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

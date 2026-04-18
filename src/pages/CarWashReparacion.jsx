@@ -48,6 +48,8 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import ReparacionReciboModal from "../components/ui/ReparacionReciboModal";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import {
   getSectionPanelSx,
   getSummaryCardSx,
@@ -65,6 +67,7 @@ import {
   crearTipoVehiculoReparacion,
   editarServicioReparacion,
   getOrdenesReparacion,
+  getReciboReparacion,
   getReparacionCatalogo,
   getTecnicosServicio,
 } from "../services/servicioService";
@@ -173,8 +176,8 @@ const getSiguientesEstadosReparacion = (estadoActual) => {
 function CarWashReparacion() {
   const { user } = useAuth();
   const canManageCatalog = userHasRole(user, "SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS");
-  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
-  const canOperateReparacion = userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
+  const canManageOrders = userHasRole(user, "SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS");
+  const canOperateReparacion = userHasRole(user, "SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS");
   const isReadOnly = isReadOnlyUser(user);
   const [vehiculos, setVehiculos] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -208,6 +211,9 @@ function CarWashReparacion() {
   const [actualizandoOrdenId, setActualizandoOrdenId] = useState(null);
   const [asignandoTecnicoOrdenId, setAsignandoTecnicoOrdenId] = useState(null);
   const [imprimiendoOrdenId, setImprimiendoOrdenId] = useState(null);
+  const [reciboModalOpen, setReciboModalOpen] = useState(false);
+  const [reciboData, setReciboData] = useState(null);
+  const [reciboLoading, setReciboLoading] = useState(false);
   const [autoPrintOrdenNueva, setAutoPrintOrdenNueva] = useState(() =>
     readPrintPreference(user, "reparacion.autoPrintNueva", true)
   );
@@ -231,7 +237,13 @@ function CarWashReparacion() {
       setVehiculos(catalogo.vehiculos);
       setServicios(catalogo.servicios);
       setProductos(Array.isArray(productosRes) ? productosRes : []);
-      setTecnicos(Array.isArray(tecnicosRes?.data) ? tecnicosRes.data : []);
+      setTecnicos(
+        Array.isArray(tecnicosRes?.data)
+          ? tecnicosRes.data.filter(
+              (item) => String(item?.cargo || "").trim().toUpperCase() === "CARWASH"
+            )
+          : []
+      );
       setCajaActiva(cajaRes?.sesion || null);
       const firstVehiculo = catalogo.vehiculos[0]?.id_tipo_vehiculo ?? null;
       const firstServicio =
@@ -727,11 +739,11 @@ function CarWashReparacion() {
       });
       await cargarOrdenes(estadoFiltro);
       const tecnico = tecnicos.find(
-        (item) => String(item.id_usuario) === String(idTecnico)
+        (item) => String(item.id_empleado) === String(idTecnico)
       );
       setSuccess(
         tecnico
-          ? `Tecnico ${tecnico.nombre || tecnico.username} asignado a la orden #${id}.`
+          ? `Tecnico ${tecnico.nombre} asignado a la orden #${id}.`
           : `Tecnico retirado de la orden #${id}.`
       );
     } catch (err) {
@@ -770,6 +782,28 @@ function CarWashReparacion() {
     } finally {
       setImprimiendoOrdenId(null);
     }
+  };
+
+  const verReciboOrden = async (orden) => {
+    try {
+      setError("");
+      setReciboModalOpen(true);
+      setReciboLoading(true);
+      setReciboData(null);
+      const data = await getReciboReparacion(orden.id_reparacion_orden);
+      setReciboData(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo cargar el recibo");
+      setReciboModalOpen(false);
+    } finally {
+      setReciboLoading(false);
+    }
+  };
+
+  const cerrarRecibo = () => {
+    setReciboModalOpen(false);
+    setReciboData(null);
   };
 
   const productoOrdenSeleccionado =
@@ -1084,7 +1118,23 @@ function CarWashReparacion() {
                       const Icon = SERVICE_ICON_MAP[servicio.icono] || BuildIcon;
                       const selected = servicio.id_servicio_catalogo === servicioId;
                       return (
-                        <Paper key={servicio.id_servicio_catalogo} variant="outlined" sx={{ p: 2, borderRadius: 3, borderColor: selected ? "primary.main" : "divider" }}>
+                        <Paper
+                          key={servicio.id_servicio_catalogo}
+                          variant="outlined"
+                          onClick={() => seleccionarServicio(servicio.id_servicio_catalogo)}
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            borderColor: selected ? "primary.main" : "divider",
+                            cursor: "pointer",
+                            transition: "transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+                            "&:hover": {
+                              borderColor: selected ? "primary.main" : "primary.light",
+                              transform: "translateY(-2px)",
+                              boxShadow: 4,
+                            },
+                          }}
+                        >
                           <Stack direction="row" spacing={2} alignItems="flex-start">
                             <Icon color="primary" />
                             <Box sx={{ flexGrow: 1 }}>
@@ -1094,7 +1144,8 @@ function CarWashReparacion() {
                                   <Button
                                     size="small"
                                     sx={{ display: "inline-flex" }}
-                                    onClick={() => {
+                                    onClick={(event) => {
+                                      event.stopPropagation();
                                       setEditingServicioId(servicio.id_servicio_catalogo);
                                       setServicioForm({
                                         id_tipo_vehiculo: String(servicio.id_tipo_vehiculo),
@@ -1118,7 +1169,14 @@ function CarWashReparacion() {
                                 <Chip label={`Q ${Number(servicio.precio_base || 0).toFixed(2)}`} color="primary" variant={selected ? "filled" : "outlined"} />
                                 <Chip label={`${servicio.duracion_minutos || 0} min`} variant="outlined" />
                               </Stack>
-                              <Button size="small" sx={{ mt: 1 }} onClick={() => seleccionarServicio(servicio.id_servicio_catalogo)}>
+                              <Button
+                                size="small"
+                                sx={{ mt: 1 }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  seleccionarServicio(servicio.id_servicio_catalogo);
+                                }}
+                              >
                                 {selected ? "Seleccionado" : "Seleccionar"}
                               </Button>
                             </Box>
@@ -1579,14 +1637,11 @@ function CarWashReparacion() {
                                   <MenuItem value="">
                                     <em>Sin asignar</em>
                                   </MenuItem>
-                                  {tecnicos.map((tecnico) => (
-                                    <MenuItem key={tecnico.id_usuario} value={String(tecnico.id_usuario)}>
-                                      {(tecnico.nombre || tecnico.username) +
-                                        (Array.isArray(tecnico.roles) && tecnico.roles.length
-                                          ? ` | ${tecnico.roles.join(", ")}`
-                                          : "")}
-                                    </MenuItem>
-                                  ))}
+                                    {tecnicos.map((tecnico) => (
+                                      <MenuItem key={tecnico.id_empleado} value={String(tecnico.id_empleado)}>
+                                        {`${tecnico.nombre} | ${tecnico.cargo} | ${tecnico.tipo_pago}`}
+                                      </MenuItem>
+                                    ))}
                                 </Select>
                               </FormControl>
 
@@ -1616,6 +1671,16 @@ function CarWashReparacion() {
                             {imprimiendoOrdenId === orden.id_reparacion_orden
                               ? "Preparando ticket..."
                               : "Imprimir ticket"}
+                          </Button>
+
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            startIcon={<ReceiptLongIcon />}
+                            onClick={() => verReciboOrden(orden)}
+                            sx={{ alignSelf: "flex-start", borderRadius: 999 }}
+                          >
+                            Ver recibo
                           </Button>
                         </Stack>
                       </Paper>
@@ -2005,6 +2070,13 @@ function CarWashReparacion() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ReparacionReciboModal
+        open={reciboModalOpen}
+        onClose={cerrarRecibo}
+        recibo={reciboData}
+        loading={reciboLoading}
+      />
     </Container>
   );
 }

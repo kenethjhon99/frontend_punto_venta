@@ -227,11 +227,11 @@ function CarWashAutolavado() {
   }, [user]);
 
   const canOperateAutolavado = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS");
   }, [user]);
 
   const canManageOrders = useMemo(() => {
-    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS");
+    return userHasRole(user, "SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS");
   }, [user]);
 
   const isReadOnly = useMemo(() => isReadOnlyUser(user), [user]);
@@ -268,7 +268,13 @@ function CarWashAutolavado() {
         setVehiculos(catalogo.vehiculos);
         setServicios(catalogo.servicios);
         setCajaActiva(cajaResponse?.sesion || null);
-        setTecnicos(Array.isArray(tecnicosResponse?.data) ? tecnicosResponse.data : []);
+          setTecnicos(
+            Array.isArray(tecnicosResponse?.data)
+              ? tecnicosResponse.data.filter(
+                  (item) => String(item?.cargo || "").trim().toUpperCase() === "CARWASH"
+                )
+              : []
+          );
 
         const nextVehiculoId =
           preferredVehiculoId && catalogo.vehiculos.some((item) => item.id_tipo_vehiculo === preferredVehiculoId)
@@ -667,12 +673,12 @@ function CarWashAutolavado() {
       await cargarOrdenes(estadoFiltroOrdenes);
 
       const tecnico = tecnicos.find(
-        (item) => String(item.id_usuario) === String(idTecnico)
+        (item) => String(item.id_empleado) === String(idTecnico)
       );
 
       setSuccess(
         tecnico
-          ? `Tecnico ${tecnico.nombre || tecnico.username} asignado a la orden #${idOrden}.`
+          ? `Tecnico ${tecnico.nombre} asignado a la orden #${idOrden}.`
           : `Tecnico retirado de la orden #${idOrden}.`
       );
     } catch (err) {
@@ -1727,11 +1733,8 @@ function CarWashAutolavado() {
                                     <em>Sin asignar</em>
                                   </MenuItem>
                                   {tecnicos.map((tecnico) => (
-                                    <MenuItem key={tecnico.id_usuario} value={String(tecnico.id_usuario)}>
-                                      {(tecnico.nombre || tecnico.username) +
-                                        (Array.isArray(tecnico.roles) && tecnico.roles.length
-                                          ? ` | ${tecnico.roles.join(", ")}`
-                                          : "")}
+                                    <MenuItem key={tecnico.id_empleado} value={String(tecnico.id_empleado)}>
+                                      {`${tecnico.nombre} | ${tecnico.cargo} | ${tecnico.tipo_pago}`}
                                     </MenuItem>
                                   ))}
                                 </Select>

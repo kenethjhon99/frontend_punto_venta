@@ -1439,7 +1439,7 @@ function Caja() {
   };
 
   return (
-    <Box>
+    <Box className="pos-surface">
       <Paper
         elevation={0}
         sx={(currentTheme) => ({

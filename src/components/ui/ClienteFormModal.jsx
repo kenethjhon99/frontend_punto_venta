@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   Grid,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
@@ -14,6 +15,7 @@ import {
 const initialState = {
   nit: "",
   nombre: "",
+  tipo_cliente: "NORMAL",
   telefono: "",
   correo: "",
   direccion: "",
@@ -27,6 +29,7 @@ const buildFormState = (clienteEditando) => {
   return {
     nit: clienteEditando.nit || "",
     nombre: clienteEditando.nombre || "",
+    tipo_cliente: String(clienteEditando.tipo_cliente || "NORMAL").toUpperCase(),
     telefono: clienteEditando.telefono || "",
     correo: clienteEditando.correo || "",
     direccion: clienteEditando.direccion || "",
@@ -63,6 +66,7 @@ function ClienteFormModal({
     onSave({
       nit: form.nit.trim(),
       nombre: form.nombre.trim(),
+      tipo_cliente: String(form.tipo_cliente || "NORMAL").trim().toUpperCase(),
       telefono: form.telefono.trim(),
       correo: form.correo.trim(),
       direccion: form.direccion.trim(),
@@ -104,6 +108,22 @@ function ClienteFormModal({
               onChange={handleChange}
               placeholder="CF o 1234567-8"
             />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              required
+              label="Tipo de cliente"
+              name="tipo_cliente"
+              value={form.tipo_cliente}
+              onChange={handleChange}
+              helperText="El descuento por porcentaje solo aplica a clientes NORMAL o MAYORISTA."
+            >
+              <MenuItem value="NORMAL">Normal</MenuItem>
+              <MenuItem value="MAYORISTA">Mayorista</MenuItem>
+            </TextField>
           </Grid>
 
           <Grid item xs={12}>

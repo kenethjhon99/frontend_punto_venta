@@ -46,6 +46,7 @@ function ClienteTable({
           <TableRow sx={getTableHeaderRowSx(theme)}>
             <TableCell sx={getTableHeaderCellSx(theme)}>Codigo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Tipo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>NIT</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Telefono</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Correo</TableCell>
@@ -65,6 +66,18 @@ function ClienteTable({
               <TableCell>{cliente.codigo}</TableCell>
               <TableCell>
                 <Typography fontWeight={600}>{cliente.nombre || "-"}</Typography>
+              </TableCell>
+              <TableCell>
+                <Chip
+                  label={String(cliente.tipo_cliente || "NORMAL").toUpperCase()}
+                  size="small"
+                  color={
+                    String(cliente.tipo_cliente || "NORMAL").toUpperCase() === "MAYORISTA"
+                      ? "secondary"
+                      : "primary"
+                  }
+                  variant="outlined"
+                />
               </TableCell>
               <TableCell>{cliente.nit || "-"}</TableCell>
               <TableCell>{cliente.telefono || "-"}</TableCell>

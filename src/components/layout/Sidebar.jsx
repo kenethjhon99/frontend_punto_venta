@@ -25,6 +25,7 @@ import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
@@ -106,6 +107,12 @@ function Sidebar({
       visible: userHasRole(user, "SUPER_ADMIN", "LECTURA"),
     },
     {
+      text: "Empleados",
+      path: "/empleados",
+      icon: <BadgeOutlinedIcon />,
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "LECTURA"),
+    },
+    {
       text: "Auditoria",
       path: "/auditoria",
       icon: <FactCheckIcon />,
@@ -115,7 +122,7 @@ function Sidebar({
       text: "Servicios",
       path: "/servicios",
       icon: <LocalCarWashIcon />,
-      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"),
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"),
     },
   ].filter((item) => item.visible ?? true);
 

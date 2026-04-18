@@ -137,6 +137,10 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
       title: "Usuarios y roles",
       subtitle: "Configura accesos, roles y permisos del sistema.",
     },
+    "/empleados": {
+      title: "Empleados",
+      subtitle: "Administra personal de carwash y vendedores con su modalidad de pago.",
+    },
     "/auditoria": {
       title: "Auditoria del sistema",
       subtitle: "Consulta trazabilidad de altas, cambios e inactivaciones.",

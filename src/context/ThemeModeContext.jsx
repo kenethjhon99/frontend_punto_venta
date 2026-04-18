@@ -50,20 +50,36 @@ const buildTheme = (mode) => {
     typography: {
       fontFamily:
         "'Trebuchet MS', 'Segoe UI Variable Text', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      // Sube el size base de 14px (default MUI) a 15px -> aplica a body1/body2/caption
+      fontSize: 15,
+      htmlFontSize: 16,
+      h1: { fontWeight: 800, fontSize: "clamp(2rem, 1.5rem + 1vw, 2.6rem)", letterSpacing: "-0.03em" },
+      h2: { fontWeight: 800, fontSize: "clamp(1.75rem, 1.3rem + 0.9vw, 2.25rem)", letterSpacing: "-0.03em" },
+      h3: { fontWeight: 800, fontSize: "clamp(1.5rem, 1.2rem + 0.7vw, 1.9rem)", letterSpacing: "-0.03em" },
       h4: {
         fontWeight: 800,
+        fontSize: "clamp(1.35rem, 1.1rem + 0.55vw, 1.7rem)",
         letterSpacing: "-0.03em",
       },
       h5: {
         fontWeight: 800,
+        fontSize: "clamp(1.15rem, 1rem + 0.4vw, 1.4rem)",
         letterSpacing: "-0.025em",
       },
       h6: {
         fontWeight: 800,
+        fontSize: "1.1rem",
         letterSpacing: "-0.02em",
       },
+      subtitle1: { fontSize: "1rem", fontWeight: 600, lineHeight: 1.55 },
+      subtitle2: { fontSize: "0.92rem", fontWeight: 600, lineHeight: 1.5 },
+      body1: { fontSize: "1rem", lineHeight: 1.6 },
+      body2: { fontSize: "0.92rem", lineHeight: 1.55 },
+      caption: { fontSize: "0.8rem", lineHeight: 1.4 },
+      overline: { fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.09em" },
       button: {
         fontWeight: 700,
+        fontSize: "0.95rem",
         letterSpacing: "0.01em",
         textTransform: "none",
       },
@@ -210,31 +226,6 @@ const buildTheme = (mode) => {
           },
         },
       },
-      MuiButton: {
-        defaultProps: {
-          disableElevation: true,
-        },
-        styleOverrides: {
-          root: {
-            borderRadius: 16,
-            paddingInline: "1rem",
-            transition:
-              "transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease",
-            "&:hover": {
-              transform: "translateY(-1px)",
-            },
-          },
-          containedPrimary: {
-            background: `linear-gradient(135deg, ${primaryMain} 0%, ${
-              isLight ? "#1d4ed8" : "#3b82f6"
-            } 100%)`,
-            boxShadow: `0 14px 26px ${alpha(primaryMain, isLight ? 0.22 : 0.18)}`,
-          },
-          outlined: {
-            borderColor: alpha(primaryMain, 0.42),
-          },
-        },
-      },
       MuiChip: {
         styleOverrides: {
           root: {
@@ -248,6 +239,7 @@ const buildTheme = (mode) => {
         styleOverrides: {
           root: {
             borderRadius: 16,
+            fontSize: "1rem",
             backgroundColor: isLight
               ? alpha("#ffffff", 0.8)
               : alpha("#0f172a", 0.28),
@@ -266,9 +258,43 @@ const buildTheme = (mode) => {
             borderColor: dividerColor,
           },
           input: {
-            paddingTop: 14,
-            paddingBottom: 14,
+            paddingTop: 15,
+            paddingBottom: 15,
           },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: { fontSize: "1rem" },
+          shrink: { fontSize: "0.95rem" },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: { fontSize: "0.95rem", paddingTop: 12, paddingBottom: 12 },
+          head: { fontSize: "0.82rem" },
+        },
+      },
+      MuiButton: {
+        defaultProps: { disableElevation: true },
+        styleOverrides: {
+          root: {
+            borderRadius: 16,
+            paddingInline: "1.1rem",
+            minHeight: 40,
+            fontSize: "0.95rem",
+            transition:
+              "transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease",
+            "&:hover": { transform: "translateY(-1px)" },
+          },
+          sizeLarge: { minHeight: 48, fontSize: "1.05rem" },
+          containedPrimary: {
+            background: `linear-gradient(135deg, ${primaryMain} 0%, ${
+              isLight ? "#1d4ed8" : "#3b82f6"
+            } 100%)`,
+            boxShadow: `0 14px 26px ${alpha(primaryMain, isLight ? 0.22 : 0.18)}`,
+          },
+          outlined: { borderColor: alpha(primaryMain, 0.42) },
         },
       },
       MuiTableContainer: {

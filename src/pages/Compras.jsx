@@ -36,9 +36,12 @@ import CompraTable from "../components/ui/CompraTable";
 import CompraAnulacionModal from "../components/ui/CompraAnulacionModal";
 import CompraDetalleAnulacionModal from "../components/ui/CompraDetalleAnulacionModal";
 import CompraDetalleModal from "../components/ui/CompraDetalleModal";
+import OrdenCompraModal from "../components/ui/OrdenCompraModal";
 import ProveedorFormModal from "../components/ui/ProveedorFormModal";
+import DescriptionIcon from "@mui/icons-material/Description";
 import {
   buildCompraTicketHtml,
+  buildOrdenCompraHtml,
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
@@ -97,6 +100,8 @@ function Compras() {
   const [documento, setDocumento] = useState("");
   const [fechaCompra, setFechaCompra] = useState(getToday);
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
+  const [tipoPago, setTipoPago] = useState("CONTADO"); // CONTADO | CREDITO
+  const [diasCredito, setDiasCredito] = useState(15);
   const [observaciones, setObservaciones] = useState("");
   const [estadoFiltroCompras, setEstadoFiltroCompras] = useState("TODOS");
   const [documentoFiltroCompras, setDocumentoFiltroCompras] = useState("");
@@ -119,6 +124,9 @@ function Compras() {
   const [historialDisponible, setHistorialDisponible] = useState(true);
   const [proveedorModalOpen, setProveedorModalOpen] = useState(false);
   const [compraDetalleOpen, setCompraDetalleOpen] = useState(false);
+  const [ordenCompraOpen, setOrdenCompraOpen] = useState(false);
+  const [ordenCompraData, setOrdenCompraData] = useState(null);
+  const [ordenCompraLoading, setOrdenCompraLoading] = useState(false);
   const [compraAnulacionOpen, setCompraAnulacionOpen] = useState(false);
   const [detalleAnulacionOpen, setDetalleAnulacionOpen] = useState(false);
   const [compraSeleccionada, setCompraSeleccionada] = useState(null);
@@ -261,6 +269,8 @@ function Compras() {
     setDocumento("");
     setFechaCompra(getToday());
     setMetodoPago("EFECTIVO");
+    setTipoPago("CONTADO");
+    setDiasCredito(15);
     setObservaciones("");
   };
 
@@ -339,6 +349,11 @@ function Compras() {
         });
       }
 
+      const diasCreditoFinal =
+        tipoPago === "CREDITO" ? Math.max(0, Number(diasCredito) || 0) : 0;
+      const terminoPagoFinal =
+        diasCreditoFinal > 0 ? `CREDITO ${diasCreditoFinal} DIAS` : "CONTADO";
+
       const payload = {
         id_proveedor: Number(proveedorId),
         tipo_documento: "FACTURA",
@@ -347,6 +362,9 @@ function Compras() {
         metodo_pago: metodoPago,
         observaciones: observaciones.trim(),
         id_sucursal: 1,
+        dias_credito: diasCreditoFinal,
+        termino_pago: terminoPagoFinal,
+        moneda: "GTQ",
         items: items.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
@@ -422,6 +440,24 @@ function Compras() {
       }
     } finally {
       setPrintingCompraId(null);
+    }
+  };
+
+  const verOrdenCompra = async (compra) => {
+    const idCompra = Number(compra?.id_compra || compra);
+    if (!idCompra) return;
+    try {
+      setOrdenCompraLoading(true);
+      setOrdenCompraData(null);
+      setOrdenCompraOpen(true);
+      const data = await getCompraById(idCompra);
+      setOrdenCompraData(data);
+    } catch (err) {
+      console.error(err);
+      setOrdenCompraOpen(false);
+      setError(err.response?.data?.error || "No se pudo cargar la orden de compra");
+    } finally {
+      setOrdenCompraLoading(false);
     }
   };
 
@@ -658,7 +694,7 @@ function Compras() {
                               key={proveedor.id_proveedor}
                               value={String(proveedor.id_proveedor)}
                             >
-                              {proveedor.nombre}
+                              {proveedor.nombre_empresa || proveedor.nombre}
                             </MenuItem>
                           ))}
                         </Select>
@@ -700,7 +736,7 @@ function Compras() {
                     />
                   </Grid>
 
-                  <Grid item xs={12}>
+                  <Grid item xs={12} md={6}>
                     <Typography variant="body2" color="text.secondary" mb={1}>
                       Metodo de pago
                     </Typography>
@@ -712,9 +748,67 @@ function Compras() {
                     >
                       <MenuItem value="EFECTIVO">EFECTIVO</MenuItem>
                       <MenuItem value="TRANSFERENCIA">TRANSFERENCIA</MenuItem>
-                      <MenuItem value="CREDITO">CREDITO</MenuItem>
+                      <MenuItem value="CHEQUE">CHEQUE</MenuItem>
+                      <MenuItem value="TARJETA">TARJETA</MenuItem>
                     </Select>
                   </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      Condicion de pago
+                    </Typography>
+                    <Select
+                      fullWidth
+                      value={tipoPago}
+                      onChange={(event) => {
+                        const v = event.target.value;
+                        setTipoPago(v);
+                        if (v === "CONTADO") setDiasCredito(0);
+                        else if (Number(diasCredito) <= 0) setDiasCredito(15);
+                      }}
+                      disabled={!canManageCompras}
+                    >
+                      <MenuItem value="CONTADO">Contado</MenuItem>
+                      <MenuItem value="CREDITO">Credito</MenuItem>
+                    </Select>
+                  </Grid>
+
+                  {tipoPago === "CREDITO" && (
+                    <>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Dias de credito"
+                          value={diasCredito}
+                          onChange={(event) =>
+                            setDiasCredito(
+                              Math.max(0, Math.min(365, Number(event.target.value) || 0))
+                            )
+                          }
+                          inputProps={{ min: 0, max: 365, step: 1 }}
+                          helperText="Ej. 15, 30, 45 dias"
+                          disabled={!canManageCompras}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Fecha limite de pago"
+                          value={(() => {
+                            const base = new Date(fechaCompra);
+                            if (Number.isNaN(base.getTime())) return "-";
+                            const lim = new Date(base);
+                            lim.setDate(lim.getDate() + Number(diasCredito || 0));
+                            return lim.toLocaleDateString("es-GT", { dateStyle: "long" });
+                          })()}
+                          helperText={`Termino: CREDITO ${Number(diasCredito) || 0} DIAS`}
+                          InputProps={{ readOnly: true }}
+                          disabled
+                        />
+                      </Grid>
+                    </>
+                  )}
 
                   <Grid item xs={12}>
                     <TextField
@@ -1001,6 +1095,15 @@ function Compras() {
                               </Button>
                               <Button
                                 variant="outlined"
+                                color="secondary"
+                                size="small"
+                                startIcon={<DescriptionIcon />}
+                                onClick={() => verOrdenCompra(compra)}
+                              >
+                                Ver orden
+                              </Button>
+                              <Button
+                                variant="outlined"
                                 size="small"
                                 disabled={printingCompraId === compra.id_compra}
                                 onClick={() => imprimirCompra(compra)}
@@ -1042,6 +1145,13 @@ function Compras() {
           loading={loadingNuevoProveedor}
         />
       )}
+
+      <OrdenCompraModal
+        open={ordenCompraOpen}
+        onClose={() => setOrdenCompraOpen(false)}
+        compraData={ordenCompraData}
+        loading={ordenCompraLoading}
+      />
 
       <CompraDetalleModal
         open={compraDetalleOpen}

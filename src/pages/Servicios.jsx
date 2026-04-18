@@ -24,8 +24,29 @@ function Servicios() {
   const theme = useTheme();
   const servicesBackgroundUrl = "/fondo-de-servicios.jpeg";
   const backgroundRef = useRef(null);
-  const glassTextPrimary = "#f8fafc";
-  const glassTextSecondary = "rgba(226, 232, 240, 0.88)";
+  const isLightMode = theme.palette.mode === "light";
+  const glassTextPrimary = isLightMode ? "#0f172a" : "#f8fafc";
+  const glassTextSecondary = isLightMode
+    ? "rgba(15, 23, 42, 0.78)"
+    : "rgba(226, 232, 240, 0.88)";
+  const heroSurface = isLightMode
+    ? `linear-gradient(180deg, ${alpha("#ffffff", 0.68)} 0%, ${alpha(
+        "#f8fafc",
+        0.58
+      )} 100%)`
+    : "linear-gradient(180deg, rgba(15,23,42,0.80) 0%, rgba(15,23,42,0.70) 100%)";
+  const cardSurface = isLightMode
+    ? `linear-gradient(180deg, ${alpha("#ffffff", 0.52)} 0%, ${alpha(
+        "#e2e8f0",
+        0.38
+      )} 100%)`
+    : "linear-gradient(180deg, rgba(15,23,42,0.78) 0%, rgba(15,23,42,0.68) 100%)";
+  const heroBorder = isLightMode
+    ? alpha("#ffffff", 0.44)
+    : alpha("#93c5fd", 0.16);
+  const heroShadow = isLightMode
+    ? "0 22px 55px rgba(15, 23, 42, 0.18)"
+    : "0 20px 45px rgba(2, 6, 23, 0.24)";
   const serviceCards = [
     {
       title: "Autolavado",
@@ -93,9 +114,15 @@ function Servicios() {
           inset: 0,
           zIndex: -2,
           backgroundImage: `
-            linear-gradient(135deg, rgba(10, 15, 28, 0.82) 0%, rgba(14, 23, 41, 0.62) 42%, rgba(10, 15, 28, 0.82) 100%),
-            radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 36%),
-            radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.12), transparent 30%),
+            ${
+              isLightMode
+                ? `linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(248, 250, 252, 0.10) 42%, rgba(15, 23, 42, 0.18) 100%),
+                   radial-gradient(circle at top right, rgba(59, 130, 246, 0.16), transparent 36%),
+                   radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.10), transparent 30%),`
+                : `linear-gradient(135deg, rgba(10, 15, 28, 0.82) 0%, rgba(14, 23, 41, 0.62) 42%, rgba(10, 15, 28, 0.82) 100%),
+                   radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 36%),
+                   radial-gradient(circle at bottom left, rgba(244, 114, 182, 0.12), transparent 30%),`
+            }
             url(${servicesBackgroundUrl})
           `,
           backgroundSize: "cover",
@@ -111,8 +138,9 @@ function Servicios() {
           position: "absolute",
           inset: 0,
           zIndex: -1,
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 28%, rgba(255,255,255,0.00) 100%)",
+          background: isLightMode
+            ? "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 28%, rgba(255,255,255,0.00) 100%)"
+            : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 28%, rgba(255,255,255,0.00) 100%)",
           pointerEvents: "none",
         },
         "&:hover": {
@@ -138,12 +166,10 @@ function Servicios() {
             ...getSummaryCardSx(currentTheme, "primary", { minHeight: 0 }),
             mb: 3,
             color: glassTextPrimary,
-            background:
-              "linear-gradient(180deg, rgba(15,23,42,0.80) 0%, rgba(15,23,42,0.70) 100%)",
+            background: heroSurface,
             backdropFilter: "blur(18px)",
-            border: `1px solid ${alpha("#93c5fd", 0.16)}`,
-            boxShadow:
-              "0 20px 45px rgba(2, 6, 23, 0.24)",
+            border: `1px solid ${heroBorder}`,
+            boxShadow: heroShadow,
           })}
         >
           <Stack spacing={1.5}>
@@ -168,19 +194,34 @@ function Servicios() {
                 color="primary"
                 variant="outlined"
                 label="Autolavado"
-                sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}
+                sx={{
+                  bgcolor: alpha(
+                    theme.palette.primary.main,
+                    isLightMode ? 0.08 : 0.1
+                  ),
+                }}
               />
               <Chip
                 color="secondary"
                 variant="outlined"
                 label="Reparacion"
-                sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1) }}
+                sx={{
+                  bgcolor: alpha(
+                    theme.palette.secondary.main,
+                    isLightMode ? 0.08 : 0.1
+                  ),
+                }}
               />
               <Chip
                 color="success"
                 variant="outlined"
                 label="Tienda"
-                sx={{ bgcolor: alpha(theme.palette.success.main, 0.1) }}
+                sx={{
+                  bgcolor: alpha(
+                    theme.palette.success.main,
+                    isLightMode ? 0.08 : 0.1
+                  ),
+                }}
               />
             </Stack>
           </Stack>
@@ -209,8 +250,7 @@ function Servicios() {
                   minHeight: 248,
                 }),
                 color: glassTextPrimary,
-                background:
-                  "linear-gradient(180deg, rgba(15,23,42,0.78) 0%, rgba(15,23,42,0.68) 100%)",
+                background: cardSurface,
                 backdropFilter: "blur(16px)",
                 border: `1px solid ${alpha(
                   service.tone === "primary"
@@ -218,8 +258,11 @@ function Servicios() {
                     : service.tone === "secondary"
                       ? currentTheme.palette.secondary.main
                       : currentTheme.palette.success.main,
-                  0.24
+                  isLightMode ? 0.34 : 0.24
                 )}`,
+                boxShadow: isLightMode
+                  ? "0 18px 38px rgba(15, 23, 42, 0.14)"
+                  : "0 18px 38px rgba(2, 6, 23, 0.18)",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",

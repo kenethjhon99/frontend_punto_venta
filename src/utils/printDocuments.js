@@ -655,6 +655,223 @@ export const buildVentaTicketHtml = (ventaData) => {
   `;
 };
 
+export const buildReparacionReciboHtml = (reciboData) => {
+  const orden = reciboData?.orden || {};
+  const productos = Array.isArray(reciboData?.productos) ? reciboData.productos : [];
+  const resumen = reciboData?.resumen || {};
+
+  const numero = `ORD-${String(orden.id_reparacion_orden || "0").padStart(5, "0")}`;
+  const cliente = orden.nombre_cliente || "CONSUMIDOR FINAL";
+  const vehiculo = [
+    orden.tipo_vehiculo_nombre,
+    orden.placa ? `Placa ${orden.placa}` : "",
+    orden.color || "",
+  ]
+    .filter(Boolean)
+    .join(" - ");
+  const usuario = orden.usuario_nombre || orden.usuario_username || "Usuario";
+  const tecnico = orden.tecnico_nombre || "Sin asignar";
+  const descripcion =
+    orden.servicio_descripcion ||
+    orden.servicio_nombre ||
+    orden.diagnostico_inicial ||
+    "Servicio de reparacion";
+
+  const totalServicio = Number(resumen.total_servicio || 0);
+  const totalProductos = Number(resumen.total_productos || 0);
+  const total = Number(resumen.total || 0);
+  const montoRecibido = Number(resumen.monto_recibido || 0);
+  const vuelto = Number(resumen.vuelto || 0);
+
+  const businessLines = [
+    "RECIBO DE SERVICIO",
+    "TALLER MECANICO",
+    BUSINESS_INFO.name,
+    BUSINESS_INFO.subtitle,
+    ...(Array.isArray(BUSINESS_INFO.addressLines) ? BUSINESS_INFO.addressLines : []),
+    orden.sucursal_nombre ? `Sucursal: ${orden.sucursal_nombre}` : "",
+  ].filter(Boolean);
+
+  const serviceRow = `
+    <div class="item-row">
+      <div class="item-name">1 x ${escapeHtml(orden.servicio_nombre || "Servicio")}</div>
+      <div class="item-total">${escapeHtml(formatPrintCurrency(totalServicio))}</div>
+    </div>
+  `;
+
+  const productRows = productos
+    .filter((p) => p.cobra_al_cliente)
+    .map((p) => {
+      const cantidad = Number(p.cantidad || 0);
+      const subtotal = Number(p.subtotal_cobrado || 0);
+      const nombre = `${cantidad} x ${p.producto_nombre || "Repuesto"}`;
+      return `
+        <div class="item-row">
+          <div class="item-name">${escapeHtml(nombre)}</div>
+          <div class="item-total">${escapeHtml(formatPrintCurrency(subtotal))}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  const metodoPago = String(orden.metodo_pago || "EFECTIVO").toUpperCase();
+  const estado = String(orden.estado_trabajo || orden.estado || "-").replaceAll("_", " ");
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(numero)}</title>
+        <style>
+          * { box-sizing: border-box; }
+          html, body { margin: 0; padding: 0; background: #ffffff; color: #111111; }
+          body {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            line-height: 1.35;
+          }
+          .ticket {
+            width: 80mm;
+            margin: 0 auto;
+            padding: 10px 8px 16px;
+          }
+          .center { text-align: center; }
+          .header-line { white-space: pre-wrap; word-break: break-word; font-weight: 700; }
+          .spacer { height: 10px; }
+          .rule { border-top: 1px dashed #111111; margin: 10px 0; }
+          .item-row, .summary-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+          }
+          .item-row + .item-row { margin-top: 4px; }
+          .item-name { flex: 1; min-width: 0; padding-right: 8px; word-break: break-word; }
+          .item-total, .summary-value { white-space: nowrap; text-align: right; }
+          .summary-row { font-size: 13px; margin-top: 2px; }
+          .summary-row.total { font-size: 15px; font-weight: 800; }
+          .meta-block { margin-top: 6px; }
+          .meta-block div { margin-top: 2px; }
+          .label { font-weight: 700; }
+          .muted { color: #333333; }
+          .descripcion {
+            font-size: 12px;
+            padding: 6px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+          }
+          .footer-note { text-align: center; margin-top: 12px; white-space: pre-wrap; }
+          @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .ticket { width: 72mm; padding: 8px 6px 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <div class="center">
+            ${businessLines
+              .map(
+                (line) =>
+                  `<div class="header-line">${escapeHtml(String(line).toUpperCase())}</div>`
+              )
+              .join("")}
+          </div>
+
+          <div class="spacer"></div>
+
+          <div class="meta-block">
+            <div><span class="label">Recibo:</span> ${escapeHtml(numero)}</div>
+            <div><span class="label">Fecha:</span> ${escapeHtml(
+              formatPrintDateTime(orden.fecha)
+            )}</div>
+            <div><span class="label">Usuario:</span> ${escapeHtml(usuario)}</div>
+            <div><span class="label">Tecnico:</span> ${escapeHtml(tecnico)}</div>
+            <div><span class="label">Estado:</span> ${escapeHtml(estado)}</div>
+          </div>
+
+          <div class="rule"></div>
+
+          <div class="meta-block">
+            <div><span class="label">Cliente:</span> ${escapeHtml(cliente.toUpperCase())}</div>
+            ${vehiculo ? `<div><span class="label">Vehiculo:</span> ${escapeHtml(vehiculo)}</div>` : ""}
+            ${
+              orden.kilometraje
+                ? `<div><span class="label">Km:</span> ${escapeHtml(String(orden.kilometraje))}</div>`
+                : ""
+            }
+          </div>
+
+          <div class="rule"></div>
+
+          <div class="label">DESCRIPCION DEL SERVICIO</div>
+          <div class="descripcion">${escapeHtml(descripcion)}</div>
+          ${
+            orden.observaciones
+              ? `<div class="muted descripcion">Obs: ${escapeHtml(orden.observaciones)}</div>`
+              : ""
+          }
+
+          <div class="rule"></div>
+
+          ${serviceRow}
+          ${productRows}
+
+          <div class="rule"></div>
+
+          ${
+            totalProductos > 0
+              ? `
+                <div class="summary-row">
+                  <div>Servicio</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(totalServicio))}</div>
+                </div>
+                <div class="summary-row">
+                  <div>Repuestos</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(totalProductos))}</div>
+                </div>
+              `
+              : ""
+          }
+
+          <div class="summary-row total">
+            <div>TOTAL</div>
+            <div class="summary-value">${escapeHtml(formatPrintCurrency(total))}</div>
+          </div>
+
+          ${
+            montoRecibido > 0
+              ? `
+                <div class="summary-row">
+                  <div>Metodo</div>
+                  <div class="summary-value">${escapeHtml(metodoPago)}</div>
+                </div>
+                <div class="summary-row">
+                  <div>Pago</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(montoRecibido))}</div>
+                </div>
+                <div class="summary-row">
+                  <div>Vuelto</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(vuelto))}</div>
+                </div>
+              `
+              : ""
+          }
+
+          <div class="rule"></div>
+
+          <div class="footer-note">
+            Gracias por confiar en nuestro taller.<br/>
+            ${escapeHtml(BUSINESS_INFO.footer)}
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
 export const buildCompraTicketHtml = (compraData) => {
   const compra = compraData?.compra || {};
   const detalles = Array.isArray(compraData?.detalles) ? compraData.detalles : [];
@@ -722,6 +939,494 @@ export const buildCompraTicketHtml = (compraData) => {
     ],
     footerNote: "Comprobante generado desde el modulo de compras.",
   });
+};
+
+const formatPrintDate = (value) => {
+  if (!value) return "-";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("es-GT", { dateStyle: "long" }).format(date);
+};
+
+const pad5 = (n) => String(Number(n) || 0).padStart(5, "0");
+
+export const buildOrdenCompraHtml = (compraData, opciones = {}) => {
+  const compra = compraData?.compra || {};
+  const detalles = Array.isArray(compraData?.detalles) ? compraData.detalles : [];
+
+  const moneda = compra.moneda || "GTQ";
+  const diasCredito = Number(compra.dias_credito || 0);
+  const terminoPago =
+    compra.termino_pago ||
+    (diasCredito > 0 ? `CREDITO ${diasCredito} DIAS` : "CONTADO");
+  const tasaIva = Number(opciones.tasa_iva ?? 0.12);
+
+  const empresa = {
+    nombre: opciones.empresa_nombre || compra.sucursal_nombre || BUSINESS_INFO.name,
+    direccion: opciones.empresa_direccion || compra.sucursal_direccion || BUSINESS_INFO.addressLines.join(", "),
+    telefono: opciones.empresa_telefono || compra.sucursal_telefono || "",
+    correo: opciones.empresa_correo || compra.sucursal_correo || "",
+    nit: opciones.empresa_nit || BUSINESS_INFO.nit,
+    logoUrl: opciones.empresa_logo || "/icono.png",
+  };
+
+  const detallesActivos = detalles.filter(
+    (d) => Number(d.cantidad || 0) - Number(d.cantidad_anulada || 0) > 0
+  );
+
+  let subtotalSinIva = 0;
+  let totalIva = 0;
+
+  const filasProductos = detallesActivos
+    .map((d) => {
+      const cantidad = Number(d.cantidad || 0) - Number(d.cantidad_anulada || 0);
+      const precioConIva = Number(d.precio_compra || 0);
+      const precioSinIva = tasaIva > 0 ? precioConIva / (1 + tasaIva) : precioConIva;
+      const subtotal = precioSinIva * cantidad;
+      const total = precioConIva * cantidad;
+      subtotalSinIva += subtotal;
+      totalIva += total - subtotal;
+
+      return `
+        <tr>
+          <td class="col-desc">
+            <div class="prod-nombre">${escapeHtml(d.producto_nombre || "Producto")}</div>
+            ${d.codigo_barras ? `<div class="prod-codigo">Codigo: ${escapeHtml(d.codigo_barras)}</div>` : ""}
+          </td>
+          <td class="col-num">${cantidad}</td>
+          <td class="col-num">${formatPrintCurrency(precioSinIva)}</td>
+          <td class="col-num">${formatPrintCurrency(precioConIva)}</td>
+          <td class="col-num">${formatPrintCurrency(subtotal)}</td>
+          <td class="col-num">${formatPrintCurrency(total)}</td>
+        </tr>`;
+    })
+    .join("");
+
+  const totalFinal = Number(compra.total ?? subtotalSinIva + totalIva);
+
+  const numeroOrden = `OC-${pad5(compra.id_compra)}`;
+  const fechaCompra = compra.fecha || compra.fecha_compra;
+  const fechaLimite = compra.fecha_limite_pago || null;
+  const fechaEntrega = opciones.fecha_entrega || compra.fecha_entrega || "";
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>Orden de compra ${escapeHtml(numeroOrden)}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 14mm 14mm 18mm 14mm;
+          }
+          :root { color-scheme: light; }
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #eef1f6;
+            color: #0f172a;
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 12.5px;
+            line-height: 1.5;
+          }
+          .page {
+            background: #fff;
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 16mm 14mm;
+            box-shadow: 0 8px 28px rgba(15,23,42,0.08);
+          }
+          .oc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            padding-bottom: 14px;
+            border-bottom: 3px double #0f172a;
+          }
+          .oc-brand {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+          }
+          .oc-logo {
+            width: 66px;
+            height: 66px;
+            object-fit: contain;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 4px;
+            background: #fff;
+          }
+          .oc-brand-text h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 0.02em;
+          }
+          .oc-brand-text .muted {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: #475569;
+          }
+          .oc-title-block {
+            text-align: right;
+          }
+          .oc-title-block .titulo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            color: #0f172a;
+          }
+          .oc-title-block .numero {
+            margin-top: 4px;
+            display: inline-block;
+            padding: 6px 12px;
+            border: 1.5px solid #0f172a;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+          }
+          .oc-title-block .fecha {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #475569;
+          }
+          .parties {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+          }
+          .party-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px 14px;
+          }
+          .party-card h3 {
+            margin: 0 0 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+          }
+          .party-card .nombre {
+            font-weight: 800;
+            font-size: 14px;
+            color: #0f172a;
+          }
+          .party-card dl {
+            margin: 8px 0 0;
+            display: grid;
+            grid-template-columns: 90px 1fr;
+            gap: 4px 10px;
+            font-size: 12px;
+          }
+          .party-card dt { color: #64748b; }
+          .party-card dd { margin: 0; color: #0f172a; }
+          .info-general {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+          }
+          .info-cell {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: #f8fafc;
+          }
+          .info-cell .label {
+            font-size: 10.5px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+          }
+          .info-cell .value {
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 2px;
+            color: #0f172a;
+          }
+          .info-cell.is-credito {
+            background: #fef3c7;
+            border-color: #f59e0b;
+          }
+          .productos {
+            margin-top: 18px;
+          }
+          .productos table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #0f172a;
+          }
+          .productos thead th {
+            background: #0f172a;
+            color: #fff;
+            padding: 9px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            text-align: center;
+          }
+          .productos tbody td {
+            padding: 8px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 12px;
+            vertical-align: top;
+          }
+          .productos tbody tr:last-child td {
+            border-bottom: none;
+          }
+          .col-desc { width: 36%; }
+          .col-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+          }
+          .productos thead th.col-num { text-align: right; }
+          .prod-nombre { font-weight: 600; }
+          .prod-codigo { font-size: 10.5px; color: #64748b; margin-top: 2px; }
+          .fila-vacia td {
+            height: 22px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .totales {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 16px;
+          }
+          .obs-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px 12px;
+          }
+          .obs-box h4 {
+            margin: 0 0 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+          }
+          .obs-box p {
+            margin: 0;
+            font-size: 12px;
+            white-space: pre-wrap;
+          }
+          .totales-tabla {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .totales-tabla td {
+            padding: 6px 10px;
+            font-size: 12.5px;
+          }
+          .totales-tabla td.label {
+            color: #475569;
+            text-align: right;
+          }
+          .totales-tabla td.value {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+          }
+          .totales-tabla tr.total-final td {
+            border-top: 2px solid #0f172a;
+            border-bottom: 2px solid #0f172a;
+            background: #0f172a;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 10px;
+          }
+          .firmas {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 28px;
+          }
+          .firma-box {
+            text-align: center;
+            padding-top: 40px;
+            border-top: 1px solid #0f172a;
+            font-size: 11.5px;
+          }
+          .firma-box .cargo {
+            color: #64748b;
+            font-size: 10.5px;
+            margin-top: 2px;
+          }
+          .pie {
+            margin-top: 28px;
+            padding-top: 10px;
+            border-top: 1px dashed #94a3b8;
+            font-size: 10.5px;
+            color: #64748b;
+            text-align: center;
+          }
+          @media print {
+            body { background: #fff; }
+            .page { box-shadow: none; margin: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <header class="oc-header">
+            <div class="oc-brand">
+              <img class="oc-logo" src="${escapeHtml(empresa.logoUrl)}" alt="logo" onerror="this.style.display='none'" />
+              <div class="oc-brand-text">
+                <h1>${escapeHtml(empresa.nombre)}</h1>
+                ${empresa.direccion ? `<p class="muted">${escapeHtml(empresa.direccion)}</p>` : ""}
+                ${empresa.telefono ? `<p class="muted">Tel: ${escapeHtml(empresa.telefono)}</p>` : ""}
+                ${empresa.correo ? `<p class="muted">${escapeHtml(empresa.correo)}</p>` : ""}
+                ${empresa.nit ? `<p class="muted">NIT: ${escapeHtml(empresa.nit)}</p>` : ""}
+              </div>
+            </div>
+            <div class="oc-title-block">
+              <div class="titulo">ORDEN DE COMPRA</div>
+              <div class="numero">No. ${escapeHtml(numeroOrden)}</div>
+              <div class="fecha">Emitida: ${escapeHtml(formatPrintDate(fechaCompra))}</div>
+            </div>
+          </header>
+
+          <section class="parties">
+            <div class="party-card">
+              <h3>Proveedor</h3>
+              <div class="nombre">${escapeHtml(compra.proveedor_nombre || "-")}</div>
+              <dl>
+                ${compra.proveedor_nit ? `<dt>NIT</dt><dd>${escapeHtml(compra.proveedor_nit)}</dd>` : ""}
+                ${compra.proveedor_direccion ? `<dt>Direccion</dt><dd>${escapeHtml(compra.proveedor_direccion)}</dd>` : ""}
+                ${compra.proveedor_telefono_empresa ? `<dt>Telefono</dt><dd>${escapeHtml(compra.proveedor_telefono_empresa)}</dd>` : ""}
+                ${compra.proveedor_nombre_viajero ? `<dt>Viajero</dt><dd>${escapeHtml(compra.proveedor_nombre_viajero)}</dd>` : ""}
+                ${compra.proveedor_telefono_viajero ? `<dt>Tel. viajero</dt><dd>${escapeHtml(compra.proveedor_telefono_viajero)}</dd>` : ""}
+                ${compra.proveedor_correo ? `<dt>Correo</dt><dd>${escapeHtml(compra.proveedor_correo)}</dd>` : ""}
+              </dl>
+            </div>
+
+            <div class="party-card">
+              <h3>Datos del comprador</h3>
+              <div class="nombre">${escapeHtml(empresa.nombre)}</div>
+              <dl>
+                ${empresa.nit ? `<dt>NIT</dt><dd>${escapeHtml(empresa.nit)}</dd>` : ""}
+                ${empresa.direccion ? `<dt>Direccion</dt><dd>${escapeHtml(empresa.direccion)}</dd>` : ""}
+                ${empresa.telefono ? `<dt>Telefono</dt><dd>${escapeHtml(empresa.telefono)}</dd>` : ""}
+                ${empresa.correo ? `<dt>Correo</dt><dd>${escapeHtml(empresa.correo)}</dd>` : ""}
+                <dt>Recibe</dt><dd>${escapeHtml(compra.usuario_nombre || compra.usuario_username || "-")}</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="info-general">
+            <div class="info-cell">
+              <div class="label">Fecha</div>
+              <div class="value">${escapeHtml(formatPrintDate(fechaCompra))}</div>
+            </div>
+            <div class="info-cell">
+              <div class="label">Moneda</div>
+              <div class="value">${escapeHtml(moneda)}</div>
+            </div>
+            <div class="info-cell ${diasCredito > 0 ? "is-credito" : ""}">
+              <div class="label">Termino de pago</div>
+              <div class="value">${escapeHtml(terminoPago)}</div>
+            </div>
+            <div class="info-cell ${diasCredito > 0 ? "is-credito" : ""}">
+              <div class="label">Dias de credito</div>
+              <div class="value">${diasCredito > 0 ? `Credito ${diasCredito} dias` : "Contado"}</div>
+            </div>
+            <div class="info-cell">
+              <div class="label">Fecha limite de pago</div>
+              <div class="value">${escapeHtml(fechaLimite ? formatPrintDate(fechaLimite) : "-")}</div>
+            </div>
+            <div class="info-cell">
+              <div class="label">Fecha de entrega</div>
+              <div class="value">${escapeHtml(fechaEntrega ? formatPrintDate(fechaEntrega) : "Inmediata")}</div>
+            </div>
+            <div class="info-cell">
+              <div class="label">Documento</div>
+              <div class="value">${escapeHtml(compra.no_documento || "-")}</div>
+            </div>
+            <div class="info-cell">
+              <div class="label">Tipo documento</div>
+              <div class="value">${escapeHtml(compra.tipo_documento || "FACTURA")}</div>
+            </div>
+          </section>
+
+          <section class="productos">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-desc">Descripcion del bien o producto</th>
+                  <th class="col-num">Cant.</th>
+                  <th class="col-num">Precio sin IVA</th>
+                  <th class="col-num">Precio con IVA</th>
+                  <th class="col-num">Subtotal</th>
+                  <th class="col-num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filasProductos || `<tr class="fila-vacia"><td colspan="6" style="text-align:center;color:#64748b;">Sin productos</td></tr>`}
+              </tbody>
+            </table>
+          </section>
+
+          <section class="totales">
+            <div class="obs-box">
+              <h4>Observaciones y condiciones</h4>
+              <p>${escapeHtml(compra.observaciones || "Sin observaciones adicionales.")}</p>
+              ${diasCredito > 0
+                ? `<p style="margin-top:8px;"><strong>Condicion de pago:</strong> Credito ${diasCredito} dias. Fecha limite: ${escapeHtml(formatPrintDate(fechaLimite))}.</p>`
+                : `<p style="margin-top:8px;"><strong>Condicion de pago:</strong> Contado.</p>`}
+            </div>
+
+            <table class="totales-tabla">
+              <tbody>
+                <tr>
+                  <td class="label">Subtotal (sin IVA)</td>
+                  <td class="value">${formatPrintCurrency(subtotalSinIva)}</td>
+                </tr>
+                <tr>
+                  <td class="label">IVA (${Math.round(tasaIva * 100)}%)</td>
+                  <td class="value">${formatPrintCurrency(totalIva)}</td>
+                </tr>
+                <tr class="total-final">
+                  <td class="label" style="color:#fff;">TOTAL ${escapeHtml(moneda)}</td>
+                  <td class="value">${formatPrintCurrency(totalFinal)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="firmas">
+            <div class="firma-box">
+              Elaborado por
+              <div class="cargo">${escapeHtml(compra.usuario_nombre || compra.usuario_username || "Usuario")}</div>
+              <div class="cargo">Compras</div>
+            </div>
+            <div class="firma-box">
+              Autorizado por
+              <div class="cargo">Nombre y firma</div>
+              <div class="cargo">Gerencia / Administracion</div>
+            </div>
+            <div class="firma-box">
+              Recibido proveedor
+              <div class="cargo">${escapeHtml(compra.proveedor_nombre_viajero || compra.proveedor_nombre || "Proveedor")}</div>
+              <div class="cargo">Sello y firma</div>
+            </div>
+          </section>
+
+          <div class="pie">
+            Documento generado electronicamente &bull; ${escapeHtml(empresa.nombre)} &bull; ${escapeHtml(numeroOrden)}
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
 };
 
 export const buildAutolavadoTicketHtml = (orden) =>

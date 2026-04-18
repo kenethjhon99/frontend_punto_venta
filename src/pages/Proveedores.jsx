@@ -82,9 +82,11 @@ function Proveedores() {
     return proveedores.filter((proveedor) => {
       const coincideTexto =
         !texto ||
-        String(proveedor.nombre || "").toLowerCase().includes(texto) ||
+        String(proveedor.nombre_empresa || proveedor.nombre || "").toLowerCase().includes(texto) ||
+        String(proveedor.nombre_viajero || "").toLowerCase().includes(texto) ||
         String(proveedor.correo || "").toLowerCase().includes(texto) ||
-        String(proveedor.telefono || "").toLowerCase().includes(texto) ||
+        String(proveedor.telefono_empresa || proveedor.telefono || "").toLowerCase().includes(texto) ||
+        String(proveedor.telefono_viajero || "").toLowerCase().includes(texto) ||
         String(proveedor.direccion || "").toLowerCase().includes(texto);
 
       const coincideNit =
@@ -274,7 +276,7 @@ function Proveedores() {
           <TextField
             fullWidth
             label="Buscar proveedor"
-            placeholder="Buscar por nombre, correo, telefono o direccion"
+            placeholder="Empresa, viajero, correo, telefono o direccion"
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
           />
@@ -358,11 +360,19 @@ function Proveedores() {
           <Box>
             <Stack spacing={0.5} mb={2}>
               <Typography variant="subtitle1" fontWeight="bold">
-                {proveedorSeleccionado.nombre}
+                {proveedorSeleccionado.nombre_empresa || proveedorSeleccionado.nombre}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 NIT: {proveedorSeleccionado.nit}
               </Typography>
+              {proveedorSeleccionado.nombre_viajero && (
+                <Typography variant="body2" color="text.secondary">
+                  Viajero: {proveedorSeleccionado.nombre_viajero}
+                  {proveedorSeleccionado.telefono_viajero
+                    ? ` - ${proveedorSeleccionado.telefono_viajero}`
+                    : ""}
+                </Typography>
+              )}
               <Typography variant="body2" color="text.secondary">
                 Compras encontradas: {totalComprasProveedor}
               </Typography>

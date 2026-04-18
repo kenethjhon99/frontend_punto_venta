@@ -55,6 +55,7 @@ function Clientes() {
   const [busqueda, setBusqueda] = useState("");
   const [nitFiltro, setNitFiltro] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
+  const [tipoFiltro, setTipoFiltro] = useState("TODOS");
   const [modalOpen, setModalOpen] = useState(false);
   const [clienteEditando, setClienteEditando] = useState(null);
   const [loadingLista, setLoadingLista] = useState(true);
@@ -102,9 +103,13 @@ function Clientes() {
         (estadoFiltro === "ACTIVOS" && cliente.estado) ||
         (estadoFiltro === "INACTIVOS" && !cliente.estado);
 
-      return coincideTexto && coincideNit && coincideEstado;
+      const coincideTipo =
+        tipoFiltro === "TODOS" ||
+        String(cliente.tipo_cliente || "NORMAL").toUpperCase() === tipoFiltro;
+
+      return coincideTexto && coincideNit && coincideEstado && coincideTipo;
     });
-  }, [clientes, busqueda, nitFiltro, estadoFiltro]);
+  }, [clientes, busqueda, nitFiltro, estadoFiltro, tipoFiltro]);
 
   const ultimoCodigoGenerado = useMemo(() => {
     return obtenerUltimoCodigoCliente(clientes);
@@ -253,6 +258,15 @@ function Clientes() {
             <MenuItem value="TODOS">Todos</MenuItem>
             <MenuItem value="ACTIVOS">Activos</MenuItem>
             <MenuItem value="INACTIVOS">Inactivos</MenuItem>
+          </Select>
+          <Select
+            value={tipoFiltro}
+            onChange={(event) => setTipoFiltro(event.target.value)}
+            sx={{ minWidth: { xs: "100%", md: 180 } }}
+          >
+            <MenuItem value="TODOS">Todos los tipos</MenuItem>
+            <MenuItem value="NORMAL">Normal</MenuItem>
+            <MenuItem value="MAYORISTA">Mayorista</MenuItem>
           </Select>
         </Stack>
       </Paper>

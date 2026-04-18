@@ -6,15 +6,18 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   TextField,
   Typography,
 } from "@mui/material";
 
 const initialState = {
-  nombre: "",
+  nombre_empresa: "",
+  telefono_empresa: "",
+  nombre_viajero: "",
+  telefono_viajero: "",
   nit: "",
-  telefono: "",
   correo: "",
   direccion: "",
 };
@@ -25,9 +28,13 @@ const buildFormState = (proveedorEditando) => {
   }
 
   return {
-    nombre: proveedorEditando.nombre || "",
+    nombre_empresa:
+      proveedorEditando.nombre_empresa || proveedorEditando.nombre || "",
+    telefono_empresa:
+      proveedorEditando.telefono_empresa || proveedorEditando.telefono || "",
+    nombre_viajero: proveedorEditando.nombre_viajero || "",
+    telefono_viajero: proveedorEditando.telefono_viajero || "",
     nit: proveedorEditando.nit || "",
-    telefono: proveedorEditando.telefono || "",
     correo: proveedorEditando.correo || "",
     direccion: proveedorEditando.direccion || "",
   };
@@ -61,9 +68,11 @@ function ProveedorFormModal({
     event.preventDefault();
 
     onSave({
-      nombre: form.nombre.trim(),
+      nombre_empresa: form.nombre_empresa.trim(),
+      telefono_empresa: form.telefono_empresa.trim(),
+      nombre_viajero: form.nombre_viajero.trim(),
+      telefono_viajero: form.telefono_viajero.trim(),
       nit: form.nit.trim(),
-      telefono: form.telefono.trim(),
       correo: form.correo.trim(),
       direccion: form.direccion.trim(),
     });
@@ -78,16 +87,30 @@ function ProveedorFormModal({
       </DialogTitle>
 
       <DialogContent dividers>
-        <Grid container spacing={2} mt={0.5}>
-          <Grid item xs={12}>
+        <Typography variant="subtitle2" color="text.secondary" mb={1.5}>
+          Datos de la empresa
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={8}>
             <TextField
               fullWidth
               required
-              label="Nombre"
-              name="nombre"
-              value={form.nombre}
+              label="Nombre de la empresa"
+              name="nombre_empresa"
+              value={form.nombre_empresa}
               onChange={handleChange}
-              placeholder="Ej. Distribuidora Central"
+              placeholder="Ej. Distribuidora Central, S.A."
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Telefono empresa"
+              name="telefono_empresa"
+              value={form.telefono_empresa}
+              onChange={handleChange}
+              placeholder="Ej. 2222-3333"
             />
           </Grid>
 
@@ -106,17 +129,6 @@ function ProveedorFormModal({
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Telefono"
-              name="telefono"
-              value={form.telefono}
-              onChange={handleChange}
-              placeholder="Ej. 5555-5555"
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
               label="Correo"
               name="correo"
               type="email"
@@ -126,7 +138,7 @@ function ProveedorFormModal({
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Direccion"
@@ -134,6 +146,35 @@ function ProveedorFormModal({
               value={form.direccion}
               onChange={handleChange}
               placeholder="Zona, calle o referencia"
+            />
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ my: 2.5 }} />
+
+        <Typography variant="subtitle2" color="text.secondary" mb={1.5}>
+          Datos del viajero (contacto comercial)
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={8}>
+            <TextField
+              fullWidth
+              label="Nombre del viajero"
+              name="nombre_viajero"
+              value={form.nombre_viajero}
+              onChange={handleChange}
+              placeholder="Ej. Juan Perez"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Telefono viajero"
+              name="telefono_viajero"
+              value={form.telefono_viajero}
+              onChange={handleChange}
+              placeholder="Ej. 5555-5555"
             />
           </Grid>
         </Grid>

@@ -190,7 +190,9 @@ function BuscarProducto({ productos, onAgregar, disabled = false }) {
                         <Box>
                           <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
                             <Inventory2Icon fontSize="small" color="action" />
-                            <Typography fontWeight={600}>{producto.nombre}</Typography>
+                            <Typography fontWeight={700} sx={{ fontSize: "1rem" }}>
+                              {producto.nombre}
+                            </Typography>
                           </Stack>
 
                           <ListItemText

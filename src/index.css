@@ -1,5 +1,9 @@
 html {
   box-sizing: border-box;
+  /* Escala fluida: 16px en movil -> 17.5px en escritorio */
+  font-size: clamp(16px, 0.95rem + 0.2vw, 17.5px);
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 html,
@@ -15,10 +19,75 @@ body,
 body {
   box-sizing: border-box;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "kern";
+  line-height: 1.55;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: inherit;
+}
+
+/* ====== Modo POS (Caja / Ventas): legibilidad reforzada ======
+   Se activa envolviendo la vista con className="pos-surface".
+   Sube el tamano base un 6% sin romper el layout responsive. */
+.pos-surface {
+  font-size: 1.0625rem;
+}
+
+.pos-surface .MuiTypography-body1 {
+  font-size: 1.0625rem;
+}
+
+.pos-surface .MuiTypography-body2 {
+  font-size: 0.95rem;
+}
+
+.pos-surface .MuiTableCell-root {
+  font-size: 1rem;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.pos-surface .MuiChip-root {
+  font-size: 0.85rem;
+  height: 30px;
+}
+
+.pos-surface .MuiInputBase-input {
+  font-size: 1.05rem;
+}
+
+.pos-surface .MuiButton-root {
+  font-size: 1rem;
+  min-height: 44px;   /* target tactil minimo en tablet/POS */
+}
+
+.pos-surface .pos-total {
+  font-size: clamp(1.8rem, 1.2rem + 1.4vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Pantallas grandes: aun mas grande para cajeros de pie */
+@media (min-width: 1440px) {
+  .pos-surface {
+    font-size: 1.09375rem;
+  }
+  .pos-surface .MuiTableCell-root {
+    font-size: 1.05rem;
+  }
+}
+
+/* Accesibilidad: respetar preferencias del SO */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

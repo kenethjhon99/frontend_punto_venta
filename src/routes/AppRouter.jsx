@@ -15,6 +15,7 @@ const Compras = lazy(() => import("../pages/Compras"));
 const Proveedores = lazy(() => import("../pages/Proveedores"));
 const Clientes = lazy(() => import("../pages/Clientes"));
 const Usuarios = lazy(() => import("../pages/Usuarios"));
+const Empleados = lazy(() => import("../pages/Empleados"));
 const Auditoria = lazy(() => import("../pages/Auditoria"));
 const Caja = lazy(() => import("../pages/Caja"));
 const Servicios = lazy(() => import("../pages/Servicios"));
@@ -140,6 +141,14 @@ function AppRouter() {
               }
             />
             <Route
+              path="/empleados"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
+                  <Empleados />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/auditoria"
               element={
                 <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
@@ -150,7 +159,7 @@ function AppRouter() {
             <Route
               path="/servicios"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
                   <Servicios />
                 </ProtectedRoute>
               }
@@ -158,7 +167,7 @@ function AppRouter() {
             <Route
               path="/servicios/tienda"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
                   <ServiciosTienda />
                 </ProtectedRoute>
               }
@@ -166,7 +175,7 @@ function AppRouter() {
             <Route
               path="/carwash/autolavado"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "ENCARGADO_SERVICIOS", "LECTURA"]}>
                   <CarWashAutolavado />
                 </ProtectedRoute>
               }
@@ -174,7 +183,7 @@ function AppRouter() {
             <Route
               path="/carwash/reparacion"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
                   <CarWashReparacion />
                 </ProtectedRoute>
               }
