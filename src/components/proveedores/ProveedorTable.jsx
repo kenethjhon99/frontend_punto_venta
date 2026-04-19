@@ -46,10 +46,8 @@ function ProveedorTable({
       <Table sx={{ minWidth: 1100 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>
-            <TableCell sx={getTableHeaderCellSx(theme)}>Empresa</TableCell>
-            <TableCell sx={getTableHeaderCellSx(theme)}>Tel. empresa</TableCell>
-            <TableCell sx={getTableHeaderCellSx(theme)}>Viajero</TableCell>
-            <TableCell sx={getTableHeaderCellSx(theme)}>Tel. viajero</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Telefono</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>NIT</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Correo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Direccion</TableCell>
@@ -71,8 +69,6 @@ function ProveedorTable({
               <TableCell>
                 {proveedor.telefono_empresa || proveedor.telefono || "-"}
               </TableCell>
-              <TableCell>{proveedor.nombre_viajero || "-"}</TableCell>
-              <TableCell>{proveedor.telefono_viajero || "-"}</TableCell>
               <TableCell>{proveedor.nit}</TableCell>
               <TableCell>{proveedor.correo || "-"}</TableCell>
               <TableCell>{proveedor.direccion || "-"}</TableCell>

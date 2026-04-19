@@ -1,27 +1,38 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
 import { getDefaultRoute } from "../utils/roles";
 import ProtectedRoute from "./ProtectedRoute";
+import RouteErrorBoundary from "../components/ui/RouteErrorBoundary";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 
-const Login = lazy(() => import("../pages/Login"));
-const Dashboard = lazy(() => import("../pages/Dashboard"));
-const Productos = lazy(() => import("../pages/Productos"));
-const Inventario = lazy(() => import("../pages/Inventario"));
-const Layout = lazy(() => import("../components/layout/Layout"));
-const Ventas = lazy(() => import("../pages/Ventas"));
-const Compras = lazy(() => import("../pages/Compras"));
-const Proveedores = lazy(() => import("../pages/Proveedores"));
-const Clientes = lazy(() => import("../pages/Clientes"));
-const Usuarios = lazy(() => import("../pages/Usuarios"));
-const Empleados = lazy(() => import("../pages/Empleados"));
-const Auditoria = lazy(() => import("../pages/Auditoria"));
-const Caja = lazy(() => import("../pages/Caja"));
-const Servicios = lazy(() => import("../pages/Servicios"));
-const ServiciosTienda = lazy(() => import("../pages/ServiciosTienda"));
-const CarWashAutolavado = lazy(() => import("../pages/CarWashAutolavado"));
-const CarWashReparacion = lazy(() => import("../pages/CarWashReparacion"));
+const Login = lazyWithRetry(() => import("../pages/Login"), "login");
+const Dashboard = lazyWithRetry(() => import("../pages/Dashboard"), "dashboard");
+const Productos = lazyWithRetry(() => import("../pages/Productos"), "productos");
+const Inventario = lazyWithRetry(() => import("../pages/Inventario"), "inventario");
+const Layout = lazyWithRetry(() => import("../components/layout/Layout"), "layout");
+const Ventas = lazyWithRetry(() => import("../pages/Ventas"), "ventas");
+const Compras = lazyWithRetry(() => import("../pages/Compras"), "compras");
+const Proveedores = lazyWithRetry(() => import("../pages/Proveedores"), "proveedores");
+const Clientes = lazyWithRetry(() => import("../pages/Clientes"), "clientes");
+const Usuarios = lazyWithRetry(() => import("../pages/Usuarios"), "usuarios");
+const Empleados = lazyWithRetry(() => import("../pages/Empleados"), "empleados");
+const Auditoria = lazyWithRetry(() => import("../pages/Auditoria"), "auditoria");
+const Caja = lazyWithRetry(() => import("../pages/Caja"), "caja");
+const Servicios = lazyWithRetry(() => import("../pages/Servicios"), "servicios");
+const ServiciosTienda = lazyWithRetry(
+  () => import("../pages/ServiciosTienda"),
+  "servicios-tienda"
+);
+const CarWashAutolavado = lazyWithRetry(
+  () => import("../pages/CarWashAutolavado"),
+  "carwash-autolavado"
+);
+const CarWashReparacion = lazyWithRetry(
+  () => import("../pages/CarWashReparacion"),
+  "carwash-reparacion"
+);
 
 const RouteFallback = () => (
   <Box
@@ -42,8 +53,9 @@ function AppRouter() {
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
+      <RouteErrorBoundary>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
           <Route
             path="/login"
             element={
@@ -191,8 +203,9 @@ function AppRouter() {
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+          </Routes>
+        </Suspense>
+      </RouteErrorBoundary>
     </BrowserRouter>
   );
 }

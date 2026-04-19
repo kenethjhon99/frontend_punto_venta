@@ -83,10 +83,8 @@ function Proveedores() {
       const coincideTexto =
         !texto ||
         String(proveedor.nombre_empresa || proveedor.nombre || "").toLowerCase().includes(texto) ||
-        String(proveedor.nombre_viajero || "").toLowerCase().includes(texto) ||
         String(proveedor.correo || "").toLowerCase().includes(texto) ||
         String(proveedor.telefono_empresa || proveedor.telefono || "").toLowerCase().includes(texto) ||
-        String(proveedor.telefono_viajero || "").toLowerCase().includes(texto) ||
         String(proveedor.direccion || "").toLowerCase().includes(texto);
 
       const coincideNit =
@@ -202,7 +200,7 @@ function Proveedores() {
     if (!proveedor.estado) return;
 
     const confirmar = window.confirm(
-      `Deseas desactivar el proveedor "${proveedor.nombre}"?`
+      `Deseas desactivar el proveedor "${proveedor.nombre || proveedor.nombre_empresa}"?`
     );
 
     if (!confirmar) return;
@@ -276,7 +274,7 @@ function Proveedores() {
           <TextField
             fullWidth
             label="Buscar proveedor"
-            placeholder="Empresa, viajero, correo, telefono o direccion"
+            placeholder="Nombre, correo, telefono o direccion"
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
           />
@@ -365,12 +363,9 @@ function Proveedores() {
               <Typography variant="body2" color="text.secondary">
                 NIT: {proveedorSeleccionado.nit}
               </Typography>
-              {proveedorSeleccionado.nombre_viajero && (
+              {(proveedorSeleccionado.telefono || proveedorSeleccionado.telefono_empresa) && (
                 <Typography variant="body2" color="text.secondary">
-                  Viajero: {proveedorSeleccionado.nombre_viajero}
-                  {proveedorSeleccionado.telefono_viajero
-                    ? ` - ${proveedorSeleccionado.telefono_viajero}`
-                    : ""}
+                  Telefono: {proveedorSeleccionado.telefono || proveedorSeleccionado.telefono_empresa}
                 </Typography>
               )}
               <Typography variant="body2" color="text.secondary">

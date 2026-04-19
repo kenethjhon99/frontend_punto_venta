@@ -60,22 +60,76 @@ import {
 import { crearCliente, getClientes } from "../services/clienteService";
 import { getCajaSesionActiva } from "../services/cajaService";
 
+const isPlainObject = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const normalizarColeccion = (data) => {
+  const raw = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+      ? data.data
+      : [];
+
+  return raw.filter(isPlainObject);
+};
+
+const normalizarProductos = (data) =>
+  normalizarColeccion(data)
+    .filter((producto) => Number.isInteger(Number(producto.id_producto)))
+    .map((producto) => ({
+      ...producto,
+      id_producto: Number(producto.id_producto),
+      nombre: String(producto.nombre || "Producto sin nombre"),
+      codigo_barras: producto.codigo_barras ? String(producto.codigo_barras) : "",
+      descripcion: producto.descripcion ? String(producto.descripcion) : "",
+      precio_venta: Number(producto.precio_venta || 0),
+      precio_compra: Number(producto.precio_compra || 0),
+      stock: Number(producto.stock ?? producto.existencia ?? 0),
+    }));
+
 const normalizarClientes = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+  return normalizarColeccion(data)
+    .filter((cliente) => Number.isInteger(Number(cliente.id_cliente)))
+    .map((cliente) => ({
+      ...cliente,
+      id_cliente: Number(cliente.id_cliente),
+      nombre: String(cliente.nombre || "Consumidor final"),
+      codigo: cliente.codigo ? String(cliente.codigo) : "",
+      nit: cliente.nit ? String(cliente.nit) : "",
+      tipo_cliente: String(cliente.tipo_cliente || "NORMAL").toUpperCase(),
+    }));
 };
 
 const normalizarVentas = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+  return normalizarColeccion(data)
+    .filter((venta) => Number.isInteger(Number(venta.id_venta)))
+    .map((venta) => ({
+      ...venta,
+      id_venta: Number(venta.id_venta),
+      total: Number(venta.total || 0),
+      estado: String(venta.estado || "PENDIENTE").toUpperCase(),
+      metodo_pago: venta.metodo_pago ? String(venta.metodo_pago) : "",
+      tipo_venta: venta.tipo_venta ? String(venta.tipo_venta) : "",
+      cliente_nombre: venta.cliente_nombre ? String(venta.cliente_nombre) : "",
+      cliente_codigo: venta.cliente_codigo ? String(venta.cliente_codigo) : "",
+      numero_comprobante: venta.numero_comprobante
+        ? String(venta.numero_comprobante)
+        : "",
+      comprobante_nombre: venta.comprobante_nombre
+        ? String(venta.comprobante_nombre)
+        : "",
+    }));
 };
 
 const normalizarComprobantes = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+  return normalizarColeccion(data)
+    .filter((item) => String(item.tipo_comprobante || "").trim())
+    .map((item) => ({
+      ...item,
+      tipo_comprobante: String(item.tipo_comprobante || "").toUpperCase(),
+      serie: item.serie ? String(item.serie) : "",
+      siguiente_numero: item.siguiente_numero ? String(item.siguiente_numero) : "",
+    }));
 };
 
 const EMPTY_NO_COBRO_FORM = {
@@ -147,7 +201,7 @@ function Ventas() {
     try {
       setLoadingProductos(true);
       const data = await getProductos({ scope: "GENERAL" });
-      setProductos(Array.isArray(data) ? data : []);
+      setProductos(normalizarProductos(data));
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "No se pudieron cargar los productos");
@@ -319,16 +373,6 @@ function Ventas() {
     return Number.isFinite(value) ? value : 0;
   }, [montoRecibido]);
 
-  const vuelto = useMemo(() => {
-    if (metodoPago !== "EFECTIVO") return 0;
-    return Math.max(0, montoRecibidoNumero - totalConDescuento);
-  }, [metodoPago, montoRecibidoNumero, totalConDescuento]);
-
-  const faltanteEfectivo = useMemo(() => {
-    if (metodoPago !== "EFECTIVO") return 0;
-    return Math.max(0, totalConDescuento - montoRecibidoNumero);
-  }, [metodoPago, montoRecibidoNumero, totalConDescuento]);
-
   const clienteSeleccionado = useMemo(() => {
     return clientes.find((cliente) => cliente.id_cliente === Number(clienteId)) || null;
   }, [clientes, clienteId]);
@@ -353,6 +397,16 @@ function Ventas() {
     () => (clientePermiteDescuento ? resumenDescuento.totalFinal : total),
     [clientePermiteDescuento, resumenDescuento.totalFinal, total]
   );
+
+  const vuelto = useMemo(() => {
+    if (metodoPago !== "EFECTIVO") return 0;
+    return Math.max(0, montoRecibidoNumero - totalConDescuento);
+  }, [metodoPago, montoRecibidoNumero, totalConDescuento]);
+
+  const faltanteEfectivo = useMemo(() => {
+    if (metodoPago !== "EFECTIVO") return 0;
+    return Math.max(0, totalConDescuento - montoRecibidoNumero);
+  }, [metodoPago, montoRecibidoNumero, totalConDescuento]);
 
   const ultimoCodigoGenerado = useMemo(() => {
     return obtenerUltimoCodigoCliente(clientes);

@@ -286,7 +286,11 @@ function Compras() {
   }, [items]);
 
   const guardarProveedor = async (formData) => {
-    if (!formData.nombre) {
+    const nombreProveedor = String(
+      formData.nombre || formData.nombre_empresa || ""
+    ).trim();
+
+    if (!nombreProveedor) {
       setError("El nombre del proveedor es requerido.");
       return;
     }
@@ -314,7 +318,11 @@ function Compras() {
       );
       setProveedorId(String(proveedorCreado.id_proveedor));
       setProveedorModalOpen(false);
-      setSuccess(`Proveedor "${proveedorCreado.nombre}" creado correctamente.`);
+      setSuccess(
+        `Proveedor "${
+          proveedorCreado.nombre || proveedorCreado.nombre_empresa || nombreProveedor
+        }" creado correctamente.`
+      );
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || err.message || "No se pudo crear el proveedor");
