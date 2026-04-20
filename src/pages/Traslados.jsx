@@ -57,7 +57,7 @@ const estadoColor = (estado) => {
   return "success";
 };
 
-const getBucketLabel = (bodega) => bodega?.nombre_visible || bodega?.nombre || "-";
+const getBodegaLabel = (bodega) => bodega?.nombre_visible || bodega?.nombre || "-";
 
 function Traslados() {
   const { user } = useAuth();
