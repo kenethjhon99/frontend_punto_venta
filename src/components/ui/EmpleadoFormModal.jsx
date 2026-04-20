@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   CircularProgress,
@@ -7,19 +7,35 @@ import {
   DialogContent,
   DialogTitle,
   Grid,
+  InputAdornment,
   MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
+import {
+  DIAS_MES,
+  DIAS_SEMANA,
+  etiquetaDiaPago,
+} from "../../utils/fechaCobro";
 
 const tipoPagoPorCargo = {
   CARWASH: "SEMANAL",
   VENDEDOR: "MENSUAL",
 };
 
+// Defaults coherentes con la migracion:
+//   SEMANAL -> viernes (5)
+//   MENSUAL -> ultimo dia del mes (0)
+const diaPagoPorCargo = {
+  CARWASH: 5,
+  VENDEDOR: 0,
+};
+
 const initialState = {
   nombre: "",
   cargo: "CARWASH",
+  sueldo: "",
+  dia_pago: String(diaPagoPorCargo.CARWASH),
 };
 
 const buildFormState = (empleadoEditando) => {
@@ -27,9 +43,20 @@ const buildFormState = (empleadoEditando) => {
     return initialState;
   }
 
+  const cargo = empleadoEditando.cargo || "CARWASH";
+  const diaPagoRaw =
+    empleadoEditando.dia_pago != null
+      ? empleadoEditando.dia_pago
+      : diaPagoPorCargo[cargo] ?? 0;
+
   return {
     nombre: empleadoEditando.nombre || "",
-    cargo: empleadoEditando.cargo || "CARWASH",
+    cargo,
+    sueldo:
+      empleadoEditando.sueldo != null
+        ? String(empleadoEditando.sueldo)
+        : "",
+    dia_pago: String(diaPagoRaw),
   };
 };
 
@@ -42,17 +69,45 @@ function EmpleadoFormModal({
 }) {
   const [form, setForm] = useState(() => buildFormState(empleadoEditando));
 
+  // Re-sincronizar si cambia empleadoEditando al abrir el modal
+  useEffect(() => {
+    if (open) setForm(buildFormState(empleadoEditando));
+  }, [open, empleadoEditando]);
+
   const tipoPago = useMemo(() => {
     return tipoPagoPorCargo[form.cargo] || "";
   }, [form.cargo]);
 
+  const opcionesDiaPago = useMemo(() => {
+    if (tipoPago === "SEMANAL") return DIAS_SEMANA;
+    if (tipoPago === "MENSUAL") return DIAS_MES;
+    return [];
+  }, [tipoPago]);
+
+  const previewDiaPago = useMemo(() => {
+    if (form.dia_pago === "" || form.dia_pago == null) return "-";
+    return etiquetaDiaPago({
+      tipo_pago: tipoPago,
+      dia_pago: Number(form.dia_pago),
+    });
+  }, [form.dia_pago, tipoPago]);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => {
+      if (name === "cargo") {
+        // Al cambiar cargo reseteamos dia_pago al default del nuevo tipo
+        const nextDefault = diaPagoPorCargo[value] ?? 0;
+        return {
+          ...prev,
+          cargo: value,
+          dia_pago: String(nextDefault),
+        };
+      }
+
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleClose = () => {
@@ -61,6 +116,17 @@ function EmpleadoFormModal({
     onClose();
   };
 
+  const sueldoNumero = useMemo(() => {
+    const n = Number(form.sueldo);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }, [form.sueldo]);
+
+  const sueldoInvalido = useMemo(() => {
+    if (form.sueldo === "") return false;
+    const n = Number(form.sueldo);
+    return !Number.isFinite(n) || n < 0;
+  }, [form.sueldo]);
+
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -68,6 +134,8 @@ function EmpleadoFormModal({
       nombre: form.nombre.trim(),
       cargo: form.cargo,
       tipo_pago: tipoPago,
+      sueldo: sueldoNumero,
+      dia_pago: Number(form.dia_pago),
     });
   };
 
@@ -120,6 +188,57 @@ function EmpleadoFormModal({
                   : "Los vendedores se pagan mensualmente."
               }
             />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              required
+              type="number"
+              label="Sueldo"
+              name="sueldo"
+              value={form.sueldo}
+              onChange={handleChange}
+              inputProps={{ min: 0, step: "0.01" }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">Q</InputAdornment>,
+              }}
+              error={sueldoInvalido}
+              helperText={
+                sueldoInvalido
+                  ? "El sueldo debe ser un numero mayor o igual a 0."
+                  : tipoPago === "SEMANAL"
+                    ? "Monto que se paga cada semana."
+                    : "Monto que se paga cada mes."
+              }
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              required
+              label={
+                tipoPago === "SEMANAL"
+                  ? "Dia de pago (semana)"
+                  : "Dia de pago (mes)"
+              }
+              name="dia_pago"
+              value={form.dia_pago}
+              onChange={handleChange}
+              helperText={
+                tipoPago === "SEMANAL"
+                  ? `Proximo cobro estimado: ${previewDiaPago}`
+                  : `Proximo cobro estimado: ${previewDiaPago}`
+              }
+            >
+              {opcionesDiaPago.map((opcion) => (
+                <MenuItem key={opcion.valor} value={String(opcion.valor)}>
+                  {opcion.label}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
         </Grid>
       </DialogContent>

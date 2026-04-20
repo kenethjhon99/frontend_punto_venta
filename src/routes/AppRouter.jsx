@@ -22,6 +22,10 @@ const Auditoria = lazyWithRetry(() => import("../pages/Auditoria"), "auditoria")
 const Caja = lazyWithRetry(() => import("../pages/Caja"), "caja");
 const Servicios = lazyWithRetry(() => import("../pages/Servicios"), "servicios");
 const Traslados = lazyWithRetry(() => import("../pages/Traslados"), "traslados");
+const CreditosEmpleado = lazyWithRetry(
+  () => import("../pages/CreditosEmpleado"),
+  "creditos-empleado"
+);
 const ServiciosTienda = lazyWithRetry(
   () => import("../pages/ServiciosTienda"),
   "servicios-tienda"
@@ -182,6 +186,14 @@ function AppRouter() {
               element={
                 <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
                   <Traslados />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/creditos-empleado"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "LECTURA"]}>
+                  <CreditosEmpleado />
                 </ProtectedRoute>
               }
             />

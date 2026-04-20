@@ -32,6 +32,7 @@ import LocalCarWashIcon from "@mui/icons-material/LocalCarWash";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 88;
@@ -129,6 +130,12 @@ function Sidebar({
       text: "Traslados",
       path: "/traslados",
       icon: <SwapHorizIcon />,
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "LECTURA"),
+    },
+    {
+      text: "Creditos empleados",
+      path: "/creditos-empleado",
+      icon: <PaidOutlinedIcon />,
       visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "LECTURA"),
     },
   ].filter((item) => item.visible ?? true);
