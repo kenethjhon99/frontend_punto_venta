@@ -49,6 +49,7 @@ import {
   getTableContainerSx,
   getTableHeaderRowSx,
 } from "../utils/tableHeaderStyles";
+import CreditosEmpleadoAlertCard from "../components/dashboard/CreditosEmpleadoAlertCard";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("es-GT", {
@@ -555,6 +556,10 @@ function Dashboard() {
             </Grid>
           );
         })}
+
+        <Grid item xs={12}>
+          <CreditosEmpleadoAlertCard />
+        </Grid>
 
         <Grid item xs={12} lg={8}>
           <Paper elevation={2} sx={(theme) => getSectionPanelSx(theme, { p: 3, radius: 4, accent: "primary" })}>

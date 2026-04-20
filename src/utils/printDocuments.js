@@ -452,6 +452,12 @@ export const openPrintDocument = ({
 export const buildVentaTicketHtml = (ventaData) => {
   const venta = ventaData?.venta || {};
   const detalles = Array.isArray(ventaData?.detalles) ? ventaData.detalles : [];
+  const creditoEmpleado = ventaData?.credito_empleado || null;
+  const esCreditoEmpleado = Boolean(
+    creditoEmpleado ||
+      venta.id_empleado_credito ||
+      String(venta.metodo_pago || "").toUpperCase() === "CREDITO_EMPLEADO"
+  );
   const tipoComprobante = String(
     venta.comprobante_nombre || venta.tipo_comprobante || "TICKET"
   ).trim();
@@ -509,6 +515,49 @@ export const buildVentaTicketHtml = (ventaData) => {
   ]
     .filter(Boolean)
     .join("<br />");
+
+  const creditoBannerHtml = esCreditoEmpleado
+    ? (() => {
+        const empleadoNombre =
+          creditoEmpleado?.empleado_nombre || "Empleado";
+        const empleadoCargo = creditoEmpleado?.empleado_cargo || "";
+        const saldo = Number(
+          creditoEmpleado?.saldo_pendiente ?? venta.total ?? 0
+        );
+        const fechaCobroRaw = creditoEmpleado?.fecha_cobro_estimada;
+        let fechaCobroTxt = "-";
+        if (fechaCobroRaw) {
+          const d = new Date(fechaCobroRaw);
+          if (!Number.isNaN(d.getTime())) {
+            fechaCobroTxt = d.toLocaleDateString("es-GT", {
+              weekday: "short",
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            });
+          }
+        }
+        return `
+          <div class="credito-banner">
+            <div class="credito-title">*** CREDITO A EMPLEADO ***</div>
+            <div class="credito-line">
+              ${escapeHtml(empleadoNombre.toUpperCase())}${
+                empleadoCargo ? ` (${escapeHtml(empleadoCargo)})` : ""
+              }
+            </div>
+            <div class="credito-saldo">
+              SALDO ${escapeHtml(formatPrintCurrency(saldo))}
+            </div>
+            <div class="credito-line">
+              Proximo cobro: ${escapeHtml(fechaCobroTxt)}
+            </div>
+            <div class="credito-footer">
+              Esta venta NO se cobra hoy. Se descuenta del proximo pago.
+            </div>
+          </div>
+        `;
+      })()
+    : "";
 
   return `
     <!doctype html>
@@ -577,6 +626,34 @@ export const buildVentaTicketHtml = (ventaData) => {
             margin-top: 12px;
             white-space: pre-wrap;
           }
+          .credito-banner {
+            border: 2px solid #111111;
+            border-radius: 4px;
+            padding: 8px 6px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 700;
+          }
+          .credito-banner .credito-title {
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+          }
+          .credito-banner .credito-line {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 2px;
+          }
+          .credito-banner .credito-saldo {
+            font-size: 14px;
+            margin-top: 6px;
+          }
+          .credito-banner .credito-footer {
+            font-weight: 400;
+            font-size: 11px;
+            margin-top: 6px;
+            font-style: italic;
+          }
           @media print {
             @page {
               size: 80mm auto;
@@ -622,12 +699,20 @@ export const buildVentaTicketHtml = (ventaData) => {
               : ""
           }
 
+          ${creditoBannerHtml}
+
           <div class="rule"></div>
 
-          <div class="meta-block">
-            <div>Nombre: ${escapeHtml(clienteNombre.toUpperCase())}</div>
-            <div>Nit: ${escapeHtml(String(clienteNit).toUpperCase())}</div>
-          </div>
+          ${
+            esCreditoEmpleado
+              ? ""
+              : `
+                <div class="meta-block">
+                  <div>Nombre: ${escapeHtml(clienteNombre.toUpperCase())}</div>
+                  <div>Nit: ${escapeHtml(String(clienteNit).toUpperCase())}</div>
+                </div>
+              `
+          }
 
           <div class="spacer"></div>
 

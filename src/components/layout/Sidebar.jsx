@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { userHasRole } from "../../utils/roles";
+import { useCreditoEmpleadoAlertas } from "../../hooks/useCreditoEmpleadoAlertas";
 
 import {
+  Badge,
   Drawer,
   List,
   ListItemButton,
@@ -47,6 +49,11 @@ function Sidebar({
   const location = useLocation();
   const { user } = useAuth();
   const theme = useTheme();
+  const { resumen: alertasCredito } = useCreditoEmpleadoAlertas();
+  const vencidosCount = Number(alertasCredito?.vencidos || 0);
+  const porVencerCount = Number(alertasCredito?.por_vencer || 0);
+  const badgeCount = vencidosCount + porVencerCount;
+  const badgeColor = vencidosCount > 0 ? "error" : "warning";
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const drawerBackground =
     theme.palette.mode === "light"
@@ -135,7 +142,17 @@ function Sidebar({
     {
       text: "Creditos empleados",
       path: "/creditos-empleado",
-      icon: <PaidOutlinedIcon />,
+      icon: (
+        <Badge
+          badgeContent={badgeCount}
+          color={badgeColor}
+          max={99}
+          overlap="circular"
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <PaidOutlinedIcon />
+        </Badge>
+      ),
       visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "LECTURA"),
     },
   ].filter((item) => item.visible ?? true);
