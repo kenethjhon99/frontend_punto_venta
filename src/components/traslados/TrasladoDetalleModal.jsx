@@ -19,6 +19,11 @@ import {
 } from "@mui/material";
 import CallMadeIcon from "@mui/icons-material/CallMade";
 import CallReceivedIcon from "@mui/icons-material/CallReceived";
+import PrintIcon from "@mui/icons-material/Print";
+import {
+  buildNotaTrasladoHtml,
+  openPrintDocument,
+} from "../../utils/printDocuments";
 
 const formatQ = (n) => `Q ${Number(n || 0).toFixed(2)}`;
 
@@ -55,6 +60,15 @@ function TrasladoDetalleModal({ open, onClose, data, loading }) {
   const t = data?.traslado;
   const detalles = data?.detalles || [];
   const movimientos = data?.movimientos || [];
+
+  const imprimir = () => {
+    if (!t) return;
+    const folio = t.folio || `TR-${t.id_traslado}`;
+    openPrintDocument({
+      title: `Nota de traslado ${folio}`,
+      html: buildNotaTrasladoHtml(data),
+    });
+  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -241,6 +255,14 @@ function TrasladoDetalleModal({ open, onClose, data, loading }) {
         )}
       </DialogContent>
       <DialogActions>
+        <Button
+          onClick={imprimir}
+          startIcon={<PrintIcon />}
+          disabled={loading || !t}
+          variant="outlined"
+        >
+          Imprimir nota
+        </Button>
         <Button onClick={onClose}>Cerrar</Button>
       </DialogActions>
     </Dialog>

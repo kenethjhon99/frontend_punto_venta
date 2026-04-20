@@ -1814,3 +1814,437 @@ export const buildKardexHtml = ({
     footerNote: "Kardex generado desde el modulo de inventario.",
     });
   })();
+
+export const buildNotaTrasladoHtml = (trasladoData, opciones = {}) => {
+  const traslado = trasladoData?.traslado || {};
+  const detalles = Array.isArray(trasladoData?.detalles) ? trasladoData.detalles : [];
+  const movimientos = Array.isArray(trasladoData?.movimientos) ? trasladoData.movimientos : [];
+
+  const empresa = {
+    nombre: opciones.empresa_nombre || BUSINESS_INFO.name,
+    direccion: opciones.empresa_direccion || BUSINESS_INFO.addressLines.join(", "),
+    telefono: opciones.empresa_telefono || "",
+    correo: opciones.empresa_correo || "",
+    nit: opciones.empresa_nit || BUSINESS_INFO.nit,
+    logoUrl: opciones.empresa_logo || "/icono.png",
+  };
+
+  const estado = String(traslado.estado || "").toUpperCase();
+  const anulado = estado === "ANULADO";
+
+  const folio = traslado.folio || `TR-${pad5(traslado.id_traslado)}`;
+  const totalItems = Number(traslado.total_items || detalles.length || 0);
+  const totalUnidades = Number(
+    traslado.total_unidades ||
+      detalles.reduce((acc, d) => acc + Number(d.cantidad || 0), 0)
+  );
+  const totalValor = Number(
+    traslado.total_valorizado ||
+      detalles.reduce((acc, d) => acc + Number(d.subtotal || 0), 0)
+  );
+
+  const filasProductos = detalles.length
+    ? detalles
+        .map((d, idx) => {
+          const cantidad = Number(d.cantidad || 0);
+          const costo = Number(d.costo_unitario || 0);
+          const subtotal = Number(d.subtotal || cantidad * costo);
+          return `
+            <tr>
+              <td class="col-num">${idx + 1}</td>
+              <td class="col-desc">
+                <div class="prod-nombre">${escapeHtml(d.producto_nombre || "Producto")}</div>
+                ${d.codigo_barras ? `<div class="prod-codigo">Codigo: ${escapeHtml(d.codigo_barras)}</div>` : ""}
+              </td>
+              <td class="col-num">${cantidad}</td>
+              <td class="col-num">${formatPrintCurrency(costo)}</td>
+              <td class="col-num">${formatPrintCurrency(subtotal)}</td>
+            </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="5" class="empty-row">Sin renglones registrados.</td></tr>`;
+
+  const filasMovimientos = movimientos.length
+    ? movimientos
+        .map((m) => {
+          const tipo = String(m.tipo || "").toUpperCase();
+          return `
+            <tr>
+              <td><span class="chip chip-${tipo === "ENTRADA" ? "in" : "out"}">${escapeHtml(tipo || "-")}</span></td>
+              <td>${escapeHtml(m.bodega_nombre || "-")}</td>
+              <td class="col-num">${Number(m.cantidad || 0)}</td>
+              <td class="col-num">${Number(m.existencia_antes || 0)}</td>
+              <td class="col-num">${Number(m.existencia_despues || 0)}</td>
+              <td class="muted-cell">${escapeHtml(m.motivo || "")}</td>
+            </tr>`;
+        })
+        .join("")
+    : "";
+
+  const seccionMovimientos = movimientos.length
+    ? `
+        <section class="section">
+          <h2 class="section-title">Movimientos de stock generados</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Bodega</th>
+                <th class="col-num">Cantidad</th>
+                <th class="col-num">Antes</th>
+                <th class="col-num">Despues</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>${filasMovimientos}</tbody>
+          </table>
+        </section>
+      `
+    : "";
+
+  const seccionAnulacion = anulado
+    ? `
+        <section class="section anulacion">
+          <h2 class="section-title section-title-danger">Anulacion</h2>
+          <div class="meta-grid">
+            <div class="meta-row"><div class="meta-label">Fecha</div><div class="meta-value">${escapeHtml(formatPrintDateTime(traslado.anulada_en))}</div></div>
+            <div class="meta-row"><div class="meta-label">Anulado por</div><div class="meta-value">${escapeHtml(traslado.anulada_por_nombre || traslado.anulada_por_username || "-")}</div></div>
+            ${traslado.motivo_anulacion ? `<div class="meta-row span-2"><div class="meta-label">Motivo</div><div class="meta-value">${escapeHtml(traslado.motivo_anulacion)}</div></div>` : ""}
+          </div>
+        </section>
+      `
+    : "";
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>Nota de traslado ${escapeHtml(folio)}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 14mm 14mm 18mm 14mm;
+          }
+          :root { color-scheme: light; }
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #eef1f6;
+            color: #0f172a;
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 12.5px;
+            line-height: 1.5;
+          }
+          .page {
+            position: relative;
+            background: #fff;
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 16mm 14mm;
+            box-shadow: 0 8px 28px rgba(15,23,42,0.08);
+            overflow: hidden;
+          }
+          .watermark {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-22deg);
+            font-size: 110px;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: rgba(220, 38, 38, 0.12);
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+          }
+          .page > *:not(.watermark) { position: relative; z-index: 1; }
+          .tr-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            padding-bottom: 14px;
+            border-bottom: 3px double #0f172a;
+          }
+          .tr-brand { display: flex; gap: 14px; align-items: flex-start; }
+          .tr-logo {
+            width: 66px;
+            height: 66px;
+            object-fit: contain;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 4px;
+            background: #fff;
+          }
+          .tr-brand-text h1 { margin: 0; font-size: 20px; letter-spacing: 0.02em; }
+          .tr-brand-text .muted { color: #475569; font-size: 11.5px; }
+          .tr-doc {
+            text-align: right;
+            min-width: 220px;
+            padding: 10px 14px;
+            border: 1px solid #0f172a;
+            border-radius: 10px;
+            background: #f8fafc;
+          }
+          .tr-doc .doc-title {
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #475569;
+          }
+          .tr-doc .doc-folio {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+          }
+          .tr-doc .doc-estado {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+          }
+          .estado-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+          .estado-anulado { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+          .flow {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1fr 40px 1fr;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .flow-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: #f8fafc;
+          }
+          .flow-box .flow-label {
+            font-size: 10.5px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #64748b;
+          }
+          .flow-box .flow-name { font-size: 15px; font-weight: 800; margin-top: 2px; }
+          .flow-box .flow-sub { font-size: 11.5px; color: #475569; }
+          .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: #0f172a;
+            font-weight: 700;
+          }
+          .section { margin-top: 18px; }
+          .section-title {
+            margin: 0 0 8px;
+            font-size: 13px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+          }
+          .section-title-danger { color: #991b1b; border-bottom-color: #fecaca; }
+          .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 18px;
+          }
+          .meta-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 4px 0;
+            border-bottom: 1px dashed #e2e8f0;
+          }
+          .meta-row.span-2 { grid-column: 1 / -1; }
+          .meta-label { color: #475569; font-size: 11.5px; }
+          .meta-value { font-weight: 600; text-align: right; }
+          .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+          }
+          .data-table th, .data-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            font-size: 12px;
+          }
+          .data-table thead th {
+            background: #0f172a;
+            color: #f8fafc;
+            text-align: left;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 10.5px;
+            font-weight: 700;
+          }
+          .data-table .col-num { text-align: right; white-space: nowrap; }
+          .data-table .col-desc { width: 52%; }
+          .data-table .prod-nombre { font-weight: 700; }
+          .data-table .prod-codigo { font-size: 10.5px; color: #64748b; margin-top: 2px; }
+          .data-table .empty-row { text-align: center; color: #64748b; padding: 14px 0; font-style: italic; }
+          .muted-cell { color: #475569; }
+          .chip {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .chip-in { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+          .chip-out { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+          .totals {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .totals-box {
+            min-width: 260px;
+            border: 1px solid #0f172a;
+            border-radius: 10px;
+            padding: 10px 14px;
+            background: #f8fafc;
+          }
+          .totals-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 3px 0;
+          }
+          .totals-row.grand {
+            border-top: 2px solid #0f172a;
+            margin-top: 6px;
+            padding-top: 8px;
+            font-size: 14px;
+            font-weight: 800;
+          }
+          .firmas {
+            margin-top: 34px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+          }
+          .firma {
+            border-top: 1px solid #0f172a;
+            padding-top: 6px;
+            text-align: center;
+            font-size: 11px;
+            color: #475569;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .footer-note {
+            margin-top: 24px;
+            padding-top: 10px;
+            border-top: 1px dashed #cbd5e1;
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+          }
+          @media print {
+            body { background: #fff; }
+            .page { box-shadow: none; margin: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          ${anulado ? `<div class="watermark">ANULADO</div>` : ""}
+
+          <header class="tr-header">
+            <div class="tr-brand">
+              <img class="tr-logo" src="${escapeHtml(empresa.logoUrl)}" alt="logo" onerror="this.style.display='none'" />
+              <div class="tr-brand-text">
+                <h1>${escapeHtml(empresa.nombre)}</h1>
+                <div class="muted">${escapeHtml(empresa.direccion)}</div>
+                ${empresa.telefono ? `<div class="muted">Tel: ${escapeHtml(empresa.telefono)}</div>` : ""}
+                ${empresa.correo ? `<div class="muted">${escapeHtml(empresa.correo)}</div>` : ""}
+                <div class="muted">NIT: ${escapeHtml(empresa.nit)}</div>
+              </div>
+            </div>
+            <div class="tr-doc">
+              <div class="doc-title">Nota de traslado</div>
+              <div class="doc-folio">${escapeHtml(folio)}</div>
+              <div class="doc-estado ${anulado ? "estado-anulado" : "estado-ok"}">
+                ${escapeHtml(estado.replace("_", " ") || "VIGENTE")}
+              </div>
+            </div>
+          </header>
+
+          <section class="flow">
+            <div class="flow-box">
+              <div class="flow-label">Origen</div>
+              <div class="flow-name">${escapeHtml(traslado.bodega_origen_nombre || "-")}</div>
+              ${traslado.sucursal_origen_nombre ? `<div class="flow-sub">${escapeHtml(traslado.sucursal_origen_nombre)}</div>` : ""}
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-box">
+              <div class="flow-label">Destino</div>
+              <div class="flow-name">${escapeHtml(traslado.bodega_destino_nombre || "-")}</div>
+              ${traslado.sucursal_destino_nombre ? `<div class="flow-sub">${escapeHtml(traslado.sucursal_destino_nombre)}</div>` : ""}
+            </div>
+          </section>
+
+          <section class="section">
+            <h2 class="section-title">Datos del traslado</h2>
+            <div class="meta-grid">
+              <div class="meta-row"><div class="meta-label">Fecha</div><div class="meta-value">${escapeHtml(formatPrintDateTime(traslado.fecha))}</div></div>
+              <div class="meta-row"><div class="meta-label">Creado por</div><div class="meta-value">${escapeHtml(traslado.usuario_nombre || traslado.usuario_username || "-")}</div></div>
+              <div class="meta-row"><div class="meta-label">Total items</div><div class="meta-value">${totalItems}</div></div>
+              <div class="meta-row"><div class="meta-label">Total unidades</div><div class="meta-value">${totalUnidades}</div></div>
+              ${traslado.motivo ? `<div class="meta-row span-2"><div class="meta-label">Motivo</div><div class="meta-value">${escapeHtml(traslado.motivo)}</div></div>` : ""}
+              ${traslado.observaciones ? `<div class="meta-row span-2"><div class="meta-label">Observaciones</div><div class="meta-value">${escapeHtml(traslado.observaciones)}</div></div>` : ""}
+            </div>
+          </section>
+
+          <section class="section">
+            <h2 class="section-title">Productos trasladados</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th>Producto</th>
+                  <th class="col-num">Cantidad</th>
+                  <th class="col-num">Costo unit.</th>
+                  <th class="col-num">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>${filasProductos}</tbody>
+            </table>
+
+            <div class="totals">
+              <div class="totals-box">
+                <div class="totals-row"><span>Total items</span><strong>${totalItems}</strong></div>
+                <div class="totals-row"><span>Total unidades</span><strong>${totalUnidades}</strong></div>
+                <div class="totals-row grand"><span>Valor total</span><strong>${formatPrintCurrency(totalValor)}</strong></div>
+              </div>
+            </div>
+          </section>
+
+          ${seccionMovimientos}
+          ${seccionAnulacion}
+
+          <section class="firmas">
+            <div class="firma">Entrega</div>
+            <div class="firma">Recibe</div>
+            <div class="firma">Autoriza</div>
+          </section>
+
+          <div class="footer-note">${escapeHtml(BUSINESS_INFO.footer)}</div>
+        </div>
+      </body>
+    </html>
+  `;
+};
