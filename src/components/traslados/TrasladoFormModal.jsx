@@ -27,6 +27,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { getBodegas, getStockBodega } from "../../services/trasladoService";
 
 const formatQ = (n) => `Q ${Number(n || 0).toFixed(2)}`;
+const getBodegaLabel = (bodega) => bodega?.nombre_visible || bodega?.nombre || "-";
 
 function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
   const [bodegas, setBodegas] = useState([]);
@@ -39,11 +40,21 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
   const [loadingStock, setLoadingStock] = useState(false);
   const [errorStock, setErrorStock] = useState("");
   const [busqueda, setBusqueda] = useState("");
-
-  // mapa id_producto -> { producto, cantidad }
   const [items, setItems] = useState(new Map());
-
   const [error, setError] = useState("");
+
+  const origenActual = useMemo(
+    () => bodegas.find((b) => Number(b.id_bodega) === Number(idOrigen)) || null,
+    [bodegas, idOrigen]
+  );
+
+  const destinoActual = useMemo(
+    () => bodegas.find((b) => Number(b.id_bodega) === Number(idDestino)) || null,
+    [bodegas, idDestino]
+  );
+
+  const origenLabel = getBodegaLabel(origenActual);
+  const destinoLabel = getBodegaLabel(destinoActual);
 
   const reset = useCallback(() => {
     setIdOrigen("");
@@ -60,34 +71,31 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
   useEffect(() => {
     if (!open) return;
     reset();
+
     (async () => {
       try {
         const data = await getBodegas();
         const list = Array.isArray(data?.data) ? data.data : [];
         setBodegas(list);
 
-        // defaults: GENERAL -> TIENDA si existen
-        const general = list.find((b) =>
-          String(b.nombre || "").trim().toUpperCase() === "GENERAL"
-        );
-        const tienda = list.find((b) =>
-          String(b.nombre || "").trim().toUpperCase() === "TIENDA"
-        );
-        if (general) setIdOrigen(general.id_bodega);
-        if (tienda) setIdDestino(tienda.id_bodega);
+        const general = list.find((b) => String(b.bucket_key || "").toUpperCase() === "GENERAL");
+        const taller = list.find((b) => String(b.bucket_key || "").toUpperCase() === "SERVICIOS");
+
+        if (general) setIdOrigen(String(general.id_bodega));
+        if (taller) setIdDestino(String(taller.id_bodega));
       } catch (e) {
-        console.error(e);
-        setError(e.response?.data?.error || "No se pudieron cargar las bodegas");
+        console.error("[traslados] error cargando origenes/destinos", e);
+        setError(e.response?.data?.error || "No se pudieron cargar General y Productos Taller");
       }
     })();
   }, [open, reset]);
 
-  // cargar stock cada vez que cambia el origen
   useEffect(() => {
     if (!idOrigen) {
       setStockOrigen([]);
       return;
     }
+
     (async () => {
       try {
         setLoadingStock(true);
@@ -95,8 +103,10 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
         const data = await getStockBodega(idOrigen);
         setStockOrigen(Array.isArray(data?.data) ? data.data : []);
       } catch (e) {
-        console.error(e);
-        setErrorStock(e.response?.data?.error || "No se pudo cargar el stock de la bodega");
+        console.error("[traslados] error cargando productos del origen", e);
+        setErrorStock(
+          e.response?.data?.error || "No se pudo cargar el inventario disponible del origen"
+        );
         setStockOrigen([]);
       } finally {
         setLoadingStock(false);
@@ -107,6 +117,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
   const productosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     let base = stockOrigen.filter((p) => Number(p.existencia) > 0);
+
     if (q) {
       base = base.filter(
         (p) =>
@@ -114,19 +125,20 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
           String(p.codigo_barras || "").toLowerCase().includes(q)
       );
     }
+
     return base.slice(0, 50);
   }, [stockOrigen, busqueda]);
 
   const stockPorId = useMemo(() => {
-    const m = new Map();
-    stockOrigen.forEach((p) => m.set(p.id_producto, p));
-    return m;
+    const map = new Map();
+    stockOrigen.forEach((p) => map.set(p.id_producto, p));
+    return map;
   }, [stockOrigen]);
 
   const itemsArr = useMemo(() => Array.from(items.values()), [items]);
-  const totalUnidades = itemsArr.reduce((a, it) => a + Number(it.cantidad || 0), 0);
+  const totalUnidades = itemsArr.reduce((acc, it) => acc + Number(it.cantidad || 0), 0);
   const totalValorizado = itemsArr.reduce(
-    (a, it) => a + Number(it.cantidad || 0) * Number(it.producto?.precio_compra || 0),
+    (acc, it) => acc + Number(it.cantidad || 0) * Number(it.producto?.precio_compra || 0),
     0
   );
 
@@ -135,9 +147,9 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
       const next = new Map(prev);
       const current = next.get(producto.id_producto);
       const existencia = Number(producto.existencia || 0);
-      const nuevaCant = (current?.cantidad || 0) + 1;
-      if (nuevaCant > existencia) return prev;
-      next.set(producto.id_producto, { producto, cantidad: nuevaCant });
+      const nuevaCantidad = (current?.cantidad || 0) + 1;
+      if (nuevaCantidad > existencia) return prev;
+      next.set(producto.id_producto, { producto, cantidad: nuevaCantidad });
       return next;
     });
   };
@@ -147,13 +159,15 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
       const next = new Map(prev);
       const current = next.get(idProducto);
       if (!current) return prev;
+
       const num = Math.max(0, Math.floor(Number(valor) || 0));
       const existencia = Number(stockPorId.get(idProducto)?.existencia || 0);
-      const cant = Math.min(num, existencia);
-      if (cant === 0) {
+      const cantidad = Math.min(num, existencia);
+
+      if (cantidad === 0) {
         next.delete(idProducto);
       } else {
-        next.set(idProducto, { ...current, cantidad: cant });
+        next.set(idProducto, { ...current, cantidad });
       }
       return next;
     });
@@ -167,7 +181,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
     });
   };
 
-  const swapBodegas = () => {
+  const intercambiar = () => {
     setIdOrigen(idDestino);
     setIdDestino(idOrigen);
     setItems(new Map());
@@ -175,12 +189,13 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
 
   const enviar = () => {
     setError("");
+
     if (!idOrigen || !idDestino) {
-      setError("Debes seleccionar bodega de origen y destino");
+      setError("Debes seleccionar origen y destino");
       return;
     }
     if (Number(idOrigen) === Number(idDestino)) {
-      setError("La bodega de origen y destino deben ser diferentes");
+      setError("El origen y el destino deben ser diferentes");
       return;
     }
     if (itemsArr.length === 0) {
@@ -188,7 +203,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
       return;
     }
 
-    const payload = {
+    onSubmit({
       id_bodega_origen: Number(idOrigen),
       id_bodega_destino: Number(idDestino),
       motivo: motivo.trim() || null,
@@ -197,13 +212,11 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
         id_producto: it.producto.id_producto,
         cantidad: it.cantidad,
       })),
-    };
-
-    onSubmit(payload);
+    });
   };
 
-  const bodegasDestino = useMemo(
-    () => bodegas.filter((b) => b.id_bodega !== Number(idOrigen)),
+  const destinosDisponibles = useMemo(
+    () => bodegas.filter((b) => Number(b.id_bodega) !== Number(idOrigen)),
     [bodegas, idOrigen]
   );
 
@@ -217,7 +230,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
           <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="center">
             <TextField
               select
-              label="Bodega origen"
+              label="Desde"
               value={idOrigen}
               onChange={(e) => {
                 setIdOrigen(e.target.value);
@@ -228,15 +241,14 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
             >
               {bodegas.map((b) => (
                 <MenuItem key={b.id_bodega} value={b.id_bodega}>
-                  {b.nombre}
-                  {b.sucursal_nombre ? ` — ${b.sucursal_nombre}` : ""}
+                  {getBodegaLabel(b)}
                 </MenuItem>
               ))}
             </TextField>
 
             <IconButton
               color="primary"
-              onClick={swapBodegas}
+              onClick={intercambiar}
               disabled={!idOrigen || !idDestino || loading}
               title="Intercambiar origen y destino"
             >
@@ -245,25 +257,29 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
 
             <TextField
               select
-              label="Bodega destino"
+              label="Hasta"
               value={idDestino}
               onChange={(e) => setIdDestino(e.target.value)}
               fullWidth
               disabled={loading}
             >
-              {bodegasDestino.map((b) => (
+              {destinosDisponibles.map((b) => (
                 <MenuItem key={b.id_bodega} value={b.id_bodega}>
-                  {b.nombre}
-                  {b.sucursal_nombre ? ` — ${b.sucursal_nombre}` : ""}
+                  {getBodegaLabel(b)}
                 </MenuItem>
               ))}
             </TextField>
           </Stack>
 
+          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+            <Chip label={`Desde: ${origenLabel}`} color="primary" variant="outlined" />
+            <Chip label={`Hasta: ${destinoLabel}`} color="success" variant="outlined" />
+          </Stack>
+
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
               label="Motivo (opcional)"
-              placeholder="Ej. Abastecimiento diario"
+              placeholder="Ej. Reabastecimiento interno"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               fullWidth
@@ -286,13 +302,13 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
             <Box flex={1}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  Productos en origen
+                  Productos disponibles en {origenLabel}
                 </Typography>
                 {loadingStock && <CircularProgress size={20} />}
               </Stack>
 
               <TextField
-                placeholder="Buscar por nombre o codigo"
+                placeholder={`Buscar en ${origenLabel}`}
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 fullWidth
@@ -301,7 +317,11 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                 disabled={!idOrigen || loading}
               />
 
-              {errorStock && <Alert severity="error" sx={{ mb: 1 }}>{errorStock}</Alert>}
+              {errorStock && (
+                <Alert severity="error" sx={{ mb: 1 }}>
+                  {errorStock}
+                </Alert>
+              )}
 
               <Box
                 sx={{
@@ -328,8 +348,8 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                             {idOrigen
                               ? loadingStock
                                 ? "Cargando..."
-                                : "Sin productos con existencia"
-                              : "Selecciona una bodega de origen"}
+                                : `Sin productos disponibles en ${origenLabel}`
+                              : "Selecciona General o Productos Taller"}
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -341,7 +361,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                               {p.nombre}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {p.codigo_barras}
+                              {p.codigo_barras || "Sin codigo"}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
@@ -382,7 +402,9 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                   <TableHead>
                     <TableRow>
                       <TableCell>Producto</TableCell>
-                      <TableCell align="center" sx={{ width: 110 }}>Cant.</TableCell>
+                      <TableCell align="center" sx={{ width: 110 }}>
+                        Cant.
+                      </TableCell>
                       <TableCell align="right">Subtotal</TableCell>
                       <TableCell align="center" sx={{ width: 50 }} />
                     </TableRow>
@@ -400,8 +422,9 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                       itemsArr.map((it) => {
                         const prod = it.producto;
                         const costo = Number(prod.precio_compra || 0);
-                        const sub = costo * it.cantidad;
+                        const subtotal = costo * it.cantidad;
                         const maxCant = Number(stockPorId.get(prod.id_producto)?.existencia || 0);
+
                         return (
                           <TableRow key={prod.id_producto}>
                             <TableCell>
@@ -409,7 +432,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                                 {prod.nombre}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {formatQ(costo)} c/u · max {maxCant}
+                                {formatQ(costo)} c/u - max {maxCant}
                               </Typography>
                             </TableCell>
                             <TableCell align="center">
@@ -423,7 +446,7 @@ function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
                                 disabled={loading}
                               />
                             </TableCell>
-                            <TableCell align="right">{formatQ(sub)}</TableCell>
+                            <TableCell align="right">{formatQ(subtotal)}</TableCell>
                             <TableCell align="center">
                               <IconButton
                                 size="small"

@@ -29,11 +29,11 @@ import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
-  getTraslados,
-  getTrasladoById,
-  crearTraslado,
   anularTraslado,
+  crearTraslado,
   getBodegas,
+  getTrasladoById,
+  getTraslados,
 } from "../services/trasladoService";
 import TrasladoFormModal from "../components/traslados/TrasladoFormModal";
 import TrasladoDetalleModal from "../components/traslados/TrasladoDetalleModal";
@@ -57,6 +57,8 @@ const estadoColor = (estado) => {
   return "success";
 };
 
+const getBucketLabel = (bodega) => bodega?.nombre_visible || bodega?.nombre || "-";
+
 function Traslados() {
   const { user } = useAuth();
   const canManage = useMemo(() => userHasRole(user, "ADMIN"), [user]);
@@ -78,7 +80,6 @@ function Traslados() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // modales
   const [formOpen, setFormOpen] = useState(false);
   const [loadingCrear, setLoadingCrear] = useState(false);
 
@@ -90,14 +91,13 @@ function Traslados() {
   const [anulacionTarget, setAnulacionTarget] = useState(null);
   const [loadingAnular, setLoadingAnular] = useState(false);
 
-  // cargar bodegas (para filtros)
   useEffect(() => {
     (async () => {
       try {
         const res = await getBodegas();
         setBodegas(Array.isArray(res?.data) ? res.data : []);
       } catch (e) {
-        console.error(e);
+        console.error("[traslados] error cargando catalogos de origen/destino", e);
       }
     })();
   }, []);
@@ -106,12 +106,14 @@ function Traslados() {
     try {
       setLoadingLista(true);
       setError("");
+
       const params = {
         page,
         limit,
         sortBy: "fecha",
         sortDir: "desc",
       };
+
       if (filters.desde) params.desde = filters.desde;
       if (filters.hasta) params.hasta = filters.hasta;
       if (filters.estado) params.estado = filters.estado;
@@ -125,12 +127,12 @@ function Traslados() {
         totalPages: res?.meta?.totalPages || 0,
       });
     } catch (e) {
-      console.error(e);
+      console.error("[traslados] error cargando listado", e);
       setError(e.response?.data?.error || "No se pudieron cargar los traslados");
     } finally {
       setLoadingLista(false);
     }
-  }, [page, limit, filters]);
+  }, [filters, limit, page]);
 
   useEffect(() => {
     cargar();
@@ -144,7 +146,7 @@ function Traslados() {
       const res = await getTrasladoById(id_traslado);
       setDetalleData(res);
     } catch (e) {
-      console.error(e);
+      console.error("[traslados] error cargando detalle", e);
       setError(e.response?.data?.error || "No se pudo cargar el detalle");
       setDetalleOpen(false);
     } finally {
@@ -159,14 +161,12 @@ function Traslados() {
       setSuccess("");
       const res = await crearTraslado(payload);
       const t = res?.traslado;
-      setSuccess(
-        `Traslado ${t ? `#${t.id_traslado}` : ""} registrado correctamente.`
-      );
+      setSuccess(`Traslado ${t ? `#${t.id_traslado}` : ""} registrado correctamente.`);
       setFormOpen(false);
       setPage(1);
       await cargar();
     } catch (e) {
-      console.error(e);
+      console.error("[traslados] error registrando traslado", e);
       setError(e.response?.data?.error || "No se pudo registrar el traslado");
     } finally {
       setLoadingCrear(false);
@@ -180,14 +180,12 @@ function Traslados() {
       setError("");
       setSuccess("");
       await anularTraslado(anulacionTarget.id_traslado, { motivo });
-      setSuccess(
-        `Traslado #${anulacionTarget.id_traslado} anulado correctamente.`
-      );
+      setSuccess(`Traslado #${anulacionTarget.id_traslado} anulado correctamente.`);
       setAnulacionOpen(false);
       setAnulacionTarget(null);
       await cargar();
     } catch (e) {
-      console.error(e);
+      console.error("[traslados] error anulando traslado", e);
       setError(e.response?.data?.error || "No se pudo anular el traslado");
     } finally {
       setLoadingAnular(false);
@@ -223,7 +221,7 @@ function Traslados() {
           </Stack>
           <Typography variant="body1" color="text.secondary">
             {canManage
-              ? "Mueve inventario entre bodegas (ej. GENERAL → TIENDA). Cada traslado genera 2 movimientos de stock trazables."
+              ? "Mueve inventario entre General y Productos Taller. Cada traslado genera 2 movimientos de stock trazables."
               : "Modo solo lectura: puedes consultar traslados registrados."}
           </Typography>
         </Box>
@@ -291,7 +289,7 @@ function Traslados() {
           </TextField>
           <TextField
             select
-            label="Origen"
+            label="Desde"
             value={filters.id_bodega_origen}
             onChange={(e) => {
               setFilters((f) => ({ ...f, id_bodega_origen: e.target.value }));
@@ -299,16 +297,16 @@ function Traslados() {
             }}
             sx={{ minWidth: { xs: "100%", md: 180 } }}
           >
-            <MenuItem value="">Todas</MenuItem>
+            <MenuItem value="">Todos</MenuItem>
             {bodegas.map((b) => (
               <MenuItem key={b.id_bodega} value={b.id_bodega}>
-                {b.nombre}
+                {getBodegaLabel(b)}
               </MenuItem>
             ))}
           </TextField>
           <TextField
             select
-            label="Destino"
+            label="Hasta"
             value={filters.id_bodega_destino}
             onChange={(e) => {
               setFilters((f) => ({ ...f, id_bodega_destino: e.target.value }));
@@ -316,10 +314,10 @@ function Traslados() {
             }}
             sx={{ minWidth: { xs: "100%", md: 180 } }}
           >
-            <MenuItem value="">Todas</MenuItem>
+            <MenuItem value="">Todos</MenuItem>
             {bodegas.map((b) => (
               <MenuItem key={b.id_bodega} value={b.id_bodega}>
-                {b.nombre}
+                {getBodegaLabel(b)}
               </MenuItem>
             ))}
           </TextField>
@@ -413,10 +411,7 @@ function Traslados() {
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title="Ver detalle">
-                        <IconButton
-                          size="small"
-                          onClick={() => abrirDetalle(t.id_traslado)}
-                        >
+                        <IconButton size="small" onClick={() => abrirDetalle(t.id_traslado)}>
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
