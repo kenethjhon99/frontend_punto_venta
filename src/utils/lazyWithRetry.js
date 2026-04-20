@@ -1,6 +1,11 @@
 import { lazy } from "react";
 
 const buildRetryKey = (moduleName) => `lazy-retry:${moduleName}`;
+const buildReloadUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.set("_lazy_retry", Date.now().toString());
+  return url.toString();
+};
 
 const normalizeErrorMessage = (error) =>
   String(error?.message || error || "").toLowerCase();
@@ -28,8 +33,10 @@ export const lazyWithRetry = (factory, moduleName) =>
     } catch (error) {
       if (!hasRetried && shouldRetryLazyImport(error)) {
         sessionStorage.setItem(retryKey, "1");
-        window.location.reload();
-        return new Promise(() => {});
+        window.location.replace(buildReloadUrl());
+        throw new Error(
+          "Se detecto una version anterior del modulo. Intentando recargar la pantalla."
+        );
       }
 
       sessionStorage.removeItem(retryKey);
