@@ -593,21 +593,16 @@ function CreditosEmpleado() {
                         <TableCell>Empleado</TableCell>
                         <TableCell>Cargo</TableCell>
                         <TableCell>Tipo pago</TableCell>
-                        <TableCell align="right">Sueldo</TableCell>
                         <TableCell align="right">Creditos pendientes</TableCell>
                         <TableCell align="right">#</TableCell>
-                        <TableCell align="right">Neto estimado</TableCell>
                         <TableCell>Proximo pago</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {nomina.map((row) => {
-                        const sueldo = Number(row.sueldo || 0);
                         const pendientes = Number(
                           row.total_creditos_pendientes || 0
                         );
-                        const neto = sueldo - pendientes;
-                        const netoRojo = neto < 0;
                         return (
                           <TableRow key={row.id_empleado} hover>
                             <TableCell>{row.nombre}</TableCell>
@@ -630,9 +625,6 @@ function CreditosEmpleado() {
                               />
                             </TableCell>
                             <TableCell align="right">
-                              {formatQ(sueldo)}
-                            </TableCell>
-                            <TableCell align="right">
                               {pendientes > 0 ? (
                                 <Typography
                                   fontWeight={700}
@@ -651,16 +643,6 @@ function CreditosEmpleado() {
                             </TableCell>
                             <TableCell align="right">
                               {row.num_creditos_pendientes || 0}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography
-                                fontWeight={800}
-                                color={
-                                  netoRojo ? "error.main" : "success.main"
-                                }
-                              >
-                                {formatQ(neto)}
-                              </Typography>
                             </TableCell>
                             <TableCell>
                               {formatFecha(row.fecha_cobro_estimada)}

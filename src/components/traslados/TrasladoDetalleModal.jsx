@@ -24,6 +24,7 @@ import {
   buildNotaTrasladoHtml,
   openPrintDocument,
 } from "../../utils/printDocuments";
+import { getTrasladoSideLabel } from "../../utils/trasladoLabels";
 
 const formatQ = (n) => `Q ${Number(n || 0).toFixed(2)}`;
 
@@ -90,7 +91,7 @@ function TrasladoDetalleModal({ open, onClose, data, loading }) {
                   Origen
                 </Typography>
                 <Typography variant="body1" fontWeight={700}>
-                  {t.bodega_origen_nombre}
+                  {getTrasladoSideLabel(t, "origen")}
                 </Typography>
                 {t.sucursal_origen_nombre && (
                   <Typography variant="caption" color="text.secondary">
@@ -103,7 +104,7 @@ function TrasladoDetalleModal({ open, onClose, data, loading }) {
                   Destino
                 </Typography>
                 <Typography variant="body1" fontWeight={700}>
-                  {t.bodega_destino_nombre}
+                  {getTrasladoSideLabel(t, "destino")}
                 </Typography>
                 {t.sucursal_destino_nombre && (
                   <Typography variant="caption" color="text.secondary">

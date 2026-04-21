@@ -29,6 +29,7 @@ import {
   getTraslados,
 } from "../services/trasladoService";
 import TrasladoDetalleModal from "../components/traslados/TrasladoDetalleModal";
+import { getTrasladoSideLabel } from "../utils/trasladoLabels";
 
 const formatFecha = (v) => {
   if (!v) return "-";
@@ -263,8 +264,8 @@ function Traslados() {
                       </Typography>
                     </TableCell>
                     <TableCell>{formatFecha(t.fecha)}</TableCell>
-                    <TableCell>{t.bodega_origen_nombre}</TableCell>
-                    <TableCell>{t.bodega_destino_nombre}</TableCell>
+                    <TableCell>{getTrasladoSideLabel(t, "origen")}</TableCell>
+                    <TableCell>{getTrasladoSideLabel(t, "destino")}</TableCell>
                     <TableCell align="right">{t.total_items}</TableCell>
                     <TableCell align="right">{t.total_unidades}</TableCell>
                     <TableCell align="right">{formatQ(t.total_valorizado)}</TableCell>

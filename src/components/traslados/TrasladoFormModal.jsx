@@ -25,9 +25,9 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { getBodegas, getStockBodega } from "../../services/trasladoService";
+import { getBodegaLabel } from "../../utils/trasladoLabels";
 
 const formatQ = (n) => `Q ${Number(n || 0).toFixed(2)}`;
-const getBodegaLabel = (bodega) => bodega?.nombre_visible || bodega?.nombre || "-";
 
 function TrasladoFormModal({ open, onClose, onSubmit, loading }) {
   const [bodegas, setBodegas] = useState([]);

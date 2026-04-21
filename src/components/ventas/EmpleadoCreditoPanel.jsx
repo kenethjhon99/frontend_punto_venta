@@ -5,7 +5,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Divider,
   Stack,
   TextField,
   Typography,
@@ -13,7 +12,6 @@ import {
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import { getEmpleados } from "../../services/empleadoService";
 import { getNominaProxima } from "../../services/creditoEmpleadoService";
@@ -76,7 +74,6 @@ function EmpleadoCreditoPanel({
         setNomina(Array.isArray(resp?.data) ? resp.data : []);
       } catch (err) {
         if (cancelado) return;
-        // no bloquea: el panel funciona sin nómina (queda con 0s)
         console.error("Error cargando nomina-proxima", err);
       } finally {
         if (!cancelado) setLoadingNomina(false);
@@ -95,8 +92,7 @@ function EmpleadoCreditoPanel({
   );
 
   const datosNomina = useMemo(
-    () =>
-      nomina.find((n) => n.id_empleado === Number(empleadoId)) || null,
+    () => nomina.find((n) => n.id_empleado === Number(empleadoId)) || null,
     [nomina, empleadoId]
   );
 
@@ -105,12 +101,9 @@ function EmpleadoCreditoPanel({
     [empleadoSeleccionado]
   );
 
-  const sueldo = Number(empleadoSeleccionado?.sueldo ?? datosNomina?.sueldo ?? 0);
   const creditosPrevios = Number(datosNomina?.total_creditos_pendientes ?? 0);
   const numCreditosPrevios = Number(datosNomina?.num_creditos_pendientes ?? 0);
   const esteCredito = Number(totalVenta || 0);
-  const netoEstimado = sueldo - creditosPrevios - esteCredito;
-  const netoRojo = netoEstimado < 0;
 
   return (
     <Box>
@@ -135,9 +128,7 @@ function EmpleadoCreditoPanel({
         onChange={(_e, value) =>
           onEmpleadoChange(value ? value.id_empleado : null)
         }
-        getOptionLabel={(opt) =>
-          opt ? `${opt.nombre} (${opt.cargo})` : ""
-        }
+        getOptionLabel={(opt) => (opt ? `${opt.nombre} (${opt.cargo})` : "")}
         isOptionEqualToValue={(opt, val) =>
           opt?.id_empleado === val?.id_empleado
         }
@@ -151,9 +142,7 @@ function EmpleadoCreditoPanel({
               ...params.InputProps,
               endAdornment: (
                 <>
-                  {loadingEmpleados ? (
-                    <CircularProgress size={18} />
-                  ) : null}
+                  {loadingEmpleados ? <CircularProgress size={18} /> : null}
                   {params.InputProps.endAdornment}
                 </>
               ),
@@ -167,12 +156,10 @@ function EmpleadoCreditoPanel({
         <Box
           sx={{
             border: "1px solid",
-            borderColor: netoRojo ? "error.light" : "divider",
+            borderColor: "divider",
             borderRadius: 2,
             p: 2,
-            backgroundColor: netoRojo
-              ? "rgba(239,68,68,0.04)"
-              : "action.hover",
+            backgroundColor: "action.hover",
           }}
         >
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={1.5}>
@@ -197,7 +184,6 @@ function EmpleadoCreditoPanel({
           </Stack>
 
           <Stack spacing={0.5}>
-            <Row label="Sueldo" value={formatQ(sueldo)} />
             <Row
               label={`Créditos previos${
                 numCreditosPrevios > 0 ? ` (${numCreditosPrevios})` : ""
@@ -208,38 +194,13 @@ function EmpleadoCreditoPanel({
               muted={creditosPrevios === 0}
             />
             <Row label="Este crédito" value={`- ${formatQ(esteCredito)}`} />
-            <Divider sx={{ my: 1 }} />
-            <Row
-              label="Neto estimado a pagar"
-              value={formatQ(netoEstimado)}
-              bold
-              color={netoRojo ? "error.main" : "success.main"}
-            />
             <Row
               label="Próximo pago"
               value={formatFechaCobro(fechaCobro)}
               icon={<PaidOutlinedIcon fontSize="small" />}
+              bold
             />
           </Stack>
-
-          {netoRojo && (
-            <Alert
-              severity="warning"
-              icon={<WarningAmberIcon />}
-              sx={{ mt: 1.5 }}
-            >
-              El empleado quedaría con saldo negativo. Esta venta se registra
-              igual, pero considerá condonar créditos previos o usar otro
-              método de pago.
-            </Alert>
-          )}
-
-          {sueldo === 0 && (
-            <Alert severity="info" sx={{ mt: 1.5 }}>
-              El sueldo del empleado está en Q 0.00. Editá al empleado desde
-              el módulo de Empleados para definirlo.
-            </Alert>
-          )}
         </Box>
       )}
 
@@ -257,7 +218,7 @@ function EmpleadoCreditoPanel({
       />
 
       <Alert severity="info" sx={{ mt: 2 }}>
-        Esta venta NO se cobra hoy. Queda registrada como crédito y se
+        Esta venta no se cobra hoy. Queda registrada como crédito y se
         descontará del próximo pago del empleado.
       </Alert>
     </Box>
