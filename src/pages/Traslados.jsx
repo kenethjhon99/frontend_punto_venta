@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Box,
-  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -19,25 +18,17 @@ import {
   TextField,
   Tooltip,
   Typography,
+  Button,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import BlockIcon from "@mui/icons-material/Block";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { useAuth } from "../hooks/useAuth";
-import { userHasRole } from "../utils/roles";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
-  anularTraslado,
-  crearTraslado,
-  getBodegas,
   getTrasladoById,
   getTraslados,
 } from "../services/trasladoService";
-import TrasladoFormModal from "../components/traslados/TrasladoFormModal";
 import TrasladoDetalleModal from "../components/traslados/TrasladoDetalleModal";
-import TrasladoAnulacionModal from "../components/traslados/TrasladoAnulacionModal";
 
 const formatFecha = (v) => {
   if (!v) return "-";
@@ -57,19 +48,11 @@ const estadoColor = (estado) => {
   return "success";
 };
 
-const getBodegaLabel = (bodega) => bodega?.nombre_visible || bodega?.nombre || "-";
-
 function Traslados() {
-  const { user } = useAuth();
-  const canManage = useMemo(() => userHasRole(user, "ADMIN"), [user]);
-
-  const [bodegas, setBodegas] = useState([]);
   const [filters, setFilters] = useState({
     desde: "",
     hasta: "",
     estado: "",
-    id_bodega_origen: "",
-    id_bodega_destino: "",
   });
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
@@ -78,29 +61,10 @@ function Traslados() {
   const [meta, setMeta] = useState({ totalRows: 0, totalPages: 0 });
   const [loadingLista, setLoadingLista] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [loadingCrear, setLoadingCrear] = useState(false);
 
   const [detalleData, setDetalleData] = useState(null);
   const [detalleOpen, setDetalleOpen] = useState(false);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
-
-  const [anulacionOpen, setAnulacionOpen] = useState(false);
-  const [anulacionTarget, setAnulacionTarget] = useState(null);
-  const [loadingAnular, setLoadingAnular] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await getBodegas();
-        setBodegas(Array.isArray(res?.data) ? res.data : []);
-      } catch (e) {
-        console.error("[traslados] error cargando catalogos de origen/destino", e);
-      }
-    })();
-  }, []);
 
   const cargar = useCallback(async () => {
     try {
@@ -117,8 +81,6 @@ function Traslados() {
       if (filters.desde) params.desde = filters.desde;
       if (filters.hasta) params.hasta = filters.hasta;
       if (filters.estado) params.estado = filters.estado;
-      if (filters.id_bodega_origen) params.id_bodega_origen = filters.id_bodega_origen;
-      if (filters.id_bodega_destino) params.id_bodega_destino = filters.id_bodega_destino;
 
       const res = await getTraslados(params);
       setData(Array.isArray(res?.data) ? res.data : []);
@@ -154,51 +116,11 @@ function Traslados() {
     }
   };
 
-  const confirmarCrear = async (payload) => {
-    try {
-      setLoadingCrear(true);
-      setError("");
-      setSuccess("");
-      const res = await crearTraslado(payload);
-      const t = res?.traslado;
-      setSuccess(`Traslado ${t ? `#${t.id_traslado}` : ""} registrado correctamente.`);
-      setFormOpen(false);
-      setPage(1);
-      await cargar();
-    } catch (e) {
-      console.error("[traslados] error registrando traslado", e);
-      setError(e.response?.data?.error || "No se pudo registrar el traslado");
-    } finally {
-      setLoadingCrear(false);
-    }
-  };
-
-  const confirmarAnular = async (motivo) => {
-    if (!anulacionTarget) return;
-    try {
-      setLoadingAnular(true);
-      setError("");
-      setSuccess("");
-      await anularTraslado(anulacionTarget.id_traslado, { motivo });
-      setSuccess(`Traslado #${anulacionTarget.id_traslado} anulado correctamente.`);
-      setAnulacionOpen(false);
-      setAnulacionTarget(null);
-      await cargar();
-    } catch (e) {
-      console.error("[traslados] error anulando traslado", e);
-      setError(e.response?.data?.error || "No se pudo anular el traslado");
-    } finally {
-      setLoadingAnular(false);
-    }
-  };
-
   const limpiarFiltros = () => {
     setFilters({
       desde: "",
       hasta: "",
       estado: "",
-      id_bodega_origen: "",
-      id_bodega_destino: "",
     });
     setPage(1);
   };
@@ -216,33 +138,21 @@ function Traslados() {
           <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
             <SwapHorizIcon color="primary" />
             <Typography variant="h4" fontWeight="bold">
-              Traslados
+              Traslados (historico)
             </Typography>
           </Stack>
           <Typography variant="body1" color="text.secondary">
-            {canManage
-              ? "Mueve inventario entre General y Productos Taller. Cada traslado genera 2 movimientos de stock trazables."
-              : "Modo solo lectura: puedes consultar traslados registrados."}
+            Consulta los traslados de inventario registrados antes de
+            consolidar el stock en una sola bodega. Modulo en solo lectura.
           </Typography>
         </Box>
-
-        {canManage && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setFormOpen(true)}
-            sx={{ width: { xs: "100%", sm: "auto" } }}
-          >
-            Nuevo traslado
-          </Button>
-        )}
       </Stack>
 
-      {!canManage && (
-        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-          Este perfil puede consultar traslados pero no crearlos ni anularlos.
-        </Alert>
-      )}
+      <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+        Los traslados entre bodegas fueron retirados al unificar el
+        inventario en la bodega PRINCIPAL. Esta vista conserva el
+        historico para consulta.
+      </Alert>
 
       <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
         <Stack
@@ -287,40 +197,6 @@ function Traslados() {
             <MenuItem value="EN_TRANSITO">En transito</MenuItem>
             <MenuItem value="ANULADO">Anulado</MenuItem>
           </TextField>
-          <TextField
-            select
-            label="Desde"
-            value={filters.id_bodega_origen}
-            onChange={(e) => {
-              setFilters((f) => ({ ...f, id_bodega_origen: e.target.value }));
-              setPage(1);
-            }}
-            sx={{ minWidth: { xs: "100%", md: 180 } }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            {bodegas.map((b) => (
-              <MenuItem key={b.id_bodega} value={b.id_bodega}>
-                {getBodegaLabel(b)}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="Hasta"
-            value={filters.id_bodega_destino}
-            onChange={(e) => {
-              setFilters((f) => ({ ...f, id_bodega_destino: e.target.value }));
-              setPage(1);
-            }}
-            sx={{ minWidth: { xs: "100%", md: 180 } }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            {bodegas.map((b) => (
-              <MenuItem key={b.id_bodega} value={b.id_bodega}>
-                {getBodegaLabel(b)}
-              </MenuItem>
-            ))}
-          </TextField>
 
           <Stack direction="row" spacing={1}>
             <Button
@@ -341,11 +217,6 @@ function Traslados() {
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError("")}>
           {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess("")}>
-          {success}
         </Alert>
       )}
 
@@ -415,20 +286,6 @@ function Traslados() {
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      {canManage && String(t.estado || "").toUpperCase() !== "ANULADO" && (
-                        <Tooltip title="Anular">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => {
-                              setAnulacionTarget(t);
-                              setAnulacionOpen(true);
-                            }}
-                          >
-                            <BlockIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -450,15 +307,6 @@ function Traslados() {
         )}
       </Paper>
 
-      {canManage && (
-        <TrasladoFormModal
-          open={formOpen}
-          onClose={() => setFormOpen(false)}
-          onSubmit={confirmarCrear}
-          loading={loadingCrear}
-        />
-      )}
-
       <TrasladoDetalleModal
         open={detalleOpen}
         onClose={() => {
@@ -468,19 +316,6 @@ function Traslados() {
         data={detalleData}
         loading={loadingDetalle}
       />
-
-      {canManage && (
-        <TrasladoAnulacionModal
-          open={anulacionOpen}
-          onClose={() => {
-            setAnulacionOpen(false);
-            setAnulacionTarget(null);
-          }}
-          onConfirm={confirmarAnular}
-          traslado={anulacionTarget}
-          loading={loadingAnular}
-        />
-      )}
     </Box>
   );
 }
