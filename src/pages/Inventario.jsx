@@ -39,6 +39,11 @@ import {
   getTableHeaderCellSx,
   getTableHeaderRowSx,
 } from "../utils/tableHeaderStyles";
+import {
+  CATALOGO_OPTIONS,
+  getCatalogoChipProps,
+  resolverCatalogo,
+} from "../utils/catalogoProducto";
 
 const MOVIMIENTO_OPTIONS = [
   { value: "", label: "Todos" },
@@ -47,10 +52,9 @@ const MOVIMIENTO_OPTIONS = [
   { value: "AJUSTE", label: "Ajustes" },
 ];
 
-const MODULO_OPTIONS = [
+const CATALOGO_FILTER_LOCAL = [
   { value: "", label: "Todos" },
-  { value: "GENERAL", label: "General" },
-  { value: "SERVICIOS", label: "Tienda" },
+  ...CATALOGO_OPTIONS.map(({ value, label }) => ({ value, label })),
 ];
 
 const formatDateTime = (value) => {
@@ -77,21 +81,14 @@ const getTipoColor = (tipo) => {
   return "default";
 };
 
-const getModuloChip = (moduloOrigen) => {
-  const modulo = String(moduloOrigen || "GENERAL").trim().toUpperCase();
-
-  if (modulo === "SERVICIOS") {
-    return {
-      label: "Tienda",
-      color: "success",
-      variant: "filled",
-    };
-  }
-
+// Envoltorio alrededor del helper compartido. Mantiene la misma forma
+// { label, color, variant } que el resto de la pagina ya consume.
+const getCatalogoChipLegacy = (registro) => {
+  const props = getCatalogoChipProps(registro);
   return {
-    label: "General",
-    color: "primary",
-    variant: "outlined",
+    label: props.label,
+    color: props.chipColor,
+    variant: props.chipVariant,
   };
 };
 
@@ -186,8 +183,7 @@ function Inventario() {
 
     return stockRows.filter((producto) => {
       const matchesModulo =
-        !moduloFiltro ||
-        String(producto.modulo_origen || "GENERAL").trim().toUpperCase() === moduloFiltro;
+        !moduloFiltro || resolverCatalogo(producto) === moduloFiltro;
 
       const matchesSearch =
         !texto ||
@@ -232,8 +228,7 @@ function Inventario() {
     if (!moduloFiltro) return movimientos;
 
     return movimientos.filter(
-      (movimiento) =>
-        String(movimiento.producto_modulo_origen || "GENERAL").trim().toUpperCase() === moduloFiltro
+      (movimiento) => resolverCatalogo(movimiento) === moduloFiltro
     );
   }, [movimientos, moduloFiltro]);
 
@@ -359,7 +354,7 @@ function Inventario() {
         ["KARDEX DE INVENTARIO"],
         ["Producto", selectedProduct?.nombre || "Todos los productos"],
         ["Codigo", selectedProduct?.codigo_barras || "Todos"],
-        ["Modulo", moduloFiltro || "Todos"],
+        ["Catalogo", moduloFiltro || "Todos"],
         ["Desde", desde || "Sin filtro"],
         ["Hasta", hasta || "Sin filtro"],
         ["Tipo", tipoMovimiento || "Todos"],
@@ -543,14 +538,15 @@ function Inventario() {
             />
 
             <FormControl fullWidth>
-              <InputLabel id="modulo-inventario-label">Modulo</InputLabel>
+              <InputLabel id="modulo-inventario-label">Catalogo</InputLabel>
               <Select
                 labelId="modulo-inventario-label"
-                label="Modulo"
+                label="Catalogo"
                 value={moduloFiltro}
+                // value representa un CATALOGO normalizado ('' = Todos).
                 onChange={(event) => setModuloFiltro(event.target.value)}
               >
-                {MODULO_OPTIONS.map((option) => (
+                {CATALOGO_FILTER_LOCAL.map((option) => (
                   <MenuItem key={option.value || "all"} value={option.value}>
                     {option.label}
                   </MenuItem>
@@ -619,7 +615,7 @@ function Inventario() {
                   </Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap">
                     {(() => {
-                      const moduloChip = getModuloChip(selectedProduct.modulo_origen);
+                      const moduloChip = getCatalogoChipLegacy(selectedProduct);
                       return (
                         <Chip
                           size="small"
@@ -664,7 +660,7 @@ function Inventario() {
                   <TableHead>
                     <TableRow sx={getTableHeaderRowSx(theme)}>
                       <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
-                      <TableCell sx={getTableHeaderCellSx(theme)}>Modulo</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Catalogo</TableCell>
                       <TableCell align="right" sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
                     </TableRow>
                   </TableHead>
@@ -721,7 +717,7 @@ function Inventario() {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const moduloChip = getModuloChip(producto.modulo_origen);
+                              const moduloChip = getCatalogoChipLegacy(producto);
                               return (
                                 <Chip
                                   size="small"
@@ -796,12 +792,12 @@ function Inventario() {
                 )}
                 {selectedProduct && (
                   (() => {
-                    const moduloChip = getModuloChip(selectedProduct.modulo_origen);
+                    const moduloChip = getCatalogoChipLegacy(selectedProduct);
                     return (
                       <Chip
                         color={moduloChip.color}
                         variant={moduloChip.variant}
-                        label={`Modulo ${moduloChip.label}`}
+                        label={`Catalogo ${moduloChip.label}`}
                       />
                     );
                   })()

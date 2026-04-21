@@ -31,6 +31,11 @@ import {
   isValidEan13,
 } from "../../utils/barcodeUtils";
 import BarcodeCameraDialog from "../ui/BarcodeCameraDialog";
+import {
+  CATALOGO_OPTIONS,
+  catalogoDesdeModuloOrigen,
+  resolverCatalogo,
+} from "../../utils/catalogoProducto";
 
 const initialState = {
   codigo_barras: "",
@@ -41,7 +46,7 @@ const initialState = {
   existencia_inicial: "",
   stock_minimo: "",
   ubicacion: "",
-  modulo_origen: "GENERAL",
+  catalogo: "GENERAL",
 };
 
 const buildFormState = (productoEditando) => {
@@ -58,7 +63,7 @@ const buildFormState = (productoEditando) => {
     existencia_inicial: productoEditando.stock ?? 0,
     stock_minimo: productoEditando.stock_minimo ?? 0,
     ubicacion: productoEditando.ubicacion || "",
-    modulo_origen: productoEditando.modulo_origen || "GENERAL",
+    catalogo: resolverCatalogo(productoEditando),
   };
 };
 
@@ -68,8 +73,12 @@ function ProductoFormModal({
   onSave,
   productoEditando,
   loading,
+  // `forceCatalogo` es la prop nueva. `forceModuloOrigen` queda como alias
+  // heredado y se traduce al catalogo equivalente (SERVICIOS -> PRODUCTOS_TALLER).
+  forceCatalogo = null,
   forceModuloOrigen = null,
-  hideModuloSelector = false,
+  hideCatalogoSelector = false,
+  hideModuloSelector = false, // alias legacy
 }) {
   const [form, setForm] = useState(() => buildFormState(productoEditando));
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -82,7 +91,11 @@ function ProductoFormModal({
     setCodigoFeedback("");
   }, [open, productoEditando]);
 
-  const moduloOrigen = forceModuloOrigen || form.modulo_origen;
+  const catalogoForzado =
+    forceCatalogo ||
+    (forceModuloOrigen ? catalogoDesdeModuloOrigen(forceModuloOrigen) : null);
+  const catalogo = catalogoForzado || form.catalogo;
+  const ocultarSelector = hideCatalogoSelector || hideModuloSelector;
   const canPrintBarcode = useMemo(
     () => isValidEan13(form.codigo_barras) && Boolean(String(form.nombre || "").trim()),
     [form.codigo_barras, form.nombre]
@@ -109,7 +122,7 @@ function ProductoFormModal({
       existencia_inicial: Number(form.existencia_inicial || 0),
       stock_minimo: Number(form.stock_minimo || 0),
       ubicacion: form.ubicacion || null,
-      modulo_origen: moduloOrigen,
+      catalogo,
     });
   };
 
@@ -161,9 +174,11 @@ function ProductoFormModal({
           nombre: String(form.nombre || "").trim(),
           descripcion: form.descripcion || "",
           subtitle:
-            moduloOrigen === "SERVICIOS"
-              ? "Codigo generado internamente para tienda"
-              : "Codigo generado internamente para inventario",
+            catalogo === "PRODUCTOS_TALLER"
+              ? "Codigo generado internamente para productos de taller"
+              : catalogo === "TIENDA"
+                ? "Codigo generado internamente para tienda"
+                : "Codigo generado internamente para inventario",
         }),
         width: 420,
         height: 520,
@@ -276,25 +291,29 @@ function ProductoFormModal({
             />
           </Grid>
 
-          {!hideModuloSelector ? (
+          {!ocultarSelector ? (
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel id="producto-modulo-label">Catalogo</InputLabel>
+                <InputLabel id="producto-catalogo-label">Catalogo</InputLabel>
                 <Select
-                  labelId="producto-modulo-label"
-                  name="modulo_origen"
+                  labelId="producto-catalogo-label"
+                  name="catalogo"
                   label="Catalogo"
-                  value={moduloOrigen}
+                  value={catalogo}
                   onChange={handleChange}
+                  disabled={Boolean(catalogoForzado)}
                 >
-                  <MenuItem value="GENERAL">General</MenuItem>
-                  <MenuItem value="SERVICIOS">Tienda</MenuItem>
+                  {CATALOGO_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
           ) : null}
 
-          <Grid item xs={12} md={hideModuloSelector ? 6 : 6}>
+          <Grid item xs={12} md={6}>
             <TextField
               label="Ubicacion"
               name="ubicacion"

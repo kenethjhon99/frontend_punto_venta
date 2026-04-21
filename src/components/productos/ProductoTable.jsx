@@ -28,6 +28,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import { getCatalogoChipProps } from "../../utils/catalogoProducto";
 
 function ProductoTable({
   productos = [],
@@ -40,19 +41,14 @@ function ProductoTable({
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
 
-  const getModuloChip = (modulo) => {
-    const normalized = String(modulo || "GENERAL").toUpperCase();
-
-    if (normalized === "SERVICIOS") {
-      return <Chip label="Tienda" color="secondary" size="small" />;
-    }
-
+  const renderCatalogoChip = (producto) => {
+    const props = getCatalogoChipProps(producto);
     return (
       <Chip
-        label="General"
-        color="primary"
         size="small"
-        variant="outlined"
+        color={props.chipColor}
+        variant={props.chipVariant}
+        label={props.label}
       />
     );
   };
@@ -111,9 +107,9 @@ function ProductoTable({
                   {showModulo && (
                     <Box>
                       <Typography variant="body2" color="text.secondary">
-                        Modulo
+                        Catalogo
                       </Typography>
-                      <Box mt={0.5}>{getModuloChip(producto.modulo_origen)}</Box>
+                      <Box mt={0.5}>{renderCatalogoChip(producto)}</Box>
                     </Box>
                   )}
 
@@ -198,7 +194,7 @@ function ProductoTable({
             <TableCell sx={getTableHeaderCellSx(theme)}>Codigo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
             {showModulo && (
-              <TableCell sx={getTableHeaderCellSx(theme)}>Modulo</TableCell>
+              <TableCell sx={getTableHeaderCellSx(theme)}>Catalogo</TableCell>
             )}
             <TableCell sx={getTableHeaderCellSx(theme)}>Descripcion</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Compra</TableCell>
@@ -228,7 +224,7 @@ function ProductoTable({
                   <Typography fontWeight={600}>{producto.nombre}</Typography>
                 </TableCell>
                 {showModulo && (
-                  <TableCell>{getModuloChip(producto.modulo_origen)}</TableCell>
+                  <TableCell>{renderCatalogoChip(producto)}</TableCell>
                 )}
                 <TableCell>{producto.descripcion || "-"}</TableCell>
                 <TableCell>Q {Number(producto.precio_compra).toFixed(2)}</TableCell>

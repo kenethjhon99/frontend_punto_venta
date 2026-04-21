@@ -230,7 +230,7 @@ function CarWashReparacion() {
       const [catalogoRes, cajaRes, productosRes, tecnicosRes] = await Promise.all([
         getReparacionCatalogo(),
         getCajaSesionActiva(),
-        getProductos({ scope: "SERVICIOS" }),
+        getProductos({ scope: "PRODUCTOS_TALLER" }),
         getTecnicosServicio(),
       ]);
       const catalogo = normalizarCatalogo(catalogoRes);
@@ -696,7 +696,7 @@ function CarWashReparacion() {
         cantidad: Number(productoOrdenForm.cantidad),
         cobra_al_cliente: productoOrdenForm.cobra_al_cliente,
       });
-      const productosRes = await getProductos({ scope: "SERVICIOS" });
+      const productosRes = await getProductos({ scope: "PRODUCTOS_TALLER" });
       setProductos(Array.isArray(productosRes) ? productosRes : []);
       await cargarOrdenes(estadoFiltro);
       setProductoOrdenModalOpen(false);

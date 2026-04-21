@@ -30,12 +30,7 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import { useAuth } from "../hooks/useAuth";
 import { isServiciosManagerUser, userHasRole } from "../utils/roles";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
-
-const MODULO_OPTIONS = [
-  { value: "TODOS", label: "Todos" },
-  { value: "GENERAL", label: "General" },
-  { value: "SERVICIOS", label: "Tienda" },
-];
+import { CATALOGO_FILTER_OPTIONS } from "../utils/catalogoProducto";
 
 function Productos() {
   const navigate = useNavigate();
@@ -43,7 +38,7 @@ function Productos() {
   const isServiciosManager = useMemo(() => isServiciosManagerUser(user), [user]);
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [scopeFiltro, setScopeFiltro] = useState("GENERAL");
+  const [scopeFiltro, setScopeFiltro] = useState("TIENDA");
   const [modalOpen, setModalOpen] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -64,9 +59,9 @@ function Productos() {
       setError("");
 
       const scope = isServiciosManager
-        ? "SERVICIOS"
+        ? "PRODUCTOS_TALLER"
         : canFilterScopes && scopeFiltro === "TODOS"
-          ? undefined
+          ? "ALL"
           : scopeFiltro;
 
       const data = await getProductos({ scope });
@@ -80,13 +75,13 @@ function Productos() {
   }, [canFilterScopes, isServiciosManager, scopeFiltro]);
 
   useEffect(() => {
-    if (isServiciosManager && scopeFiltro !== "SERVICIOS") {
-      setScopeFiltro("SERVICIOS");
+    if (isServiciosManager && scopeFiltro !== "PRODUCTOS_TALLER") {
+      setScopeFiltro("PRODUCTOS_TALLER");
       return;
     }
 
-    if (!canFilterScopes && scopeFiltro !== "GENERAL") {
-      setScopeFiltro("GENERAL");
+    if (!canFilterScopes && scopeFiltro !== "TIENDA") {
+      setScopeFiltro("TIENDA");
       return;
     }
 
@@ -222,14 +217,14 @@ function Productos() {
 
           {canFilterScopes && (
             <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
-              <InputLabel id="productos-modulo-label">Modulo</InputLabel>
+              <InputLabel id="productos-catalogo-label">Catalogo</InputLabel>
               <Select
-                labelId="productos-modulo-label"
-                label="Modulo"
+                labelId="productos-catalogo-label"
+                label="Catalogo"
                 value={scopeFiltro}
                 onChange={(e) => setScopeFiltro(e.target.value)}
               >
-                {MODULO_OPTIONS.map((option) => (
+                {CATALOGO_FILTER_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
                   </MenuItem>
@@ -290,8 +285,8 @@ function Productos() {
           onSave={guardarProducto}
           productoEditando={productoEditando}
           loading={loading}
-          forceModuloOrigen={isServiciosManager ? "SERVICIOS" : null}
-          hideModuloSelector={isServiciosManager}
+          forceCatalogo={isServiciosManager ? "PRODUCTOS_TALLER" : null}
+          hideCatalogoSelector={isServiciosManager}
         />
       )}
     </Box>

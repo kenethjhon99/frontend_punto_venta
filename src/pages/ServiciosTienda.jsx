@@ -126,7 +126,7 @@ function ServiciosTienda() {
     try {
       setLoadingLista(true);
       setError("");
-      const data = await getProductos({ scope: "SERVICIOS" });
+      const data = await getProductos({ scope: "PRODUCTOS_TALLER" });
       setProductos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
