@@ -524,7 +524,8 @@ export const buildVentaTicketHtml = (ventaData) => {
         const saldo = Number(
           creditoEmpleado?.saldo_pendiente ?? venta.total ?? 0
         );
-        const fechaCobroRaw = creditoEmpleado?.fecha_cobro_estimada;
+        const fechaCobroRaw =
+          creditoEmpleado?.fecha_cobro_estimada ?? creditoEmpleado?.fecha_cobro;
         let fechaCobroTxt = "-";
         if (fechaCobroRaw) {
           const d = new Date(fechaCobroRaw);

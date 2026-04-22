@@ -497,7 +497,9 @@ function CreditosEmpleado() {
                           </TableCell>
                           <TableCell>{formatFecha(c.fecha_credito)}</TableCell>
                           <TableCell>
-                            {formatFecha(c.fecha_cobro_estimada)}
+                            {formatFecha(
+                              c.fecha_cobro_estimada ?? c.fecha_cobro
+                            )}
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -645,7 +647,9 @@ function CreditosEmpleado() {
                               {row.num_creditos_pendientes || 0}
                             </TableCell>
                             <TableCell>
-                              {formatFecha(row.fecha_cobro_estimada)}
+                              {formatFecha(
+                                row.fecha_cobro_estimada ?? row.fecha_cobro
+                              )}
                             </TableCell>
                           </TableRow>
                         );

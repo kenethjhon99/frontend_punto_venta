@@ -29,7 +29,7 @@ import {
   getTraslados,
 } from "../services/trasladoService";
 import TrasladoDetalleModal from "../components/traslados/TrasladoDetalleModal";
-import { getTrasladoSideLabel } from "../utils/trasladoLabels";
+import { getBodegaLabel, getTrasladoSideLabel } from "../utils/trasladoLabels";
 
 const formatFecha = (v) => {
   if (!v) return "-";
@@ -41,6 +41,54 @@ const formatFecha = (v) => {
 };
 
 const formatQ = (n) => `Q ${Number(n || 0).toFixed(2)}`;
+
+const asText = (value) => {
+  const text = String(value ?? "").trim();
+  return text || "";
+};
+
+const getListadoSideLabel = (traslado, side) => {
+  if (!traslado || typeof traslado !== "object") return "-";
+
+  const label = getTrasladoSideLabel(traslado, side);
+  if (label && label !== "-") return label;
+
+  if (side === "origen") {
+    return (
+      asText(traslado.origen_nombre_visible) ||
+      asText(traslado.bodega_origen_nombre_visible) ||
+      asText(traslado.nombre_origen_visible) ||
+      getBodegaLabel({
+        nombre_visible:
+          traslado.origen_nombre_visible ||
+          traslado.bodega_origen_nombre_visible ||
+          traslado.nombre_origen_visible,
+        bodega_nombre:
+          traslado.bodega_origen_nombre || traslado.origen_nombre,
+      }) ||
+      asText(traslado.bodega_origen_nombre) ||
+      asText(traslado.origen_nombre) ||
+      "-"
+    );
+  }
+
+  return (
+    asText(traslado.destino_nombre_visible) ||
+    asText(traslado.bodega_destino_nombre_visible) ||
+    asText(traslado.nombre_destino_visible) ||
+    getBodegaLabel({
+      nombre_visible:
+        traslado.destino_nombre_visible ||
+        traslado.bodega_destino_nombre_visible ||
+        traslado.nombre_destino_visible,
+      bodega_nombre:
+        traslado.bodega_destino_nombre || traslado.destino_nombre,
+    }) ||
+    asText(traslado.bodega_destino_nombre) ||
+    asText(traslado.destino_nombre) ||
+    "-"
+  );
+};
 
 const estadoColor = (estado) => {
   const e = String(estado || "").toUpperCase();
@@ -138,21 +186,20 @@ function Traslados() {
         <Box>
           <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
             <SwapHorizIcon color="primary" />
-            <Typography variant="h4" fontWeight="bold">
+              <Typography variant="h4" fontWeight="bold">
               Traslados (historico)
             </Typography>
           </Stack>
           <Typography variant="body1" color="text.secondary">
-            Consulta los traslados de inventario registrados antes de
-            consolidar el stock en una sola bodega. Modulo en solo lectura.
+            Consulta traslados historicos entre catalogos como General, Tienda y Productos Taller.
+            Esta vista es solo lectura.
           </Typography>
         </Box>
       </Stack>
 
       <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-        Los traslados entre bodegas fueron retirados al unificar el
-        inventario en la bodega PRINCIPAL. Esta vista conserva el
-        historico para consulta.
+        Los traslados activos ya no usan multiples bodegas. Esta vista conserva
+        el historico para consulta y muestra el origen/destino con nombres de catalogo.
       </Alert>
 
       <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
@@ -228,8 +275,8 @@ function Traslados() {
               <TableRow>
                 <TableCell>Folio</TableCell>
                 <TableCell>Fecha</TableCell>
-                <TableCell>Origen</TableCell>
-                <TableCell>Destino</TableCell>
+                <TableCell>Desde</TableCell>
+                <TableCell>Hasta</TableCell>
                 <TableCell align="right">Items</TableCell>
                 <TableCell align="right">Unidades</TableCell>
                 <TableCell align="right">Valor</TableCell>
@@ -264,8 +311,8 @@ function Traslados() {
                       </Typography>
                     </TableCell>
                     <TableCell>{formatFecha(t.fecha)}</TableCell>
-                    <TableCell>{getTrasladoSideLabel(t, "origen")}</TableCell>
-                    <TableCell>{getTrasladoSideLabel(t, "destino")}</TableCell>
+                    <TableCell>{getListadoSideLabel(t, "origen")}</TableCell>
+                    <TableCell>{getListadoSideLabel(t, "destino")}</TableCell>
                     <TableCell align="right">{t.total_items}</TableCell>
                     <TableCell align="right">{t.total_unidades}</TableCell>
                     <TableCell align="right">{formatQ(t.total_valorizado)}</TableCell>

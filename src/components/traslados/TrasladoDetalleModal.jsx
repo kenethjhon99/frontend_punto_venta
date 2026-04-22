@@ -88,7 +88,7 @@ function TrasladoDetalleModal({ open, onClose, data, loading }) {
             <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
               <Box flex={1}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Origen
+                  Desde
                 </Typography>
                 <Typography variant="body1" fontWeight={700}>
                   {getTrasladoSideLabel(t, "origen")}
@@ -101,7 +101,7 @@ function TrasladoDetalleModal({ open, onClose, data, loading }) {
               </Box>
               <Box flex={1}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Destino
+                  Hasta
                 </Typography>
                 <Typography variant="body1" fontWeight={700}>
                   {getTrasladoSideLabel(t, "destino")}
