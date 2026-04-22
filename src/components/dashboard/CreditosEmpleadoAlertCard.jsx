@@ -36,17 +36,23 @@ const formatFecha = (raw) => {
 
 const criticidadColor = {
   VENCIDO: "error",
-  HOY: "warning",
-  PROXIMO: "info",
-  FUTURO: "default",
+  POR_VENCER: "warning",
+  VIGENTE: "default",
 };
 
 const criticidadLabel = {
   VENCIDO: "Vencido",
-  HOY: "Hoy",
-  PROXIMO: "Proximo",
-  FUTURO: "Futuro",
+  POR_VENCER: "Por vencer",
+  VIGENTE: "Vigente",
 };
+
+const getSaldoPendiente = (credito) =>
+  Number(
+    credito?.saldo_pendiente ??
+      (String(credito?.estado || "").toUpperCase() === "PENDIENTE"
+        ? credito?.monto
+        : 0)
+  );
 
 function CreditosEmpleadoAlertCard() {
   const { resumen, top, loading, error, puedeVer } = useCreditoEmpleadoAlertas();
@@ -170,15 +176,15 @@ function CreditosEmpleadoAlertCard() {
                     <Typography
                       fontWeight={700}
                       color={
-                        Number(c.saldo_pendiente || 0) > 0
+                        getSaldoPendiente(c) > 0
                           ? "warning.main"
                           : "text.secondary"
                       }
                     >
-                      {formatQ(c.saldo_pendiente)}
+                      {formatQ(getSaldoPendiente(c))}
                     </Typography>
                   </TableCell>
-                  <TableCell>{formatFecha(c.fecha_cobro_estimada)}</TableCell>
+                  <TableCell>{formatFecha(c.fecha_cobro_estimada ?? c.fecha_cobro)}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"

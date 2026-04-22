@@ -208,7 +208,7 @@ function Ventas() {
   const cargarProductos = useCallback(async () => {
     try {
       setLoadingProductos(true);
-      const data = await getProductos({ scope: "TIENDA" });
+      const data = await getProductos({ scope: "GENERAL" });
       setProductos(normalizarProductos(data));
     } catch (err) {
       console.error(err);

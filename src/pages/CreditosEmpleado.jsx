@@ -66,23 +66,28 @@ const formatFecha = (raw) => {
 const estadoColor = {
   PENDIENTE: "warning",
   COBRADO: "success",
-  CONDONADO: "info",
-  ANULADO: "default",
+  CANCELADO: "default",
 };
 
 const criticidadColor = {
   VENCIDO: "error",
-  HOY: "warning",
-  PROXIMO: "info",
-  FUTURO: "default",
+  POR_VENCER: "warning",
+  VIGENTE: "default",
 };
 
 const criticidadLabel = {
   VENCIDO: "Vencido",
-  HOY: "Hoy",
-  PROXIMO: "Proximo",
-  FUTURO: "Futuro",
+  POR_VENCER: "Por vencer",
+  VIGENTE: "Vigente",
 };
+
+const getSaldoPendiente = (credito) =>
+  Number(
+    credito?.saldo_pendiente ??
+      (String(credito?.estado || "").toUpperCase() === "PENDIENTE"
+        ? credito?.monto
+        : 0)
+  );
 
 function CreditosEmpleado() {
   const { user } = useAuth();
@@ -171,14 +176,14 @@ function CreditosEmpleado() {
   const resumen = useMemo(() => {
     const total = creditos.reduce(
       (acc, c) =>
-        c.estado === "PENDIENTE" ? acc + Number(c.saldo_pendiente || 0) : acc,
+        c.estado === "PENDIENTE" ? acc + getSaldoPendiente(c) : acc,
       0
     );
     const vencidos = creditos.filter(
       (c) => c.estado === "PENDIENTE" && c.criticidad === "VENCIDO"
     ).length;
     const hoy = creditos.filter(
-      (c) => c.estado === "PENDIENTE" && c.criticidad === "HOY"
+      (c) => c.estado === "PENDIENTE" && c.criticidad === "POR_VENCER"
     ).length;
     return { total, vencidos, hoy, n: creditos.length };
   }, [creditos]);
@@ -238,13 +243,13 @@ function CreditosEmpleado() {
         motivo: motivoCondonar.trim(),
       });
       setSuccess(
-        `Credito #${creditoSeleccionado.id_credito_empleado} condonado correctamente.`
+        `Credito #${creditoSeleccionado.id_credito_empleado} cancelado correctamente.`
       );
       cerrarDialogs();
       await Promise.all([cargarCreditos(), cargarNomina()]);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "No se pudo condonar el credito");
+      setError(err.response?.data?.error || "No se pudo cancelar el credito");
     } finally {
       setLoadingAccion(false);
     }
@@ -356,7 +361,7 @@ function CreditosEmpleado() {
           }
         >
           <Typography variant="body2" color="text.secondary">
-            Se cobran hoy
+            Por vencer
           </Typography>
           <Typography variant="h5" fontWeight="bold">
             {resumen.hoy}
@@ -406,8 +411,7 @@ function CreditosEmpleado() {
                         <MenuItem value="TODOS">Todos</MenuItem>
                         <MenuItem value="PENDIENTE">Pendiente</MenuItem>
                         <MenuItem value="COBRADO">Cobrado</MenuItem>
-                        <MenuItem value="CONDONADO">Condonado</MenuItem>
-                        <MenuItem value="ANULADO">Anulado</MenuItem>
+                        <MenuItem value="CANCELADO">Cancelado</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -424,9 +428,8 @@ function CreditosEmpleado() {
                       >
                         <MenuItem value="TODOS">Todas</MenuItem>
                         <MenuItem value="VENCIDO">Vencidos</MenuItem>
-                        <MenuItem value="HOY">Hoy</MenuItem>
-                        <MenuItem value="PROXIMO">Proximos</MenuItem>
-                        <MenuItem value="FUTURO">Futuros</MenuItem>
+                        <MenuItem value="POR_VENCER">Por vencer</MenuItem>
+                        <MenuItem value="VIGENTE">Vigentes</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -476,7 +479,7 @@ function CreditosEmpleado() {
                           <TableCell>
                             <Chip
                               size="small"
-                              label={c.cargo || "-"}
+                              label={c.empleado_cargo || c.cargo || "-"}
                               variant="outlined"
                             />
                           </TableCell>
@@ -487,12 +490,12 @@ function CreditosEmpleado() {
                             <Typography
                               fontWeight={700}
                               color={
-                                Number(c.saldo_pendiente || 0) > 0
+                                getSaldoPendiente(c) > 0
                                   ? "warning.main"
                                   : "text.secondary"
                               }
                             >
-                              {formatQ(c.saldo_pendiente)}
+                              {formatQ(getSaldoPendiente(c))}
                             </Typography>
                           </TableCell>
                           <TableCell>{formatFecha(c.fecha_credito)}</TableCell>
@@ -687,7 +690,7 @@ function CreditosEmpleado() {
                 Saldo a cobrar
               </Typography>
               <Typography variant="h6" fontWeight={800} color="warning.main">
-                {formatQ(creditoSeleccionado?.saldo_pendiente)}
+                {formatQ(getSaldoPendiente(creditoSeleccionado))}
               </Typography>
             </Box>
             <TextField
@@ -725,7 +728,7 @@ function CreditosEmpleado() {
         fullWidth
       >
         <DialogTitle>
-          Condonar credito #{creditoSeleccionado?.id_credito_empleado}
+          Cancelar credito #{creditoSeleccionado?.id_credito_empleado}
         </DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
@@ -743,10 +746,10 @@ function CreditosEmpleado() {
             </Box>
             <Box>
               <Typography variant="body2" color="text.secondary">
-                Saldo a condonar
+                Saldo a cancelar
               </Typography>
               <Typography variant="h6" fontWeight={800} color="info.main">
-                {formatQ(creditoSeleccionado?.saldo_pendiente)}
+                {formatQ(getSaldoPendiente(creditoSeleccionado))}
               </Typography>
             </Box>
             <TextField
@@ -754,7 +757,7 @@ function CreditosEmpleado() {
               required
               multiline
               minRows={2}
-              label="Motivo de la condonacion"
+              label="Motivo de la cancelacion"
               value={motivoCondonar}
               onChange={(e) => setMotivoCondonar(e.target.value.slice(0, 250))}
               helperText={`${motivoCondonar.length} / 250 caracteres (minimo 5)`}
@@ -775,7 +778,7 @@ function CreditosEmpleado() {
             disabled={loadingAccion || motivoCondonar.trim().length < 5}
             startIcon={<HeartBrokenIcon />}
           >
-            {loadingAccion ? <CircularProgress size={18} /> : "Condonar"}
+            {loadingAccion ? <CircularProgress size={18} /> : "Cancelar credito"}
           </Button>
         </DialogActions>
       </Dialog>

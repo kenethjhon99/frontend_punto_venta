@@ -522,7 +522,11 @@ export const buildVentaTicketHtml = (ventaData) => {
           creditoEmpleado?.empleado_nombre || "Empleado";
         const empleadoCargo = creditoEmpleado?.empleado_cargo || "";
         const saldo = Number(
-          creditoEmpleado?.saldo_pendiente ?? venta.total ?? 0
+          creditoEmpleado?.saldo_pendiente ??
+            (String(creditoEmpleado?.estado || "").toUpperCase() === "PENDIENTE"
+              ? creditoEmpleado?.monto
+              : venta.total) ??
+            0
         );
         const fechaCobroRaw =
           creditoEmpleado?.fecha_cobro_estimada ?? creditoEmpleado?.fecha_cobro;

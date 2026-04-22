@@ -29,7 +29,7 @@ import {
   getTraslados,
 } from "../services/trasladoService";
 import TrasladoDetalleModal from "../components/traslados/TrasladoDetalleModal";
-import { getBodegaLabel, getTrasladoSideLabel } from "../utils/trasladoLabels";
+import { getTrasladoSideLabel } from "../utils/trasladoLabels";
 
 const formatFecha = (v) => {
   if (!v) return "-";
@@ -47,6 +47,21 @@ const asText = (value) => {
   return text || "";
 };
 
+const CATALOGO_LABELS = {
+  GENERAL: "General",
+  PRINCIPAL: "General",
+  TIENDA: "Tienda",
+  TIENDA_TALLER: "Tienda",
+  PRODUCTOS_TALLER: "Productos Taller",
+  SERVICIOS: "Productos Taller",
+  TALLER: "Productos Taller",
+};
+
+const getCatalogLabel = (value) => {
+  const key = String(value ?? "").trim().toUpperCase();
+  return CATALOGO_LABELS[key] || "";
+};
+
 const getListadoSideLabel = (traslado, side) => {
   if (!traslado || typeof traslado !== "object") return "-";
 
@@ -55,17 +70,14 @@ const getListadoSideLabel = (traslado, side) => {
 
   if (side === "origen") {
     return (
+      getCatalogLabel(traslado.catalogo_origen) ||
+      getCatalogLabel(traslado.origen_bucket_key) ||
+      getCatalogLabel(traslado.modulo_origen) ||
       asText(traslado.origen_nombre_visible) ||
       asText(traslado.bodega_origen_nombre_visible) ||
       asText(traslado.nombre_origen_visible) ||
-      getBodegaLabel({
-        nombre_visible:
-          traslado.origen_nombre_visible ||
-          traslado.bodega_origen_nombre_visible ||
-          traslado.nombre_origen_visible,
-        bodega_nombre:
-          traslado.bodega_origen_nombre || traslado.origen_nombre,
-      }) ||
+      getCatalogLabel(traslado.bodega_origen_nombre) ||
+      getCatalogLabel(traslado.origen_nombre) ||
       asText(traslado.bodega_origen_nombre) ||
       asText(traslado.origen_nombre) ||
       "-"
@@ -73,17 +85,14 @@ const getListadoSideLabel = (traslado, side) => {
   }
 
   return (
+    getCatalogLabel(traslado.catalogo_destino) ||
+    getCatalogLabel(traslado.destino_bucket_key) ||
+    getCatalogLabel(traslado.modulo_destino) ||
     asText(traslado.destino_nombre_visible) ||
     asText(traslado.bodega_destino_nombre_visible) ||
     asText(traslado.nombre_destino_visible) ||
-    getBodegaLabel({
-      nombre_visible:
-        traslado.destino_nombre_visible ||
-        traslado.bodega_destino_nombre_visible ||
-        traslado.nombre_destino_visible,
-      bodega_nombre:
-        traslado.bodega_destino_nombre || traslado.destino_nombre,
-    }) ||
+    getCatalogLabel(traslado.bodega_destino_nombre) ||
+    getCatalogLabel(traslado.destino_nombre) ||
     asText(traslado.bodega_destino_nombre) ||
     asText(traslado.destino_nombre) ||
     "-"
