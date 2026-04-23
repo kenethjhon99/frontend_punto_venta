@@ -397,6 +397,7 @@ function ServiciosTienda() {
           !noCobroForm.enabled && metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
         id_sucursal: 1,
         id_cliente: clienteId ? Number(clienteId) : null,
+        stock_scope: "TIENDA",
         descuento_porcentaje:
           clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0,
         no_cobrar: noCobroForm.enabled,

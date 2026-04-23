@@ -3,9 +3,11 @@ const EMPTY_LABEL = "-";
 const CATALOGO_LABELS = {
   GENERAL: "General",
   PRINCIPAL: "General",
-  TIENDA: "Tienda",
-  TIENDA_TALLER: "Tienda",
-  PRODUCTOS_TALLER: "Tienda",
+  TIENDA: "Tienda / Productos Taller",
+  TIENDA_TALLER: "Tienda / Productos Taller",
+  PRODUCTOS_TALLER: "Tienda / Productos Taller",
+  SERVICIOS: "Tienda / Productos Taller",
+  TALLER: "Tienda / Productos Taller",
 };
 
 const asText = (value) => {

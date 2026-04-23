@@ -37,6 +37,7 @@ function ProductoTable({
   onViewKardex,
   canManage = true,
   showModulo = false,
+  showStockSplit = false,
 }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
@@ -50,6 +51,28 @@ function ProductoTable({
         variant={props.chipVariant}
         label={props.label}
       />
+    );
+  };
+
+  const renderStockSplit = (producto) => {
+    const stockGeneral = Number(producto.stock_general ?? 0);
+    const stockTiendaTaller = Number(producto.stock_tienda_taller ?? 0);
+    const stockTotal = Number(
+      producto.stock_total ?? producto.stock ?? stockGeneral + stockTiendaTaller
+    );
+
+    return (
+      <Stack
+        direction="row"
+        spacing={0.75}
+        useFlexGap
+        flexWrap="wrap"
+        alignItems="center"
+      >
+        <Chip size="small" variant="outlined" color="primary" label={`General ${stockGeneral}`} />
+        <Chip size="small" variant="outlined" color="secondary" label={`Tienda/Taller ${stockTiendaTaller}`} />
+        <Chip size="small" color="default" label={`Total ${stockTotal}`} />
+      </Stack>
     );
   };
 
@@ -142,6 +165,15 @@ function ProductoTable({
                     </Box>
                   </Box>
 
+                  {showStockSplit && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Stock por bodega
+                      </Typography>
+                      <Box mt={0.75}>{renderStockSplit(producto)}</Box>
+                    </Box>
+                  )}
+
                   <Box display="flex" justifyContent="flex-end" gap={1}>
                     {onViewKardex && (
                       <Tooltip title="Ver kardex">
@@ -187,9 +219,17 @@ function ProductoTable({
 
   return (
     <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
-      <Table sx={{ minWidth: showModulo ? 1120 : 1000 }}>
-        <TableHead>
-          <TableRow sx={getTableHeaderRowSx(theme)}>
+      <Table
+        sx={{
+          minWidth: showStockSplit
+            ? 1380
+            : showModulo
+              ? 1120
+              : 1000,
+        }}
+      >
+          <TableHead>
+            <TableRow sx={getTableHeaderRowSx(theme)}>
             <TableCell sx={getTableHeaderCellSx(theme)}>ID</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Codigo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
@@ -198,11 +238,14 @@ function ProductoTable({
             )}
             <TableCell sx={getTableHeaderCellSx(theme)}>Descripcion</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Compra</TableCell>
-            <TableCell sx={getTableHeaderCellSx(theme)}>Venta</TableCell>
-            <TableCell sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
-            <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
-              Acciones
-            </TableCell>
+              <TableCell sx={getTableHeaderCellSx(theme)}>Venta</TableCell>
+              <TableCell sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
+              {showStockSplit && (
+                <TableCell sx={getTableHeaderCellSx(theme)}>Stock por bodega</TableCell>
+              )}
+              <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
+                Acciones
+              </TableCell>
           </TableRow>
         </TableHead>
 
@@ -241,6 +284,9 @@ function ProductoTable({
                     size="small"
                   />
                 </TableCell>
+                {showStockSplit && (
+                  <TableCell>{renderStockSplit(producto)}</TableCell>
+                )}
                 <TableCell align="center">
                   <Stack direction="row" spacing={1} justifyContent="center">
                     {onViewKardex && (

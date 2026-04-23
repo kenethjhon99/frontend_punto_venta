@@ -97,6 +97,14 @@ const toCsvValue = (value) => {
   return `"${normalized.replaceAll('"', '""')}"`;
 };
 
+const getStockSplit = (registro) => {
+  const general = Number(registro?.stock_general ?? 0);
+  const tiendaTaller = Number(registro?.stock_tienda_taller ?? 0);
+  const total = Number(registro?.stock_total ?? registro?.existencia ?? general + tiendaTaller);
+
+  return { general, tiendaTaller, total };
+};
+
 function Inventario() {
   const theme = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -248,7 +256,9 @@ function Inventario() {
   const valorEstimadoStock = useMemo(() => {
     if (!selectedProduct) return 0;
 
-    return Number(selectedProduct.existencia || 0) * Number(selectedProduct.precio_compra || 0);
+    return Number(
+      (selectedProduct.stock_total ?? selectedProduct.existencia) || 0
+    ) * Number(selectedProduct.precio_compra || 0);
   }, [selectedProduct]);
 
   const ultimoMovimiento = useMemo(() => {
@@ -629,7 +639,19 @@ function Inventario() {
                       size="small"
                       color="primary"
                       variant="filled"
-                      label={`Stock ${Number(selectedProduct.existencia || 0)}`}
+                      label={`Total ${getStockSplit(selectedProduct).total}`}
+                    />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      label={`General ${getStockSplit(selectedProduct).general}`}
+                    />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      label={`Tienda/Taller ${getStockSplit(selectedProduct).tiendaTaller}`}
                     />
                     <Chip
                       size="small"
@@ -662,6 +684,7 @@ function Inventario() {
                       <TableCell sx={getTableHeaderCellSx(theme)}>Producto</TableCell>
                       <TableCell sx={getTableHeaderCellSx(theme)}>Catalogo</TableCell>
                       <TableCell align="right" sx={getTableHeaderCellSx(theme)}>Stock</TableCell>
+                      <TableCell sx={getTableHeaderCellSx(theme)}>Distribucion</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -730,11 +753,27 @@ function Inventario() {
                           </TableCell>
                           <TableCell align="right">
                             <Typography fontWeight="bold">
-                              {Number(producto.existencia || 0)}
+                              {getStockSplit(producto).total}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Min {Number(producto.stock_minimo || 0)}
                             </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                              <Chip
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                label={`G ${getStockSplit(producto).general}`}
+                              />
+                              <Chip
+                                size="small"
+                                variant="outlined"
+                                color="secondary"
+                                label={`T/T ${getStockSplit(producto).tiendaTaller}`}
+                              />
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       );
@@ -742,7 +781,7 @@ function Inventario() {
 
                     {!loadingStock && productosFiltrados.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={3}>
+                        <TableCell colSpan={4}>
                           <Typography color="text.secondary">
                             No hay productos que coincidan con el filtro actual.
                           </Typography>
@@ -787,7 +826,21 @@ function Inventario() {
                   <Chip
                     color="primary"
                     variant="outlined"
-                    label={`Stock ${Number(selectedProduct.existencia || 0)}`}
+                    label={`Total ${getStockSplit(selectedProduct).total}`}
+                  />
+                )}
+                {selectedProduct && (
+                  <Chip
+                    color="primary"
+                    variant="outlined"
+                    label={`General ${getStockSplit(selectedProduct).general}`}
+                  />
+                )}
+                {selectedProduct && (
+                  <Chip
+                    color="secondary"
+                    variant="outlined"
+                    label={`Tienda/Taller ${getStockSplit(selectedProduct).tiendaTaller}`}
                   />
                 )}
                 {selectedProduct && (

@@ -271,6 +271,7 @@ function Productos() {
             onViewKardex={verKardexProducto}
             canManage={canManageProductos}
             showModulo={canFilterScopes || isServiciosManager}
+            showStockSplit={canFilterScopes}
           />
         </Paper>
       )}

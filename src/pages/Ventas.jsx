@@ -696,6 +696,7 @@ function Ventas() {
               observacion_credito: observacionCredito
                 ? String(observacionCredito).slice(0, 250)
                 : null,
+              stock_scope: "GENERAL",
               descuento_porcentaje: 0,
               no_cobrar: false,
               no_cobrado_motivo: null,
@@ -715,6 +716,7 @@ function Ventas() {
                   : null,
               id_sucursal: 1,
               id_cliente: clienteId ? Number(clienteId) : null,
+              stock_scope: "GENERAL",
               descuento_porcentaje:
                 clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0,
               no_cobrar: noCobroForm.enabled,
