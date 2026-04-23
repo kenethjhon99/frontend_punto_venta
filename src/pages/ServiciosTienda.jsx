@@ -464,7 +464,7 @@ function ServiciosTienda() {
               </Box>
             </Stack>
             <Typography variant="body1" color="text.secondary">
-              Vende solo productos exclusivos de tienda. Este modulo no mezcla el catalogo general del POS y mantiene el mismo estilo visual del resto del sistema.
+              Vende todos los productos disponibles en la bodega Tienda / Productos Taller, incluyendo productos trasladados desde General y productos de uso de taller.
             </Typography>
             <Stack
               direction={{ xs: "column", sm: "row" }}
@@ -492,7 +492,7 @@ function ServiciosTienda() {
 
         <Stack spacing={2} mb={3}>
           <Alert severity="info" sx={{ borderRadius: 2 }}>
-            Los productos de tienda se crean desde Productos, marcandolos en el campo Catalogo como Tienda.
+            Aqui aparecen todos los productos que tengan existencia en la bodega Tienda / Productos Taller. Si un producto se traslada desde General a esta bodega, tambien quedara disponible para venderse aqui.
           </Alert>
 
           {canManageProductos && (
@@ -501,13 +501,13 @@ function ServiciosTienda() {
               onClick={() => navigate("/productos")}
               sx={{ alignSelf: "flex-start" }}
             >
-              Ir a Productos para crear tienda
+              Ir a Productos
             </Button>
           )}
 
           {isReadOnly && (
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Estas en modo solo lectura. Puedes consultar los productos de tienda, pero no registrar ventas.
+              Estas en modo solo lectura. Puedes consultar el inventario de Tienda / Productos Taller, pero no registrar ventas.
             </Alert>
           )}
 
@@ -546,10 +546,10 @@ function ServiciosTienda() {
                 </Box>
                 <Box>
                   <Typography variant="h6" fontWeight="bold" sx={getSummaryValueSx(theme, "success")}>
-                    Productos de tienda
+                    Productos disponibles
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Catalogo exclusivo para venta de servicios y tienda.
+                    Stock disponible en la bodega Tienda / Productos Taller.
                   </Typography>
                 </Box>
               </Stack>
@@ -683,7 +683,7 @@ function ServiciosTienda() {
                     })
                   ) : (
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      No hay productos de tienda para mostrar.
+                      No hay productos disponibles en Tienda / Productos Taller.
                     </Alert>
                   )}
                 </Stack>
@@ -703,14 +703,14 @@ function ServiciosTienda() {
                       Carrito de tienda
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Arma la venta rapida con productos exclusivos de tienda.
+                      Arma la venta rapida con productos disponibles en Tienda / Productos Taller.
                     </Typography>
                   </Box>
                 </Stack>
 
                 {!items.length ? (
                   <Alert severity="info" sx={{ borderRadius: 2 }}>
-                    Agrega productos de tienda para registrar una venta.
+                    Agrega productos para registrar una venta desde Tienda / Productos Taller.
                   </Alert>
                 ) : (
                   <Stack spacing={1.5}>
