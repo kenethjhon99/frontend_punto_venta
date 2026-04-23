@@ -5,6 +5,7 @@ import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
@@ -28,6 +29,8 @@ import {
   FormControlLabel,
   Checkbox,
   InputAdornment,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { getProductos } from "../services/productoService";
@@ -50,6 +53,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { isReadOnlyUser, userHasRole } from "../utils/roles";
 import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFields";
+import EmpleadoCreditoPanel from "../components/ventas/EmpleadoCreditoPanel";
 import BarcodeCameraDialog from "../components/ui/BarcodeCameraDialog";
 import {
   calculateDiscountSummary,
@@ -97,6 +101,9 @@ function ServiciosTienda() {
   const [montoRecibido, setMontoRecibido] = useState("");
   const [descuentoPorcentaje, setDescuentoPorcentaje] = useState("0");
   const [noCobroForm, setNoCobroForm] = useState(EMPTY_NO_COBRO_FORM);
+  const [modoVenta, setModoVenta] = useState("NORMAL");
+  const [empleadoCreditoId, setEmpleadoCreditoId] = useState(null);
+  const [observacionCredito, setObservacionCredito] = useState("");
   const [autoPrint, setAutoPrint] = useState(() =>
     readPrintPreference(user, "tienda.autoPrint", true)
   );
@@ -338,6 +345,7 @@ function ServiciosTienda() {
 
   const finalizarVenta = async () => {
     if (!items.length) return;
+    const esCreditoEmpleado = modoVenta === "CREDITO_EMPLEADO";
 
     const cajaActual = await getCajaSesionActiva().catch(() => null);
     const sesionCaja = cajaActual?.sesion || cajaActual || null;
@@ -348,12 +356,17 @@ function ServiciosTienda() {
       return;
     }
 
+    if (esCreditoEmpleado && !empleadoCreditoId) {
+      setError("Selecciona el empleado al que se le otorgara el credito.");
+      return;
+    }
+
     if (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim()) {
       setError("Debes indicar el motivo del no cobro.");
       return;
     }
 
-    if (descuentoPorcentajeNormalizado > 0) {
+    if (!esCreditoEmpleado && descuentoPorcentajeNormalizado > 0) {
       if (!clienteSeleccionado) {
         setError("Selecciona un cliente para aplicar descuento en tienda.");
         return;
@@ -389,33 +402,64 @@ function ServiciosTienda() {
         });
       }
 
-      const response = await crearVenta({
-        tipo_venta: "CONTADO",
-        tipo_comprobante: tipoComprobante,
-        metodo_pago: metodoPago,
-        monto_recibido:
-          !noCobroForm.enabled && metodoPago === "EFECTIVO" ? montoRecibidoNumero : null,
-        id_sucursal: 1,
-        id_cliente: clienteId ? Number(clienteId) : null,
-        stock_scope: "TIENDA",
-        descuento_porcentaje:
-          clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0,
-        no_cobrar: noCobroForm.enabled,
-        no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
-        items: items.map((item) => ({
-          id_producto: item.id_producto,
-          cantidad: item.cantidad,
-          precio_venta: item.precio_venta,
-        })),
-      });
+      const payload = esCreditoEmpleado
+        ? {
+            tipo_venta: "CREDITO",
+            tipo_comprobante: tipoComprobante,
+            metodo_pago: "CREDITO_EMPLEADO",
+            monto_recibido: null,
+            id_sucursal: 1,
+            id_cliente: null,
+            id_empleado_credito: Number(empleadoCreditoId),
+            observacion_credito: String(observacionCredito || "").trim() || null,
+            stock_scope: "TIENDA",
+            descuento_porcentaje: 0,
+            no_cobrar: false,
+            no_cobrado_motivo: null,
+            items: items.map((item) => ({
+              id_producto: item.id_producto,
+              cantidad: item.cantidad,
+              precio_venta: item.precio_venta,
+            })),
+          }
+        : {
+            tipo_venta: "CONTADO",
+            tipo_comprobante: tipoComprobante,
+            metodo_pago: metodoPago,
+            monto_recibido:
+              !noCobroForm.enabled && metodoPago === "EFECTIVO"
+                ? montoRecibidoNumero
+                : null,
+            id_sucursal: 1,
+            id_cliente: clienteId ? Number(clienteId) : null,
+            stock_scope: "TIENDA",
+            descuento_porcentaje:
+              clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0,
+            no_cobrar: noCobroForm.enabled,
+            no_cobrado_motivo: noCobroForm.enabled ? noCobroForm.motivo : null,
+            items: items.map((item) => ({
+              id_producto: item.id_producto,
+              cantidad: item.cantidad,
+              precio_venta: item.precio_venta,
+            })),
+          };
+
+      const response = await crearVenta(payload);
 
       setItems([]);
       setMontoRecibido("");
       setClienteId("");
       setDescuentoPorcentaje("0");
       setNoCobroForm(EMPTY_NO_COBRO_FORM);
+      setModoVenta("NORMAL");
+      setEmpleadoCreditoId(null);
+      setObservacionCredito("");
       setSuccess(
-        noCobroForm.enabled
+        esCreditoEmpleado
+          ? response?.venta?.id_venta
+            ? `Credito a empleado #${response.venta.id_venta} registrado correctamente. Se cobrara en el proximo pago.`
+            : "Credito a empleado registrado correctamente."
+          : noCobroForm.enabled
           ? "Venta de tienda registrada sin cobro. Quedara pendiente de validacion administrativa al cierre de caja."
           : response?.venta?.numero_comprobante
           ? `Venta de tienda registrada. Comprobante ${response.venta.numero_comprobante}.`
@@ -795,6 +839,37 @@ function ServiciosTienda() {
                     </Box>
                   </Stack>
 
+                  <ToggleButtonGroup
+                    exclusive
+                    fullWidth
+                    size="small"
+                    color="primary"
+                    value={modoVenta}
+                    onChange={(_event, value) => {
+                      if (!value) return;
+                      setModoVenta(value);
+                      if (value === "CREDITO_EMPLEADO") {
+                        setClienteId("");
+                        setMetodoPago("EFECTIVO");
+                        setMontoRecibido("");
+                        setDescuentoPorcentaje("0");
+                        setNoCobroForm(EMPTY_NO_COBRO_FORM);
+                      } else {
+                        setEmpleadoCreditoId(null);
+                        setObservacionCredito("");
+                      }
+                    }}
+                  >
+                    <ToggleButton value="NORMAL" sx={{ gap: 1 }}>
+                      <PointOfSaleIcon fontSize="small" />
+                      Venta normal
+                    </ToggleButton>
+                    <ToggleButton value="CREDITO_EMPLEADO" sx={{ gap: 1 }}>
+                      <BadgeOutlinedIcon fontSize="small" />
+                      Credito a empleado
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+
                 <Box
                   sx={{
                     p: 2,
@@ -812,6 +887,17 @@ function ServiciosTienda() {
                   </Typography>
                 </Box>
 
+                {modoVenta === "CREDITO_EMPLEADO" ? (
+                  <EmpleadoCreditoPanel
+                    empleadoId={empleadoCreditoId}
+                    onEmpleadoChange={setEmpleadoCreditoId}
+                    observacion={observacionCredito}
+                    onObservacionChange={setObservacionCredito}
+                    totalVenta={total}
+                    disabled={loadingVenta}
+                  />
+                ) : (
+                  <>
                 <FormControl fullWidth disabled={loadingClientes}>
                   <InputLabel id="tienda-cliente-label">Cliente</InputLabel>
                   <Select
@@ -832,7 +918,7 @@ function ServiciosTienda() {
                 <Typography variant="body2" color="text.secondary">
                   {clienteSeleccionado
                     ? `Cliente seleccionado: ${clienteSeleccionado.nombre}${clienteSeleccionado.nit ? ` - NIT ${clienteSeleccionado.nit}` : ""} · Tipo ${String(clienteSeleccionado.tipo_cliente || "NORMAL").toUpperCase()}`
-                    : "Selecciona un cliente si deseas aplicar descuento sobre la ganancia."}
+                    : "Selecciona un cliente si deseas aplicar descuento."}
                 </Typography>
 
                 <FormControl fullWidth>
@@ -884,16 +970,18 @@ function ServiciosTienda() {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Descuento sobre ganancia (%)"
+                  label="Descuento (%)"
                   value={descuentoPorcentaje}
                   onChange={(event) => setDescuentoPorcentaje(event.target.value)}
-                  disabled={!clienteSeleccionado}
+                  disabled={loadingVenta}
                   inputProps={{ min: 0, max: 100, step: 0.01 }}
                   helperText={
-                    !clienteSeleccionado
-                      ? "Selecciona un cliente para habilitar descuentos."
+                    descuentoPorcentajeNormalizado > 0 && !clienteSeleccionado
+                      ? "Selecciona un cliente para aplicar descuento."
                       : !clientePermiteDescuento
-                        ? "Solo clientes NORMAL o MAYORISTA pueden recibir descuento."
+                        ? clienteSeleccionado
+                          ? "Solo clientes NORMAL o MAYORISTA pueden recibir descuento."
+                          : "El descuento se aplica solo sobre la ganancia, nunca debajo del costo."
                         : "El descuento se aplica solo sobre la ganancia, nunca debajo del costo."
                   }
                 />
@@ -980,6 +1068,8 @@ function ServiciosTienda() {
                     </Typography>
                   </Paper>
                 )}
+                  </>
+                )}
 
                 <FormControlLabel
                   control={
@@ -1004,14 +1094,18 @@ function ServiciosTienda() {
                       loadingVenta ||
                       loadingCaja ||
                       !cajaActiva?.id_caja_sesion ||
+                      (modoVenta === "CREDITO_EMPLEADO" && !empleadoCreditoId) ||
                       (noCobroForm.enabled && !String(noCobroForm.motivo || "").trim()) ||
-                      (!noCobroForm.enabled &&
+                      (modoVenta !== "CREDITO_EMPLEADO" &&
+                        !noCobroForm.enabled &&
                         metodoPago === "EFECTIVO" &&
                         montoRecibidoNumero < totalConDescuento)
                     }
                   >
                     {loadingVenta
                       ? "Registrando..."
+                      : modoVenta === "CREDITO_EMPLEADO"
+                        ? "Registrar credito a empleado"
                       : noCobroForm.enabled
                         ? "Registrar venta sin cobro"
                         : "Registrar venta de tienda"}

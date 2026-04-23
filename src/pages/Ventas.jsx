@@ -1190,16 +1190,18 @@ function Ventas() {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Descuento sobre ganancia (%)"
+                      label="Descuento (%)"
                       value={descuentoPorcentaje}
                       onChange={(event) => setDescuentoPorcentaje(event.target.value)}
-                      disabled={!clienteSeleccionado}
+                      disabled={loadingVenta}
                       inputProps={{ min: 0, max: 100, step: 0.01 }}
                       helperText={
-                        !clienteSeleccionado
-                          ? "Selecciona un cliente para habilitar descuentos."
+                        descuentoPorcentajeNormalizado > 0 && !clienteSeleccionado
+                          ? "Selecciona un cliente para aplicar descuento."
                           : !clientePermiteDescuento
-                            ? "Solo clientes NORMAL o MAYORISTA pueden recibir descuento."
+                            ? clienteSeleccionado
+                              ? "Solo clientes NORMAL o MAYORISTA pueden recibir descuento."
+                              : "El descuento se aplica solo sobre la ganancia, nunca debajo del costo."
                             : "Se descuenta solo sobre la ganancia, nunca debajo del costo."
                       }
                     />
