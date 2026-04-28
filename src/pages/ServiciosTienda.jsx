@@ -262,14 +262,14 @@ function ServiciosTienda() {
     () =>
       calculateDiscountSummary(
         items,
-        clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0
+        descuentoPorcentajeNormalizado
       ),
-    [clientePermiteDescuento, descuentoPorcentajeNormalizado, items]
+    [descuentoPorcentajeNormalizado, items]
   );
 
   const totalConDescuento = useMemo(
-    () => (clientePermiteDescuento ? resumenDescuento.totalFinal : total),
-    [clientePermiteDescuento, resumenDescuento.totalFinal, total]
+    () => resumenDescuento.totalFinal,
+    [resumenDescuento.totalFinal]
   );
 
   const montoRecibidoNumero = Number(montoRecibido || 0);

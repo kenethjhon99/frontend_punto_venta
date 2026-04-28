@@ -102,6 +102,8 @@ function Compras() {
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
   const [tipoPago, setTipoPago] = useState("CONTADO"); // CONTADO | CREDITO
   const [diasCredito, setDiasCredito] = useState(15);
+  const [viajeroNombre, setViajeroNombre] = useState("");
+  const [viajeroApellido, setViajeroApellido] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [estadoFiltroCompras, setEstadoFiltroCompras] = useState("TODOS");
   const [documentoFiltroCompras, setDocumentoFiltroCompras] = useState("");
@@ -271,6 +273,8 @@ function Compras() {
     setMetodoPago("EFECTIVO");
     setTipoPago("CONTADO");
     setDiasCredito(15);
+    setViajeroNombre("");
+    setViajeroApellido("");
     setObservaciones("");
   };
 
@@ -344,6 +348,15 @@ function Compras() {
       return;
     }
 
+    if (
+      (viajeroNombre.trim() && !viajeroApellido.trim()) ||
+      (!viajeroNombre.trim() && viajeroApellido.trim())
+    ) {
+      setError("Ingresa nombre y apellido del viajero completos.");
+      setSuccess("");
+      return;
+    }
+
     let reservedPrintWindow = null;
 
     try {
@@ -373,6 +386,8 @@ function Compras() {
         dias_credito: diasCreditoFinal,
         termino_pago: terminoPagoFinal,
         moneda: "GTQ",
+        viajero_nombre: viajeroNombre.trim() || null,
+        viajero_apellido: viajeroApellido.trim() || null,
         items: items.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
@@ -740,6 +755,28 @@ function Compras() {
                       value={fechaCompra}
                       onChange={(event) => setFechaCompra(event.target.value)}
                       slotProps={{ inputLabel: { shrink: true } }}
+                      disabled={!canManageCompras}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Nombre del viajero"
+                      placeholder="Nombre"
+                      value={viajeroNombre}
+                      onChange={(event) => setViajeroNombre(event.target.value)}
+                      disabled={!canManageCompras}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Apellido del viajero"
+                      placeholder="Apellido"
+                      value={viajeroApellido}
+                      onChange={(event) => setViajeroApellido(event.target.value)}
                       disabled={!canManageCompras}
                     />
                   </Grid>

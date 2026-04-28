@@ -396,14 +396,14 @@ function Ventas() {
     () =>
       calculateDiscountSummary(
         items,
-        clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0
+        descuentoPorcentajeNormalizado
       ),
-    [clientePermiteDescuento, descuentoPorcentajeNormalizado, items]
+    [descuentoPorcentajeNormalizado, items]
   );
 
   const totalConDescuento = useMemo(
-    () => (clientePermiteDescuento ? resumenDescuento.totalFinal : total),
-    [clientePermiteDescuento, resumenDescuento.totalFinal, total]
+    () => resumenDescuento.totalFinal,
+    [resumenDescuento.totalFinal]
   );
 
   const vuelto = useMemo(() => {
@@ -1000,7 +1000,7 @@ function Ventas() {
                   onEliminar={eliminarItem}
                   disabled={!canOperarVentas}
                   discountPercentage={
-                    clientePermiteDescuento ? descuentoPorcentajeNormalizado : 0
+                    descuentoPorcentajeNormalizado
                   }
                 />
               </Paper>

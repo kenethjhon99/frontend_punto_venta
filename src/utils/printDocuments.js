@@ -1,9 +1,14 @@
 const BUSINESS_INFO = {
-  name: "POS System",
-  subtitle: "Punto de venta, carwash y mecanica",
-  footer: "Documento generado desde el sistema administrativo.",
-  addressLines: ["Guatemala"],
-  nit: "CF",
+  name: "Lubricantes y Repuestos Eddy's Ser. Vida",
+  subtitle: "Edy Chan",
+  footer:
+    "Documento generado electronicamente desde Lubricantes y Repuestos Eddy's Ser. Vida.",
+  addressLines: [
+    "Carretera a la Montañita Parcelamiento Caballo Blanco Retalhuleu.",
+    "Tel. 55356869",
+  ],
+  nit: "",
+  logoUrl: "/logo.jpeg",
 };
 
 export const escapeHtml = (value) =>
@@ -172,6 +177,21 @@ const buildFormalDocument = ({
             gap: 16px;
             align-items: flex-start;
           }
+          .hero-brand {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          .hero-logo {
+            width: 62px;
+            height: 62px;
+            object-fit: contain;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.12);
+            padding: 6px;
+            flex-shrink: 0;
+          }
           .brand-kicker {
             font-size: 12px;
             text-transform: uppercase;
@@ -339,10 +359,17 @@ const buildFormalDocument = ({
         <article class="document">
           <header class="hero">
             <div class="hero-top">
-              <div>
-                <div class="brand-kicker">${escapeHtml(BUSINESS_INFO.name)}</div>
-                <h1>${escapeHtml(title)}</h1>
-                <p>${escapeHtml(subtitle || BUSINESS_INFO.subtitle)}</p>
+              <div class="hero-brand">
+                ${
+                  BUSINESS_INFO.logoUrl
+                    ? `<img class="hero-logo" src="${escapeHtml(BUSINESS_INFO.logoUrl)}" alt="logo" onerror="this.style.display='none'" />`
+                    : ""
+                }
+                <div>
+                  <div class="brand-kicker">${escapeHtml(BUSINESS_INFO.name)}</div>
+                  <h1>${escapeHtml(title)}</h1>
+                  <p>${escapeHtml(subtitle || BUSINESS_INFO.subtitle)}</p>
+                </div>
               </div>
               ${badge ? `<div class="badge">${escapeHtml(badge)}</div>` : ""}
             </div>
@@ -584,6 +611,13 @@ export const buildVentaTicketHtml = (ventaData) => {
             padding: 10px 8px 16px;
           }
           .center { text-align: center; }
+          .ticket-logo {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 8px;
+          }
           .header-line {
             white-space: pre-wrap;
             word-break: break-word;
@@ -672,6 +706,11 @@ export const buildVentaTicketHtml = (ventaData) => {
       <body>
         <div class="ticket">
           <div class="center">
+            ${
+              BUSINESS_INFO.logoUrl
+                ? `<img class="ticket-logo" src="${escapeHtml(BUSINESS_INFO.logoUrl)}" alt="logo" onerror="this.style.display='none'" />`
+                : ""
+            }
             ${businessLines
               .map(
                 (line) => `<div class="header-line">${escapeHtml(String(line).toUpperCase())}</div>`
@@ -827,6 +866,13 @@ export const buildReparacionReciboHtml = (reciboData) => {
             padding: 10px 8px 16px;
           }
           .center { text-align: center; }
+          .ticket-logo {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 8px;
+          }
           .header-line { white-space: pre-wrap; word-break: break-word; font-weight: 700; }
           .spacer { height: 10px; }
           .rule { border-top: 1px dashed #111111; margin: 10px 0; }
@@ -862,6 +908,11 @@ export const buildReparacionReciboHtml = (reciboData) => {
       <body>
         <div class="ticket">
           <div class="center">
+            ${
+              BUSINESS_INFO.logoUrl
+                ? `<img class="ticket-logo" src="${escapeHtml(BUSINESS_INFO.logoUrl)}" alt="logo" onerror="this.style.display='none'" />`
+                : ""
+            }
             ${businessLines
               .map(
                 (line) =>
@@ -1057,7 +1108,7 @@ export const buildOrdenCompraHtml = (compraData, opciones = {}) => {
     telefono: opciones.empresa_telefono || compra.sucursal_telefono || "",
     correo: opciones.empresa_correo || compra.sucursal_correo || "",
     nit: opciones.empresa_nit || BUSINESS_INFO.nit,
-    logoUrl: opciones.empresa_logo || "/icono.png",
+    logoUrl: opciones.empresa_logo || BUSINESS_INFO.logoUrl,
   };
 
   const detallesActivos = detalles.filter(
@@ -1916,7 +1967,7 @@ export const buildNotaTrasladoHtml = (trasladoData, opciones = {}) => {
     telefono: opciones.empresa_telefono || "",
     correo: opciones.empresa_correo || "",
     nit: opciones.empresa_nit || BUSINESS_INFO.nit,
-    logoUrl: opciones.empresa_logo || "/icono.png",
+    logoUrl: opciones.empresa_logo || BUSINESS_INFO.logoUrl,
   };
 
   const estado = String(traslado.estado || "").toUpperCase();
