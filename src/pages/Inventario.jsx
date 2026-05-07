@@ -527,9 +527,13 @@ function Inventario() {
             p: 2.5,
             borderRadius: 4,
             minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            maxHeight: { xl: "calc(100vh - 220px)" },
+            overflow: "hidden",
           }}
         >
-          <Stack spacing={2}>
+          <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
             <Box>
               <Typography variant="h6" fontWeight="bold">
                 Stock actual
@@ -677,7 +681,30 @@ function Inventario() {
                 <Typography color="text.secondary">Cargando inventario...</Typography>
               </Stack>
             ) : (
-              <TableContainer sx={{ maxHeight: 560, borderRadius: 3 }}>
+              <TableContainer
+                sx={{
+                  flex: 1,
+                  minHeight: 320,
+                  maxHeight: { xs: 560, xl: "unset" },
+                  borderRadius: 3,
+                  overflowY: "auto",
+                  overscrollBehavior: "contain",
+                  scrollbarWidth: "thin",
+                  scrollbarColor: `${theme.palette.primary.main} transparent`,
+                  "&::-webkit-scrollbar": {
+                    width: 10,
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: "transparent",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: "rgba(96, 165, 250, 0.45)",
+                    borderRadius: 999,
+                    border: "2px solid transparent",
+                    backgroundClip: "padding-box",
+                  },
+                }}
+              >
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow sx={getTableHeaderRowSx(theme)}>
@@ -801,9 +828,13 @@ function Inventario() {
             p: 2.5,
             borderRadius: 4,
             minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            maxHeight: { xl: "calc(100vh - 220px)" },
+            overflow: "hidden",
           }}
         >
-          <Stack spacing={2.5}>
+          <Stack spacing={2.5} sx={{ flex: 1, minHeight: 0 }}>
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={1.5}
@@ -1038,7 +1069,30 @@ function Inventario() {
                 <Typography color="text.secondary">Cargando kardex...</Typography>
               </Stack>
             ) : (
-              <TableContainer sx={{ maxHeight: 620, borderRadius: 3 }}>
+              <TableContainer
+                sx={{
+                  flex: 1,
+                  minHeight: 360,
+                  maxHeight: { xs: 620, xl: "unset" },
+                  borderRadius: 3,
+                  overflowY: "auto",
+                  overscrollBehavior: "contain",
+                  scrollbarWidth: "thin",
+                  scrollbarColor: `${theme.palette.primary.main} transparent`,
+                  "&::-webkit-scrollbar": {
+                    width: 10,
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: "transparent",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: "rgba(96, 165, 250, 0.45)",
+                    borderRadius: 999,
+                    border: "2px solid transparent",
+                    backgroundClip: "padding-box",
+                  },
+                }}
+              >
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow sx={getTableHeaderRowSx(theme)}>
