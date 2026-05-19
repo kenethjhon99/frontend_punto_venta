@@ -139,9 +139,7 @@ const EMPTY_NO_COBRO_FORM = {
 const ESTADOS_ORDEN_OPTIONS = [
   { value: "TODOS", label: "Todos" },
   { value: "RECIBIDO", label: "Recibido" },
-  { value: "EN_PROCESO", label: "En proceso" },
-  { value: "LAVADO", label: "Lavado" },
-  { value: "FINALIZADO", label: "Finalizado" },
+  { value: "EN_REPARACION", label: "En reparacion" },
   { value: "ENTREGADO", label: "Entregado" },
 ];
 
@@ -165,14 +163,13 @@ const getEstadoOrdenColor = (estado) => {
   switch (estado) {
     case "RECIBIDO":
       return "info";
+    case "EN_REPARACION":
     case "EN_PROCESO":
-      return "warning";
     case "LAVADO":
-      return "primary";
     case "FINALIZADO":
-      return "success";
+      return "warning";
     case "ENTREGADO":
-      return "default";
+      return "success";
     default:
       return "default";
   }

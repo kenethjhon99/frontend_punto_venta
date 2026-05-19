@@ -379,6 +379,7 @@ function ServiciosTienda() {
     }
 
     if (
+      !esCreditoEmpleado &&
       !noCobroForm.enabled &&
       metodoPago === "EFECTIVO" &&
       montoRecibidoNumero < totalConDescuento

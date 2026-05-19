@@ -106,7 +106,7 @@ const SERVICE_ICON_OPTIONS = [
   { value: "electrical_services", label: "Electrico" },
 ];
 
-const ESTADOS = ["RECIBIDO", "DIAGNOSTICO", "EN_REPARACION", "PRUEBAS", "LISTO", "ENTREGADO"];
+const ESTADOS = ["RECIBIDO", "EN_REPARACION", "ENTREGADO"];
 
 const isServicioPersonalizado = (servicio) =>
   String(servicio?.slug || "").trim().toLowerCase() === "otro";
@@ -2086,12 +2086,11 @@ function getEstadoColor(estado) {
     case "RECIBIDO":
       return "info";
     case "DIAGNOSTICO":
-      return "warning";
     case "EN_REPARACION":
-      return "primary";
     case "PRUEBAS":
-      return "secondary";
     case "LISTO":
+      return "warning";
+    case "ENTREGADO":
       return "success";
     default:
       return "default";
