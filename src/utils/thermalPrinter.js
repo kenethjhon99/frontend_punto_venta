@@ -3,9 +3,25 @@ import { openPrintDocument, openPrintWindow } from "./printDocuments";
 const QZ_SCRIPT_URLS = ["/qz-tray.js", "https://cdn.jsdelivr.net/npm/qz-tray/qz-tray.js"];
 const QZ_PRINTER_KEY = "pos.qz.printerName";
 const QZ_DRAWER_PIN_KEY = "pos.qz.drawerPin";
+const QZ_DRAWER_PROFILE_KEY = "pos.qz.drawerProfile";
 const DRAWER_KICK_BY_PIN = {
   0: "1B700019FA",
   1: "1B700119FA",
+};
+
+const DRAWER_PROFILES = {
+  default: [
+    "1B700019FA", // ESC p 0, 25ms on, 250ms off
+    "1B700119FA", // ESC p 1, 25ms on, 250ms off
+  ],
+  "3nstar": [
+    "1B40",       // ESC @ initialize
+    "1B700032FA", // ESC p 0, 50ms on, 250ms off
+    "1B700132FA", // ESC p 1, 50ms on, 250ms off
+    "1B700064FA", // ESC p 0, 100ms on, 250ms off
+    "1B700164FA", // ESC p 1, 100ms on, 250ms off
+    "07",         // BEL fallback used by some drawers/printers
+  ],
 };
 
 const loadScript = (src) =>
@@ -66,9 +82,13 @@ export const openCashDrawerWithQz = async ({ printerName = null } = {}) => {
   });
 
   const preferredPin = String(localStorage.getItem(QZ_DRAWER_PIN_KEY) || "").trim();
+  const profile = String(localStorage.getItem(QZ_DRAWER_PROFILE_KEY) || "3nstar")
+    .trim()
+    .toLowerCase();
+  const profileCommands = DRAWER_PROFILES[profile] || DRAWER_PROFILES.default;
   const commands = preferredPin && DRAWER_KICK_BY_PIN[preferredPin]
     ? [DRAWER_KICK_BY_PIN[preferredPin]]
-    : [DRAWER_KICK_BY_PIN[0], DRAWER_KICK_BY_PIN[1]];
+    : profileCommands;
 
   for (const data of commands) {
     await qz.print(config, [{ type: "raw", format: "hex", data }]);
