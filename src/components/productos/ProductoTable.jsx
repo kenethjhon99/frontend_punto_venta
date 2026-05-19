@@ -54,12 +54,28 @@ function ProductoTable({
     );
   };
 
+  const getStockTotal = (producto) => {
+    const stockGeneral = Number(producto.stock_general ?? 0);
+    const stockTiendaTaller = Number(producto.stock_tienda_taller ?? 0);
+
+    if (producto.stock_total !== undefined && producto.stock_total !== null) {
+      return Number(producto.stock_total);
+    }
+
+    if (
+      producto.stock_general !== undefined ||
+      producto.stock_tienda_taller !== undefined
+    ) {
+      return stockGeneral + stockTiendaTaller;
+    }
+
+    return Number(producto.stock ?? 0);
+  };
+
   const renderStockSplit = (producto) => {
     const stockGeneral = Number(producto.stock_general ?? 0);
     const stockTiendaTaller = Number(producto.stock_tienda_taller ?? 0);
-    const stockTotal = Number(
-      producto.stock_total ?? producto.stock ?? stockGeneral + stockTiendaTaller
-    );
+    const stockTotal = getStockTotal(producto);
 
     return (
       <Stack
@@ -77,16 +93,7 @@ function ProductoTable({
   };
 
   const getStockDisplay = (producto) => {
-    const stockGeneral = Number(producto.stock_general ?? 0);
-    const stockTiendaTaller = Number(producto.stock_tienda_taller ?? 0);
-
-    if (showStockSplit) {
-      return Number(
-        producto.stock_total ?? stockGeneral + stockTiendaTaller
-      );
-    }
-
-    return Number(producto.stock ?? producto.stock_total ?? 0);
+    return getStockTotal(producto);
   };
 
   if (!productos.length) {
