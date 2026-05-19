@@ -44,6 +44,7 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
+import { printTicketWithDrawer } from "../utils/thermalPrinter";
 import {
   calculateDiscountSummary,
   normalizeDiscountPercentage,
@@ -509,13 +510,32 @@ function Ventas() {
     }
   };
 
-  const imprimirVenta = async (ventaInput, preloadedData = null, printWindow = null) => {
+  const imprimirVenta = async (
+    ventaInput,
+    preloadedData = null,
+    printWindow = null,
+    options = {}
+  ) => {
     const idVenta = Number(ventaInput?.id_venta || ventaInput);
     if (!idVenta) return;
 
     try {
       setPrintingVentaId(idVenta);
       setError("");
+      const data = preloadedData || (await getVentaCompleta(idVenta));
+      const html = buildVentaTicketHtml(data);
+
+      if (options.directThermal) {
+        await printTicketWithDrawer({
+          title: `Venta #${idVenta}`,
+          html,
+          width: 420,
+          height: 900,
+          openDrawer: Boolean(options.openDrawer),
+        });
+        return;
+      }
+
       const targetWindow =
         printWindow ||
         openPrintWindow({
@@ -524,10 +544,9 @@ function Ventas() {
           height: 900,
         });
 
-      const data = preloadedData || (await getVentaCompleta(idVenta));
       openPrintDocument({
         title: `Venta #${idVenta}`,
-        html: buildVentaTicketHtml(data),
+        html,
         width: 420,
         height: 900,
         printWindow: targetWindow,
@@ -676,14 +695,6 @@ function Ventas() {
       setError("");
       setSuccess("");
 
-        if (autoPrintVenta) {
-          reservedPrintWindow = openPrintWindow({
-            title: "Comprobante de venta",
-            width: 420,
-            height: 900,
-          });
-        }
-
         const payload = esCreditoEmpleado
           ? {
               tipo_venta: "CREDITO",
@@ -759,7 +770,10 @@ function Ventas() {
         ]);
 
       if (autoPrintVenta && response?.venta?.id_venta) {
-        await imprimirVenta(response.venta.id_venta, null, reservedPrintWindow);
+        await imprimirVenta(response.venta.id_venta, null, reservedPrintWindow, {
+          directThermal: true,
+          openDrawer: !esCreditoEmpleado && !noCobroForm.enabled,
+        });
         reservedPrintWindow = null;
       }
     } catch (err) {
