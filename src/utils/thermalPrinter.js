@@ -2,7 +2,11 @@ import { openPrintDocument, openPrintWindow } from "./printDocuments";
 
 const QZ_SCRIPT_URLS = ["/qz-tray.js", "https://cdn.jsdelivr.net/npm/qz-tray/qz-tray.js"];
 const QZ_PRINTER_KEY = "pos.qz.printerName";
-const DRAWER_KICK_HEX = "1B700019FA";
+const QZ_DRAWER_PIN_KEY = "pos.qz.drawerPin";
+const DRAWER_KICK_BY_PIN = {
+  0: "1B700019FA",
+  1: "1B700119FA",
+};
 
 const loadScript = (src) =>
   new Promise((resolve, reject) => {
@@ -51,6 +55,28 @@ const getPrinterName = async (qz) => {
   return qz.printers.getDefault();
 };
 
+export const openCashDrawerWithQz = async ({ printerName = null } = {}) => {
+  const qz = await loadQzTray();
+  if (!qz) throw new Error("QZ Tray no esta disponible en el navegador.");
+
+  await connectQz(qz);
+  const printer = printerName || (await getPrinterName(qz));
+  const config = qz.configs.create(printer, {
+    encoding: "UTF-8",
+  });
+
+  const preferredPin = String(localStorage.getItem(QZ_DRAWER_PIN_KEY) || "").trim();
+  const commands = preferredPin && DRAWER_KICK_BY_PIN[preferredPin]
+    ? [DRAWER_KICK_BY_PIN[preferredPin]]
+    : [DRAWER_KICK_BY_PIN[0], DRAWER_KICK_BY_PIN[1]];
+
+  for (const data of commands) {
+    await qz.print(config, [{ type: "raw", format: "hex", data }]);
+  }
+
+  return true;
+};
+
 export const printTicketWithDrawer = async ({
   title,
   html,
@@ -65,28 +91,23 @@ export const printTicketWithDrawer = async ({
     try {
       await connectQz(qz);
       const printer = await getPrinterName(qz);
-      const config = qz.configs.create(printer, {
+      const htmlConfig = qz.configs.create(printer, {
         encoding: "UTF-8",
         rasterize: true,
       });
 
-      const jobs = [
+      await qz.print(htmlConfig, [
         {
           type: "html",
           format: "plain",
           data: html,
         },
-      ];
+      ]);
 
       if (openDrawer) {
-        jobs.push({
-          type: "raw",
-          format: "hex",
-          data: DRAWER_KICK_HEX,
-        });
+        await openCashDrawerWithQz({ printerName: printer });
       }
 
-      await qz.print(config, jobs);
       return { printedWithQz: true };
     } catch (error) {
       console.warn("No se pudo imprimir con QZ Tray; usando navegador.", error);
@@ -105,4 +126,3 @@ export const printTicketWithDrawer = async ({
 
   return { printedWithQz: false };
 };
-
