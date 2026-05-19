@@ -44,7 +44,6 @@ import {
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
-import { printTicketWithDrawer } from "../utils/thermalPrinter";
 import {
   calculateDiscountSummary,
   normalizeDiscountPercentage,
@@ -513,8 +512,7 @@ function Ventas() {
   const imprimirVenta = async (
     ventaInput,
     preloadedData = null,
-    printWindow = null,
-    options = {}
+    printWindow = null
   ) => {
     const idVenta = Number(ventaInput?.id_venta || ventaInput);
     if (!idVenta) return;
@@ -524,17 +522,6 @@ function Ventas() {
       setError("");
       const data = preloadedData || (await getVentaCompleta(idVenta));
       const html = buildVentaTicketHtml(data);
-
-      if (options.directThermal) {
-        await printTicketWithDrawer({
-          title: `Venta #${idVenta}`,
-          html,
-          width: 420,
-          height: 900,
-          openDrawer: Boolean(options.openDrawer),
-        });
-        return;
-      }
 
       const targetWindow =
         printWindow ||
@@ -695,6 +682,14 @@ function Ventas() {
       setError("");
       setSuccess("");
 
+      if (autoPrintVenta) {
+        reservedPrintWindow = openPrintWindow({
+          title: "Comprobante de venta",
+          width: 420,
+          height: 900,
+        });
+      }
+
         const payload = esCreditoEmpleado
           ? {
               tipo_venta: "CREDITO",
@@ -770,10 +765,7 @@ function Ventas() {
         ]);
 
       if (autoPrintVenta && response?.venta?.id_venta) {
-        await imprimirVenta(response.venta.id_venta, null, reservedPrintWindow, {
-          directThermal: true,
-          openDrawer: !esCreditoEmpleado && !noCobroForm.enabled,
-        });
+        await imprimirVenta(response.venta.id_venta, null, reservedPrintWindow);
         reservedPrintWindow = null;
       }
     } catch (err) {

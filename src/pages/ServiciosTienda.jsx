@@ -44,8 +44,8 @@ import { getClientes } from "../services/clienteService";
 import {
   buildVentaTicketHtml,
   openPrintDocument,
+  openPrintWindow,
 } from "../utils/printDocuments";
-import { printTicketWithDrawer } from "../utils/thermalPrinter";
 import {
   readPrintPreference,
   writePrintPreference,
@@ -332,20 +332,9 @@ function ServiciosTienda() {
     setItems((prev) => prev.filter((item) => item.id_producto !== idProducto));
   };
 
-  const imprimirVenta = async (idVenta, printWindow = null, options = {}) => {
+  const imprimirVenta = async (idVenta, printWindow = null) => {
     const data = await getVentaCompleta(idVenta);
     const html = buildVentaTicketHtml(data);
-
-    if (options.directThermal) {
-      await printTicketWithDrawer({
-        title: `Venta tienda #${idVenta}`,
-        html,
-        width: 420,
-        height: 900,
-        openDrawer: Boolean(options.openDrawer),
-      });
-      return;
-    }
 
     openPrintDocument({
       title: `Venta tienda #${idVenta}`,
@@ -407,6 +396,14 @@ function ServiciosTienda() {
       setLoadingVenta(true);
       setError("");
       setSuccess("");
+
+      if (autoPrint) {
+        reservedPrintWindow = openPrintWindow({
+          title: "Ticket tienda",
+          width: 420,
+          height: 900,
+        });
+      }
 
       const payload = esCreditoEmpleado
         ? {
@@ -475,10 +472,7 @@ function ServiciosTienda() {
       await Promise.all([cargarProductos(), cargarCajaActiva(), cargarComprobantes()]);
 
       if (autoPrint && response?.venta?.id_venta) {
-        await imprimirVenta(response.venta.id_venta, reservedPrintWindow, {
-          directThermal: true,
-          openDrawer: !esCreditoEmpleado && !noCobroForm.enabled,
-        });
+        await imprimirVenta(response.venta.id_venta, reservedPrintWindow);
         reservedPrintWindow = null;
       }
     } catch (err) {
