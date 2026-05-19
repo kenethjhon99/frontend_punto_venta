@@ -97,6 +97,40 @@ export const openCashDrawerWithQz = async ({ printerName = null } = {}) => {
   return true;
 };
 
+export const installQzDebugHelpers = () => {
+  if (typeof window === "undefined") return;
+
+  window.posQzStatus = async () => {
+    const qz = await loadQzTray();
+    if (!qz) return { ok: false, error: "QZ Tray JS no cargo" };
+
+    const active = Boolean(qz.websocket?.isActive?.());
+    let printer = null;
+    let printers = [];
+
+    try {
+      if (!active) await connectQz(qz);
+      printer = await getPrinterName(qz);
+      printers = await qz.printers.find();
+    } catch (error) {
+      return { ok: false, active, error: error.message || String(error) };
+    }
+
+    return {
+      ok: true,
+      active: Boolean(qz.websocket?.isActive?.()),
+      printer,
+      printers,
+      drawerProfile: localStorage.getItem(QZ_DRAWER_PROFILE_KEY) || "3nstar",
+      drawerPin: localStorage.getItem(QZ_DRAWER_PIN_KEY) || "auto",
+    };
+  };
+
+  window.posOpenDrawer = async () => openCashDrawerWithQz();
+};
+
+installQzDebugHelpers();
+
 export const printTicketWithDrawer = async ({
   title,
   html,
