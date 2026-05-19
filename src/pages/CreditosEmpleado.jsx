@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Container,
@@ -36,14 +37,17 @@ import HeartBrokenIcon from "@mui/icons-material/HeartBroken";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import PrintIcon from "@mui/icons-material/Print";
 import { useAuth } from "../hooks/useAuth";
 import { userHasRole } from "../utils/roles";
+import { openPrintDocument } from "../utils/printDocuments";
 import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import {
   getSectionPanelSx,
   getSummaryCardSx,
 } from "../utils/summaryCardStyles";
 import {
+  cobrarCreditosDeEmpleado,
   cobrarCreditoEmpleado,
   condonarCreditoEmpleado,
   getCreditosEmpleado,
@@ -89,6 +93,104 @@ const getSaldoPendiente = (credito) =>
         : 0)
   );
 
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+const buildReciboCreditoEmpleadoHtml = (recibo) => {
+  const empleado = recibo?.empleado || {};
+  const creditos = Array.isArray(recibo?.creditos) ? recibo.creditos : [];
+  const resumen = recibo?.resumen || {};
+  const cobrador = recibo?.cobrador || {};
+  const fecha = resumen.cobrado_en ? new Date(resumen.cobrado_en) : new Date();
+  const fechaTexto = Number.isNaN(fecha.getTime())
+    ? new Date().toLocaleString("es-GT")
+    : fecha.toLocaleString("es-GT", { dateStyle: "medium", timeStyle: "short" });
+
+  const rows = creditos
+    .map(
+      (credito) => `
+        <tr>
+          <td>#${escapeHtml(credito.id_credito_empleado)}</td>
+          <td>${escapeHtml(credito.venta_numero_comprobante || credito.id_venta || "-")}</td>
+          <td>${escapeHtml(formatFecha(credito.fecha_credito))}</td>
+          <td>${escapeHtml(formatFecha(credito.fecha_cobro))}</td>
+          <td class="right">${escapeHtml(formatQ(credito.monto))}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Recibo credito empleado</title>
+        <style>
+          * { box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 18px; color: #111827; }
+          .receipt { max-width: 420px; margin: 0 auto; }
+          .center { text-align: center; }
+          .title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+          .subtitle { color: #4b5563; font-size: 12px; margin-bottom: 12px; }
+          .box { border: 1px solid #d1d5db; border-radius: 12px; padding: 10px; margin: 10px 0; }
+          .label { color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+          .value { font-weight: 800; margin-top: 2px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+          th, td { border-bottom: 1px solid #e5e7eb; padding: 7px 4px; text-align: left; }
+          th { font-size: 10px; text-transform: uppercase; color: #6b7280; }
+          .right { text-align: right; }
+          .total { font-size: 22px; font-weight: 900; text-align: right; margin-top: 12px; }
+          .footer { margin-top: 20px; font-size: 11px; color: #6b7280; text-align: center; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="center">
+            <div class="title">Recibo de cobro a empleado</div>
+            <div class="subtitle">Creditos descontados del pago del empleado</div>
+          </div>
+          <div class="box">
+            <div class="label">Empleado</div>
+            <div class="value">${escapeHtml(empleado.nombre || "-")}</div>
+            <div>${escapeHtml(empleado.cargo || "-")} · ${escapeHtml(empleado.tipo_pago || "-")}</div>
+          </div>
+          <div class="box">
+            <div class="label">Fecha de cobro</div>
+            <div class="value">${escapeHtml(fechaTexto)}</div>
+            <div>Cobrado por: ${escapeHtml(cobrador.nombre || cobrador.username || "-")}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Credito</th>
+                <th>Venta</th>
+                <th>Fecha</th>
+                <th>Cobro</th>
+                <th class="right">Monto</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="total">Total: ${escapeHtml(formatQ(resumen.total_cobrado))}</div>
+          ${
+            resumen.nota
+              ? `<div class="box"><div class="label">Nota</div><div>${escapeHtml(resumen.nota)}</div></div>`
+              : ""
+          }
+          <div class="footer">Firma empleado: __________________________</div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
 function CreditosEmpleado() {
   const { user } = useAuth();
   const canOperar = useMemo(
@@ -101,9 +203,13 @@ function CreditosEmpleado() {
   // === Creditos ===
   const [creditos, setCreditos] = useState([]);
   const [loadingCreditos, setLoadingCreditos] = useState(true);
-  const [filtroEstado, setFiltroEstado] = useState("PENDIENTE");
+  const [filtroEstado, setFiltroEstado] = useState("TODOS");
   const [filtroCriticidad, setFiltroCriticidad] = useState("TODOS");
   const [busqueda, setBusqueda] = useState("");
+  const [empleadoSeleccionadoId, setEmpleadoSeleccionadoId] = useState("");
+  const [creditosSeleccionados, setCreditosSeleccionados] = useState([]);
+  const [notaCobroEmpleado, setNotaCobroEmpleado] = useState("");
+  const [loadingCobroEmpleado, setLoadingCobroEmpleado] = useState(false);
 
   // === Nomina ===
   const [nomina, setNomina] = useState([]);
@@ -128,6 +234,7 @@ function CreditosEmpleado() {
         estado: filtroEstado !== "TODOS" ? filtroEstado : undefined,
         criticidad:
           filtroCriticidad !== "TODOS" ? filtroCriticidad : undefined,
+        limit: 200,
       });
       setCreditos(Array.isArray(resp?.data) ? resp.data : []);
     } catch (err) {
@@ -172,6 +279,89 @@ function CreditosEmpleado() {
         .includes(texto)
     );
   }, [creditos, busqueda]);
+
+  const empleadosConCredito = useMemo(() => {
+    const map = new Map();
+    creditos.forEach((credito) => {
+      if (!credito.id_empleado) return;
+      const key = String(credito.id_empleado);
+      const current = map.get(key) || {
+        id_empleado: credito.id_empleado,
+        nombre: credito.empleado_nombre || "Empleado",
+        cargo: credito.empleado_cargo || "-",
+        tipo_pago: credito.empleado_tipo_pago || "-",
+        total_pendiente: 0,
+        pendientes: 0,
+      };
+      if (credito.estado === "PENDIENTE") {
+        current.total_pendiente += getSaldoPendiente(credito);
+        current.pendientes += 1;
+      }
+      map.set(key, current);
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      String(a.nombre).localeCompare(String(b.nombre), "es")
+    );
+  }, [creditos]);
+
+  const creditosEmpleadoPendientes = useMemo(
+    () =>
+      creditos
+        .filter(
+          (credito) =>
+            String(credito.id_empleado) === String(empleadoSeleccionadoId) &&
+            credito.estado === "PENDIENTE"
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.fecha_cobro || 0).getTime() -
+              new Date(b.fecha_cobro || 0).getTime() ||
+            Number(a.id_credito_empleado) - Number(b.id_credito_empleado)
+        ),
+    [creditos, empleadoSeleccionadoId]
+  );
+
+  const historialEmpleado = useMemo(
+    () =>
+      creditos
+        .filter(
+          (credito) =>
+            String(credito.id_empleado) === String(empleadoSeleccionadoId) &&
+            credito.estado !== "PENDIENTE"
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.cobrado_en || b.updated_at || b.fecha_credito || 0).getTime() -
+            new Date(a.cobrado_en || a.updated_at || a.fecha_credito || 0).getTime()
+        )
+        .slice(0, 8),
+    [creditos, empleadoSeleccionadoId]
+  );
+
+  const empleadoSeleccionado = useMemo(
+    () =>
+      empleadosConCredito.find(
+        (empleado) => String(empleado.id_empleado) === String(empleadoSeleccionadoId)
+      ) || null,
+    [empleadosConCredito, empleadoSeleccionadoId]
+  );
+
+  useEffect(() => {
+    const idsPendientes = creditosEmpleadoPendientes.map(
+      (credito) => credito.id_credito_empleado
+    );
+    setCreditosSeleccionados(idsPendientes);
+  }, [creditosEmpleadoPendientes]);
+
+  const totalSeleccionado = useMemo(
+    () =>
+      creditosEmpleadoPendientes
+        .filter((credito) =>
+          creditosSeleccionados.includes(credito.id_credito_empleado)
+        )
+        .reduce((acc, credito) => acc + getSaldoPendiente(credito), 0),
+    [creditosEmpleadoPendientes, creditosSeleccionados]
+  );
 
   const resumen = useMemo(() => {
     const total = creditos.reduce(
@@ -226,6 +416,58 @@ function CreditosEmpleado() {
       setError(err.response?.data?.error || "No se pudo cobrar el credito");
     } finally {
       setLoadingAccion(false);
+    }
+  };
+
+  const toggleCreditoSeleccionado = (idCredito) => {
+    setCreditosSeleccionados((prev) =>
+      prev.includes(idCredito)
+        ? prev.filter((id) => id !== idCredito)
+        : [...prev, idCredito]
+    );
+  };
+
+  const toggleTodosEmpleado = (checked) => {
+    setCreditosSeleccionados(
+      checked
+        ? creditosEmpleadoPendientes.map((credito) => credito.id_credito_empleado)
+        : []
+    );
+  };
+
+  const imprimirReciboEmpleado = (recibo) => {
+    openPrintDocument({
+      title: "Recibo credito empleado",
+      html: buildReciboCreditoEmpleadoHtml(recibo),
+      width: 460,
+      height: 760,
+    });
+  };
+
+  const cobrarEmpleadoSeleccionado = async () => {
+    if (!empleadoSeleccionadoId || creditosSeleccionados.length === 0) return;
+    try {
+      setLoadingCobroEmpleado(true);
+      setError("");
+      setSuccess("");
+      const response = await cobrarCreditosDeEmpleado(empleadoSeleccionadoId, {
+        ids_credito: creditosSeleccionados,
+        nota: notaCobroEmpleado || null,
+      });
+      const recibo = response.recibo;
+      setSuccess(
+        `Cobro registrado para ${recibo?.empleado?.nombre || "empleado"} por ${formatQ(
+          recibo?.resumen?.total_cobrado
+        )}.`
+      );
+      setNotaCobroEmpleado("");
+      imprimirReciboEmpleado(recibo);
+      await Promise.all([cargarCreditos(), cargarNomina()]);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo cobrar al empleado");
+    } finally {
+      setLoadingCobroEmpleado(false);
     }
   };
 
@@ -444,6 +686,261 @@ function CreditosEmpleado() {
                     />
                   </Grid>
                 </Grid>
+              </Paper>
+
+              <Paper
+                variant="outlined"
+                sx={(t) =>
+                  getSectionPanelSx(t, { p: 2.5, radius: 3, accent: "warning" })
+                }
+              >
+                <Stack spacing={2}>
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    justifyContent="space-between"
+                    alignItems={{ xs: "stretch", md: "center" }}
+                    spacing={2}
+                  >
+                    <Box>
+                      <Typography variant="h6" fontWeight={800}>
+                        Cobro por empleado
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Filtra por empleado, marca los creditos a cobrar y genera
+                        recibo del descuento aplicado.
+                      </Typography>
+                    </Box>
+                    <FormControl sx={{ minWidth: { xs: "100%", md: 320 } }} size="small">
+                      <InputLabel id="empleado-cobro-label">Empleado</InputLabel>
+                      <Select
+                        labelId="empleado-cobro-label"
+                        label="Empleado"
+                        value={empleadoSeleccionadoId}
+                        onChange={(event) => {
+                          setEmpleadoSeleccionadoId(event.target.value);
+                          setNotaCobroEmpleado("");
+                        }}
+                      >
+                        <MenuItem value="">Seleccionar empleado</MenuItem>
+                        {empleadosConCredito.map((empleado) => (
+                          <MenuItem
+                            key={empleado.id_empleado}
+                            value={String(empleado.id_empleado)}
+                          >
+                            {empleado.nombre} · {empleado.pendientes} pendiente(s) ·{" "}
+                            {formatQ(empleado.total_pendiente)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Stack>
+
+                  {empleadoSeleccionado ? (
+                    <>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={4}>
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Empleado
+                            </Typography>
+                            <Typography fontWeight={800}>
+                              {empleadoSeleccionado.nombre}
+                            </Typography>
+                            <Stack direction="row" spacing={1} mt={1}>
+                              <Chip size="small" label={empleadoSeleccionado.cargo} />
+                              <Chip
+                                size="small"
+                                label={empleadoSeleccionado.tipo_pago}
+                                variant="outlined"
+                              />
+                            </Stack>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Total pendiente del empleado
+                            </Typography>
+                            <Typography variant="h5" fontWeight={900} color="warning.main">
+                              {formatQ(empleadoSeleccionado.total_pendiente)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {empleadoSeleccionado.pendientes} credito(s) pendiente(s)
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Total seleccionado a cobrar
+                            </Typography>
+                            <Typography variant="h5" fontWeight={900} color="success.main">
+                              {formatQ(totalSeleccionado)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {creditosSeleccionados.length} credito(s) marcado(s)
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={8}>
+                          <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
+                            <Box sx={{ px: 2, py: 1.5 }}>
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <Checkbox
+                                  size="small"
+                                  checked={
+                                    creditosEmpleadoPendientes.length > 0 &&
+                                    creditosSeleccionados.length ===
+                                      creditosEmpleadoPendientes.length
+                                  }
+                                  indeterminate={
+                                    creditosSeleccionados.length > 0 &&
+                                    creditosSeleccionados.length <
+                                      creditosEmpleadoPendientes.length
+                                  }
+                                  onChange={(event) =>
+                                    toggleTodosEmpleado(event.target.checked)
+                                  }
+                                />
+                                <Typography fontWeight={800}>
+                                  Pendientes a cobrar
+                                </Typography>
+                              </Stack>
+                            </Box>
+                            {creditosEmpleadoPendientes.length === 0 ? (
+                              <Alert severity="success" sx={{ borderRadius: 0 }}>
+                                Este empleado no tiene creditos pendientes.
+                              </Alert>
+                            ) : (
+                              <TableContainer sx={{ maxHeight: 260 }}>
+                                <Table size="small" stickyHeader>
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell />
+                                      <TableCell>Credito</TableCell>
+                                      <TableCell>Venta</TableCell>
+                                      <TableCell>Fecha cobro</TableCell>
+                                      <TableCell align="right">Saldo</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {creditosEmpleadoPendientes.map((credito) => (
+                                      <TableRow key={credito.id_credito_empleado} hover>
+                                        <TableCell padding="checkbox">
+                                          <Checkbox
+                                            size="small"
+                                            checked={creditosSeleccionados.includes(
+                                              credito.id_credito_empleado
+                                            )}
+                                            onChange={() =>
+                                              toggleCreditoSeleccionado(
+                                                credito.id_credito_empleado
+                                              )
+                                            }
+                                          />
+                                        </TableCell>
+                                        <TableCell>#{credito.id_credito_empleado}</TableCell>
+                                        <TableCell>
+                                          {credito.venta_numero_comprobante ||
+                                            `Venta #${credito.id_venta}`}
+                                        </TableCell>
+                                        <TableCell>
+                                          {formatFecha(
+                                            credito.fecha_cobro_estimada ??
+                                              credito.fecha_cobro
+                                          )}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                          <Typography fontWeight={800}>
+                                            {formatQ(getSaldoPendiente(credito))}
+                                          </Typography>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            )}
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Stack spacing={2}>
+                            <TextField
+                              fullWidth
+                              multiline
+                              minRows={3}
+                              label="Nota para recibo (opcional)"
+                              value={notaCobroEmpleado}
+                              onChange={(event) =>
+                                setNotaCobroEmpleado(event.target.value.slice(0, 250))
+                              }
+                              helperText={`${notaCobroEmpleado.length} / 250 caracteres`}
+                            />
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="large"
+                              startIcon={<PrintIcon />}
+                              disabled={
+                                !canOperar ||
+                                loadingCobroEmpleado ||
+                                creditosSeleccionados.length === 0
+                              }
+                              onClick={cobrarEmpleadoSeleccionado}
+                            >
+                              {loadingCobroEmpleado
+                                ? "Cobrando..."
+                                : "Cobrar e imprimir recibo"}
+                            </Button>
+                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                              <Typography fontWeight={800} mb={1}>
+                                Historial reciente
+                              </Typography>
+                              {historialEmpleado.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary">
+                                  Aun no hay cobros o cancelaciones para este empleado.
+                                </Typography>
+                              ) : (
+                                <Stack spacing={1}>
+                                  {historialEmpleado.map((credito) => (
+                                    <Stack
+                                      key={credito.id_credito_empleado}
+                                      direction="row"
+                                      justifyContent="space-between"
+                                      spacing={1}
+                                    >
+                                      <Box>
+                                        <Typography variant="body2" fontWeight={700}>
+                                          #{credito.id_credito_empleado} · {credito.estado}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                          {formatFecha(
+                                            credito.cobrado_en ?? credito.updated_at
+                                          )}
+                                        </Typography>
+                                      </Box>
+                                      <Typography variant="body2" fontWeight={800}>
+                                        {formatQ(credito.monto)}
+                                      </Typography>
+                                    </Stack>
+                                  ))}
+                                </Stack>
+                              )}
+                            </Paper>
+                          </Stack>
+                        </Grid>
+                      </Grid>
+                    </>
+                  ) : (
+                    <Alert severity="info">
+                      Selecciona un empleado para ver su total pendiente,
+                      historial y recibo de cobro.
+                    </Alert>
+                  )}
+                </Stack>
               </Paper>
 
               {loadingCreditos ? (

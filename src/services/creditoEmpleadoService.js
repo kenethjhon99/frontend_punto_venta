@@ -25,6 +25,11 @@ export const cobrarCreditoEmpleado = async (id, data = {}) => {
   return res.data;
 };
 
+export const cobrarCreditosDeEmpleado = async (idEmpleado, data = {}) => {
+  const res = await api.post(`/creditos-empleado/empleado/${idEmpleado}/cobrar`, data);
+  return res.data;
+};
+
 export const condonarCreditoEmpleado = async (id, data) => {
   const res = await api.patch(`/creditos-empleado/${id}/condonar`, data);
   return res.data;

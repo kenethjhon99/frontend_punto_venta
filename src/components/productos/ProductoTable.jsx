@@ -76,6 +76,19 @@ function ProductoTable({
     );
   };
 
+  const getStockDisplay = (producto) => {
+    const stockGeneral = Number(producto.stock_general ?? 0);
+    const stockTiendaTaller = Number(producto.stock_tienda_taller ?? 0);
+
+    if (showStockSplit) {
+      return Number(
+        producto.stock_total ?? stockGeneral + stockTiendaTaller
+      );
+    }
+
+    return Number(producto.stock ?? producto.stock_total ?? 0);
+  };
+
   if (!productos.length) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
@@ -90,7 +103,7 @@ function ProductoTable({
     return (
       <Stack spacing={2}>
         {productos.map((producto) => {
-          const stock = Number(producto.stock ?? 0);
+          const stock = getStockDisplay(producto);
 
           return (
             <Card
@@ -251,7 +264,7 @@ function ProductoTable({
 
         <TableBody>
           {productos.map((producto) => {
-            const stock = Number(producto.stock ?? 0);
+            const stock = getStockDisplay(producto);
 
             return (
               <TableRow
