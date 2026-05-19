@@ -1018,68 +1018,261 @@ export const buildCompraTicketHtml = (compraData) => {
   const detalles = Array.isArray(compraData?.detalles) ? compraData.detalles : [];
   const resumen = compraData?.resumen || {};
   const estado = String(compra.estado_real || compra.estado || "COMPLETADA").replaceAll("_", " ");
+  const numero = `COMPRA-${String(compra.id_compra || "0").padStart(5, "0")}`;
+  const totalOriginal = Number(resumen.total_original ?? compra.total ?? 0);
+  const totalActual = Number(resumen.total_actual ?? compra.total ?? totalOriginal);
+  const unidadesActivas = Number(
+    resumen.items_actual ??
+      detalles.reduce(
+        (acc, item) =>
+          acc +
+          Math.max(
+            0,
+            Number(item.cantidad || 0) - Number(item.cantidad_anulada || 0)
+          ),
+        0
+      )
+  );
+  const terminoPago =
+    compra.termino_pago ||
+    (Number(compra.dias_credito || 0) > 0
+      ? `CREDITO ${Number(compra.dias_credito || 0)} DIAS`
+      : "CONTADO");
+  const viajero = [compra.viajero_nombre, compra.viajero_apellido]
+    .filter(Boolean)
+    .join(" ");
+  const businessLines = [
+    "COMPROBANTE DE COMPRA",
+    BUSINESS_INFO.name,
+    BUSINESS_INFO.subtitle,
+    ...(Array.isArray(BUSINESS_INFO.addressLines) ? BUSINESS_INFO.addressLines : []),
+    BUSINESS_INFO.nit ? `NIT ${BUSINESS_INFO.nit}` : "",
+  ].filter(Boolean);
 
-  return buildFormalDocument({
-    title: "Comprobante de compra",
-    subtitle: "Ingreso formal de inventario y documento de compra.",
-    accent: "#7c3aed",
-    badge: `Compra #${compra.id_compra || "-"}`,
-    metaRows: [
-      { label: "Proveedor", value: compra.proveedor_nombre || "-" },
-      { label: "Documento", value: compra.no_documento || "Sin documento" },
-      { label: "Metodo de pago", value: compra.metodo_pago || "-" },
-      { label: "Fecha", value: formatPrintDateTime(compra.fecha || compra.fecha_compra) },
-      {
-        label: "Usuario",
-        value: compra.usuario_nombre || compra.usuario_username || "Usuario",
-      },
-      { label: "Estado", value: estado },
-    ],
-    summaryCards: [
-      { label: "Total original", value: formatPrintCurrency(resumen.total_original ?? compra.total) },
-      { label: "Total actual", value: formatPrintCurrency(resumen.total_actual ?? compra.total) },
-      {
-        label: "Unidades activas",
-        value: String(resumen.items_actual ?? detalles.reduce((acc, item) => acc + Number(item.cantidad || 0), 0)),
-      },
-    ],
-    sections: [
-      buildSectionHtml(
-        "Detalle de productos",
-        buildTableHtml({
-          headers: ["Producto", "Cantidad", "Costo", "Subtotal", "Estado"],
-          rows: detalles.map((detalle) => {
-            const cantidad = Number(detalle.cantidad || 0) - Number(detalle.cantidad_anulada || 0);
-            const subtotal = cantidad * Number(detalle.precio_compra || 0);
+  const itemRows = detalles
+    .map((detalle) => {
+      const cantidad = Math.max(
+        0,
+        Number(detalle.cantidad || 0) - Number(detalle.cantidad_anulada || 0)
+      );
+      if (cantidad <= 0) return "";
 
-            return [
-              `${detalle.producto_nombre || "Producto"} (${detalle.codigo_barras || "Sin codigo"})`,
-              { value: cantidad, align: "right" },
-              {
-                value: formatPrintCurrency(detalle.precio_compra),
-                align: "right",
-              },
-              { value: formatPrintCurrency(subtotal), align: "right" },
-              detalle.estado || "ACTIVO",
-            ];
-          }),
-        })
-      ),
-      compra.observaciones
-        ? buildSectionHtml(
-            "Observaciones",
-            `<div class="notes-box">${escapeHtml(compra.observaciones)}</div>`
-          )
-        : "",
-      compra.motivo_anulacion
-        ? buildSectionHtml(
-            "Motivo de anulacion",
-            `<div class="notes-box">${escapeHtml(compra.motivo_anulacion)}</div>`
-          )
-        : "",
-    ],
-    footerNote: "Comprobante generado desde el modulo de compras.",
-  });
+      const precio = Number(detalle.precio_compra || 0);
+      const subtotal = cantidad * precio;
+      const descripcion = `${cantidad} x ${detalle.producto_nombre || "Producto"}`;
+
+      return `
+        <div class="item-row">
+          <div class="item-name">
+            <div>${escapeHtml(descripcion)}</div>
+            <div class="item-code">${escapeHtml(detalle.codigo_barras || "Sin codigo")}</div>
+            <div class="item-code">${escapeHtml(formatPrintCurrency(precio))} c/u</div>
+          </div>
+          <div class="item-total">${escapeHtml(formatPrintCurrency(subtotal))}</div>
+        </div>
+      `;
+    })
+    .filter(Boolean)
+    .join("");
+
+  const notas = [
+    compra.observaciones ? `Obs: ${compra.observaciones}` : "",
+    compra.motivo_anulacion ? `Motivo anulacion: ${compra.motivo_anulacion}` : "",
+    compra.usuario_nombre || compra.usuario_username
+      ? `Registrado por: ${compra.usuario_nombre || compra.usuario_username}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("<br />");
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(numero)}</title>
+        <style>
+          * { box-sizing: border-box; }
+          html, body { margin: 0; padding: 0; background: #ffffff; color: #111111; }
+          body {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            line-height: 1.35;
+          }
+          .ticket {
+            width: 80mm;
+            margin: 0 auto;
+            padding: 10px 8px 16px;
+          }
+          .center { text-align: center; }
+          .ticket-logo {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 8px;
+          }
+          .header-line {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-weight: 700;
+          }
+          .spacer { height: 10px; }
+          .rule {
+            border-top: 1px dashed #111111;
+            margin: 10px 0;
+          }
+          .item-row,
+          .summary-row,
+          .meta-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+          }
+          .item-row + .item-row { margin-top: 6px; }
+          .item-name {
+            flex: 1;
+            min-width: 0;
+            padding-right: 8px;
+            word-break: break-word;
+          }
+          .item-code {
+            color: #333333;
+            font-size: 11px;
+            margin-top: 1px;
+          }
+          .item-total,
+          .summary-value {
+            white-space: nowrap;
+            text-align: right;
+          }
+          .summary-row {
+            font-size: 13px;
+            margin-top: 2px;
+          }
+          .summary-row.total {
+            font-size: 15px;
+            font-weight: 800;
+          }
+          .meta-block {
+            margin-top: 8px;
+          }
+          .meta-block div { margin-top: 2px; }
+          .label { font-weight: 700; }
+          .muted { color: #222222; }
+          .footer-note {
+            text-align: center;
+            margin-top: 12px;
+            white-space: pre-wrap;
+          }
+          @media print {
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .ticket { width: 72mm; padding: 8px 6px 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <div class="center">
+            ${
+              BUSINESS_INFO.logoUrl
+                ? `<img class="ticket-logo" src="${escapeHtml(BUSINESS_INFO.logoUrl)}" alt="logo" onerror="this.style.display='none'" />`
+                : ""
+            }
+            ${businessLines
+              .map(
+                (line) =>
+                  `<div class="header-line">${escapeHtml(String(line).toUpperCase())}</div>`
+              )
+              .join("")}
+          </div>
+
+          <div class="spacer"></div>
+
+          <div class="meta-block">
+            <div><span class="label">Compra:</span> ${escapeHtml(numero)}</div>
+            <div><span class="label">Fecha:</span> ${escapeHtml(
+              formatPrintDateTime(compra.fecha || compra.fecha_compra)
+            )}</div>
+            <div><span class="label">Documento:</span> ${escapeHtml(
+              compra.no_documento || "Sin documento"
+            )}</div>
+            <div><span class="label">Pago:</span> ${escapeHtml(terminoPago)}</div>
+            <div><span class="label">Estado:</span> ${escapeHtml(estado)}</div>
+          </div>
+
+          <div class="rule"></div>
+
+          <div class="meta-block">
+            <div><span class="label">Proveedor:</span> ${escapeHtml(
+              String(compra.proveedor_nombre || "-").toUpperCase()
+            )}</div>
+            ${
+              compra.proveedor_nit
+                ? `<div><span class="label">NIT:</span> ${escapeHtml(compra.proveedor_nit)}</div>`
+                : ""
+            }
+            ${
+              compra.proveedor_telefono
+                ? `<div><span class="label">Tel:</span> ${escapeHtml(compra.proveedor_telefono)}</div>`
+                : ""
+            }
+            ${
+              viajero
+                ? `<div><span class="label">Viajero:</span> ${escapeHtml(viajero)}</div>`
+                : ""
+            }
+          </div>
+
+          <div class="rule"></div>
+
+          ${itemRows || '<div class="center">SIN PRODUCTOS</div>'}
+
+          <div class="rule"></div>
+
+          <div class="summary-row">
+            <div>Unidades</div>
+            <div class="summary-value">${escapeHtml(unidadesActivas)}</div>
+          </div>
+          ${
+            totalOriginal !== totalActual
+              ? `
+                <div class="summary-row">
+                  <div>Total original</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(totalOriginal))}</div>
+                </div>
+              `
+              : ""
+          }
+          <div class="summary-row total">
+            <div>TOTAL</div>
+            <div class="summary-value">${escapeHtml(formatPrintCurrency(totalActual))}</div>
+          </div>
+
+          ${
+            notas
+              ? `
+                <div class="rule"></div>
+                <div class="footer-note">${notas}</div>
+              `
+              : ""
+          }
+
+          <div class="rule"></div>
+
+          <div class="footer-note">
+            Comprobante generado desde el modulo de compras.<br/>
+            ${escapeHtml(BUSINESS_INFO.footer)}
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
 };
 
 const formatPrintDate = (value) => {
