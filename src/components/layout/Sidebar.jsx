@@ -35,6 +35,7 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
+import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 88;
@@ -154,6 +155,12 @@ function Sidebar({
         </Badge>
       ),
       visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "LECTURA"),
+    },
+    {
+      text: "ZGAS",
+      path: "/zgas",
+      icon: <LocalGasStationIcon />,
+      visible: userHasRole(user, "SUPER_ADMIN", "ADMIN", "CAJERO", "CAJERA", "LECTURA"),
     },
   ].filter((item) => item.visible ?? true);
 

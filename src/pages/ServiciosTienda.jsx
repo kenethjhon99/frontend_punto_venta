@@ -235,13 +235,6 @@ function ServiciosTienda() {
     return true;
   };
 
-  const total = useMemo(() => {
-    return items.reduce(
-      (acumulado, item) => acumulado + Number(item.precio_venta) * Number(item.cantidad),
-      0
-    );
-  }, [items]);
-
   const clienteSeleccionado = useMemo(() => {
     return clientes.find((cliente) => cliente.id_cliente === Number(clienteId)) || null;
   }, [clienteId, clientes]);
@@ -301,6 +294,9 @@ function ServiciosTienda() {
           codigo_barras: producto.codigo_barras,
           precio_venta: Number(producto.precio_venta),
           precio_compra: Number(producto.precio_compra || 0),
+          permite_combo: Boolean(producto.permite_combo),
+          combo_unidades: producto.combo_unidades,
+          combo_precio: producto.combo_precio,
           stock: Number(producto.stock ?? 0),
           cantidad: 1,
         },
@@ -896,7 +892,7 @@ function ServiciosTienda() {
                     onEmpleadoChange={setEmpleadoCreditoId}
                     observacion={observacionCredito}
                     onObservacionChange={setObservacionCredito}
-                    totalVenta={total}
+                    totalVenta={totalConDescuento}
                     disabled={loadingVenta}
                   />
                 ) : (

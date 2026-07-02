@@ -38,6 +38,7 @@ const CarWashReparacion = lazyWithRetry(
   () => import("../pages/CarWashReparacion"),
   "carwash-reparacion"
 );
+const Zgas = lazyWithRetry(() => import("../pages/Zgas"), "zgas");
 
 const RouteFallback = () => (
   <Box
@@ -218,6 +219,14 @@ function AppRouter() {
               element={
                 <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MECANICO", "ENCARGADO_SERVICIOS", "LECTURA"]}>
                   <CarWashReparacion />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/zgas"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "CAJERO", "CAJERA", "LECTURA"]}>
+                  <Zgas />
                 </ProtectedRoute>
               }
             />

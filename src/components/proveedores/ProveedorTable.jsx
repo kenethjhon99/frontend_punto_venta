@@ -43,12 +43,13 @@ function ProveedorTable({
 
   return (
     <TableContainer component={Paper} elevation={0} sx={getTableContainerSx(theme)}>
-      <Table sx={{ minWidth: 1100 }}>
+      <Table sx={{ minWidth: 1200 }}>
         <TableHead>
           <TableRow sx={getTableHeaderRowSx(theme)}>
             <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Telefono</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>NIT</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Viajero</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Correo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Direccion</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
@@ -70,6 +71,9 @@ function ProveedorTable({
                 {proveedor.telefono_empresa || proveedor.telefono || "-"}
               </TableCell>
               <TableCell>{proveedor.nit}</TableCell>
+              <TableCell>
+                {[proveedor.nombre_viajero, proveedor.apellido_viajero].filter(Boolean).join(" ") || "-"}
+              </TableCell>
               <TableCell>{proveedor.correo || "-"}</TableCell>
               <TableCell>{proveedor.direccion || "-"}</TableCell>
               <TableCell>

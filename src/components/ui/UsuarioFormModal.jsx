@@ -230,7 +230,7 @@ function UsuarioFormModal({
                     <Typography variant="body2" color="text.secondary">
                       {showPasswordChange
                         ? "Ingresa una nueva password y confirmala para actualizar el acceso."
-                        : "La password actual se mantiene. Abre esta seccion solo si deseas cambiarla."}
+                        : "La password actual no se puede ver porque se guarda cifrada. Abre esta seccion solo si deseas cambiarla."}
                     </Typography>
                   </Box>
 
@@ -266,7 +266,7 @@ function UsuarioFormModal({
                     }}
                   >
                     <Alert severity="info" sx={{ mb: 2 }}>
-                      La nueva password se guardara cifrada y reemplazara la anterior.
+                      La nueva password se guardara cifrada y reemplazara la anterior. Puedes usar el icono del ojo para verla antes de guardar.
                     </Alert>
 
                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>

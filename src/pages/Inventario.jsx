@@ -32,9 +32,13 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 
 import { getMovimientosStock, getStock } from "../services/stockService";
-import { buildKardexHtml, openPrintDocument } from "../utils/printDocuments";
+import {
+  formatPrintCurrency,
+  openPrintDocument,
+} from "../utils/printDocuments";
 import {
   getTableHeaderCellSx,
   getTableHeaderRowSx,
@@ -57,6 +61,8 @@ const CATALOGO_FILTER_LOCAL = [
   ...CATALOGO_OPTIONS.map(({ value, label }) => ({ value, label })),
 ];
 
+const GT_TIME_ZONE = "America/Guatemala";
+
 const formatDateTime = (value) => {
   if (!value) return "-";
 
@@ -66,11 +72,28 @@ const formatDateTime = (value) => {
   }
 
   return date.toLocaleString("es-GT", {
+    timeZone: GT_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+  });
+};
+
+const formatDateOnly = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString("es-GT", {
+    timeZone: GT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 };
 
@@ -95,6 +118,160 @@ const getCatalogoChipLegacy = (registro) => {
 const toCsvValue = (value) => {
   const normalized = String(value ?? "");
   return `"${normalized.replaceAll('"', '""')}"`;
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const buildExcelCsv = (lines) => {
+  const separator = ";";
+  return [
+    "sep=;",
+    ...lines.map((line) => line.map(toCsvValue).join(separator)),
+  ].join("\r\n");
+};
+
+const buildInventarioHtml = ({ productos, totalGeneral, filtros }) => {
+  const generatedAt = new Date().toLocaleString("es-GT", {
+    timeZone: GT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const rows = productos
+    .map((producto) => {
+      const cantidad = Number(producto.stock_total ?? producto.existencia ?? 0);
+      const costo = Number(producto.precio_compra || 0);
+      const total = cantidad * costo;
+
+      return `
+        <tr>
+          <td>${escapeHtml(producto.codigo_barras || "Sin codigo")}</td>
+          <td>${escapeHtml(producto.nombre || "Producto")}</td>
+          <td>${escapeHtml(formatDateOnly(producto.fecha_ingreso))}</td>
+          <td class="number">${cantidad}</td>
+          <td class="money">${formatPrintCurrency(costo)}</td>
+          <td class="money">${formatPrintCurrency(total)}</td>
+        </tr>`;
+    })
+    .join("");
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Inventario valorizado</title>
+        <style>
+          @page { size: letter portrait; margin: 14mm; }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111827;
+            font-size: 12px;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            border-bottom: 2px solid #111827;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+          }
+          h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            letter-spacing: 0;
+          }
+          .meta {
+            color: #475569;
+            line-height: 1.45;
+          }
+          .summary {
+            text-align: right;
+            font-weight: 700;
+            line-height: 1.5;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          thead {
+            display: table-header-group;
+          }
+          th {
+            background: #1f2937;
+            color: #fff;
+            text-align: left;
+            font-size: 11px;
+            padding: 8px 7px;
+            border: 1px solid #1f2937;
+          }
+          td {
+            padding: 7px;
+            border: 1px solid #d1d5db;
+            vertical-align: top;
+          }
+          tbody tr:nth-child(even) {
+            background: #f8fafc;
+          }
+          .number,
+          .money {
+            text-align: right;
+            white-space: nowrap;
+          }
+          .total-row td {
+            font-weight: 800;
+            background: #e5e7eb;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>Inventario valorizado</h1>
+            <div class="meta">
+              Catalogo: ${escapeHtml(filtros.catalogo || "Todos")}<br />
+              Busqueda: ${escapeHtml(filtros.busqueda || "Sin filtro")}<br />
+              Generado: ${escapeHtml(generatedAt)}
+            </div>
+          </div>
+          <div class="summary">
+            Productos: ${productos.length}<br />
+            Total inventario: ${formatPrintCurrency(totalGeneral)}
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 18%;">Codigo</th>
+              <th>Nombre</th>
+              <th style="width: 12%;">Fecha ingreso</th>
+              <th style="width: 11%;">Cantidad</th>
+              <th style="width: 14%;">Precio costo</th>
+              <th style="width: 14%;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td colspan="5" class="money">TOTAL INVENTARIO</td>
+              <td class="money">${formatPrintCurrency(totalGeneral)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>`;
 };
 
 const getStockSplit = (registro) => {
@@ -205,6 +382,15 @@ function Inventario() {
     });
   }, [stockRows, busquedaProducto, moduloFiltro, soloBajoMinimo]);
 
+  const productosExportables = useMemo(
+    () =>
+      productosFiltrados.filter(
+        (producto) =>
+          Number(producto.stock_total ?? producto.existencia ?? 0) > 0
+      ),
+    [productosFiltrados]
+  );
+
   const selectedProduct = useMemo(() => {
     return stockRows.find(
       (producto) => String(producto.id_producto) === String(selectedProductId)
@@ -253,6 +439,16 @@ function Inventario() {
     );
   }, [movimientosFiltrados]);
 
+  const valorTotalInventario = useMemo(() => {
+    return stockRows.reduce((acc, producto) => {
+      const existencia = Number(
+        producto.stock_total ?? producto.existencia ?? 0
+      );
+      const costo = Number(producto.precio_compra || 0);
+      return acc + existencia * costo;
+    }, 0);
+  }, [stockRows]);
+
   const valorEstimadoStock = useMemo(() => {
     if (!selectedProduct) return 0;
 
@@ -298,6 +494,12 @@ function Inventario() {
       icon: <Inventory2Icon color="primary" />,
     },
     {
+      label: "Valor estimado inventario",
+      value: formatPrintCurrency(valorTotalInventario),
+      helper: "Stock actual por precio de compra",
+      icon: <PaidOutlinedIcon color="success" />,
+    },
+    {
       label: "Productos bajo minimo",
       value: resumenInventario.bajoMinimo,
       helper: "Requieren atencion o compra",
@@ -318,33 +520,33 @@ function Inventario() {
       setExportingPdf(true);
       setError("");
 
-      if (!movimientosFiltrados.length) {
-        setError("No hay movimientos visibles para exportar en PDF.");
+      if (!productosExportables.length) {
+        setError("No hay productos con stock disponible para exportar en PDF.");
         return;
       }
 
+      const totalGeneral = productosExportables.reduce((acc, producto) => {
+        const cantidad = Number(producto.stock_total ?? producto.existencia ?? 0);
+        const costo = Number(producto.precio_compra || 0);
+        return acc + cantidad * costo;
+      }, 0);
+
       openPrintDocument({
-        title: selectedProduct
-          ? `Kardex ${selectedProduct.nombre}`
-          : "Kardex de inventario",
-        html: buildKardexHtml({
-          producto: selectedProduct,
-          movimientos: movimientosFiltrados,
+        title: "Inventario valorizado",
+        html: buildInventarioHtml({
+          productos: productosExportables,
+          totalGeneral,
           filtros: {
-            desde,
-            hasta,
-            modulo: moduloFiltro || "Todos",
-            tipo: tipoMovimiento || "Todos",
-            q: busquedaMovimiento,
-          },
-          resumen: resumenMovimientos,
+            catalogo: moduloFiltro || "Todos",
+            busqueda: busquedaProducto || "Sin filtro",
+          }
         }),
         width: 1200,
         height: 900,
       });
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudo generar el PDF del kardex.");
+      setError(err.message || "No se pudo generar el PDF del inventario.");
     } finally {
       setExportingPdf(false);
     }
@@ -355,68 +557,49 @@ function Inventario() {
       setExportingExcel(true);
       setError("");
 
-      if (!movimientosFiltrados.length) {
-        setError("No hay movimientos visibles para exportar a Excel.");
+      if (!productosExportables.length) {
+        setError("No hay productos con stock disponible para exportar a Excel.");
         return;
       }
 
-      const lines = [
-        ["KARDEX DE INVENTARIO"],
-        ["Producto", selectedProduct?.nombre || "Todos los productos"],
-        ["Codigo", selectedProduct?.codigo_barras || "Todos"],
-        ["Catalogo", moduloFiltro || "Todos"],
-        ["Desde", desde || "Sin filtro"],
-        ["Hasta", hasta || "Sin filtro"],
-        ["Tipo", tipoMovimiento || "Todos"],
-        ["Busqueda", busquedaMovimiento || "Sin filtro"],
-        [""],
-        ["RESUMEN"],
-        ["Entradas visibles", resumenMovimientos.entradas],
-        ["Salidas visibles", resumenMovimientos.salidas],
-        ["Ajustes visibles", resumenMovimientos.ajustes],
-        selectedProduct ? ["Stock actual", Number(selectedProduct.existencia || 0)] : [],
-        selectedProduct ? ["Stock minimo", Number(selectedProduct.stock_minimo || 0)] : [],
-        [""],
-        ["MOVIMIENTOS"],
-        [
-          "Fecha",
-          "Producto",
-          "Codigo",
-          "Tipo",
-          "Cantidad",
-          "Antes",
-          "Despues",
-          "Motivo",
-          "Usuario",
-        ],
-        ...movimientosFiltrados.map((movimiento) => [
-          formatDateTime(movimiento.fecha),
-          movimiento.producto_nombre || "Producto",
-          movimiento.producto_codigo_barras || "Sin codigo",
-          movimiento.tipo || "-",
-          Number(movimiento.cantidad || 0),
-          Number(movimiento.existencia_antes || 0),
-          Number(movimiento.existencia_despues || 0),
-          movimiento.motivo || "Sin detalle",
-          movimiento.usuario_nombre || movimiento.usuario_username || "Sistema",
-        ]),
-      ].filter((line) => Array.isArray(line) && line.length > 0);
+      const totalGeneral = productosExportables.reduce((acc, producto) => {
+        const cantidad = Number(producto.stock_total ?? producto.existencia ?? 0);
+        const costo = Number(producto.precio_compra || 0);
+        return acc + cantidad * costo;
+      }, 0);
 
-      const csv = lines.map((line) => line.map(toCsvValue).join(",")).join("\n");
+      const lines = [
+        ["CODIGO", "NOMBRE", "FECHA INGRESO", "CANTIDAD", "PRECIO COSTO", "TOTAL"],
+        ...productosExportables.map((producto) => {
+          const cantidad = Number(producto.stock_total ?? producto.existencia ?? 0);
+          const costo = Number(producto.precio_compra || 0);
+          return [
+            producto.codigo_barras || "Sin codigo",
+            producto.nombre || "Producto",
+            formatDateOnly(producto.fecha_ingreso),
+            cantidad,
+            costo.toFixed(2),
+            (cantidad * costo).toFixed(2),
+          ];
+        }),
+        ["", "", "", "", "TOTAL INVENTARIO", totalGeneral.toFixed(2)],
+      ];
+
+      const csv = buildExcelCsv(lines);
       const blob = new Blob(["\uFEFF", csv], {
         type: "text/csv;charset=utf-8;",
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = selectedProduct
-        ? `kardex-${selectedProduct.nombre}-${selectedProduct.id_producto}.csv`
-        : "kardex-inventario.csv";
+      link.download = moduloFiltro
+        ? `inventario-${moduloFiltro.toLowerCase()}.csv`
+        : "inventario-productos.csv";
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudo exportar el kardex.");
+      setError(err.message || "No se pudo exportar el inventario.");
     } finally {
       setExportingExcel(false);
     }
@@ -452,7 +635,7 @@ function Inventario() {
           variant="outlined"
           startIcon={<DownloadIcon />}
           onClick={exportarExcel}
-          disabled={loadingMovimientos || exportingExcel}
+          disabled={loadingStock || exportingExcel}
         >
           {exportingExcel ? "Exportando..." : "Exportar Excel"}
         </Button>
@@ -461,7 +644,7 @@ function Inventario() {
           color="error"
           startIcon={<PictureAsPdfIcon />}
           onClick={exportarPdf}
-          disabled={loadingMovimientos || exportingPdf}
+          disabled={loadingStock || exportingPdf}
         >
           {exportingPdf ? "Generando PDF..." : "Exportar PDF"}
         </Button>
@@ -479,7 +662,7 @@ function Inventario() {
           gridTemplateColumns: {
             xs: "1fr",
             md: "repeat(2, minmax(0, 1fr))",
-            xl: "repeat(4, minmax(0, 1fr))",
+            xl: "repeat(5, minmax(0, 1fr))",
           },
           gap: 2,
           mb: 3,
@@ -516,7 +699,10 @@ function Inventario() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", xl: "360px minmax(0, 1fr)" },
+          gridTemplateColumns: {
+            xs: "1fr",
+            lg: "minmax(420px, 0.9fr) minmax(0, 1.6fr)",
+          },
           gap: 3,
           alignItems: "start",
         }}
@@ -529,11 +715,10 @@ function Inventario() {
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            maxHeight: { xl: "calc(100vh - 220px)" },
-            overflow: "hidden",
+            overflow: "visible",
           }}
         >
-          <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
+          <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0 }}>
             <Box>
               <Typography variant="h6" fontWeight="bold">
                 Stock actual
@@ -683,9 +868,8 @@ function Inventario() {
             ) : (
               <TableContainer
                 sx={{
-                  flex: 1,
-                  minHeight: 320,
-                  maxHeight: { xs: 560, xl: "unset" },
+                  height: { xs: 440, lg: 520 },
+                  minHeight: { xs: 440, lg: 520 },
                   borderRadius: 3,
                   overflowY: "auto",
                   overscrollBehavior: "contain",
@@ -830,11 +1014,10 @@ function Inventario() {
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            maxHeight: { xl: "calc(100vh - 220px)" },
-            overflow: "hidden",
+            overflow: "visible",
           }}
         >
-          <Stack spacing={2.5} sx={{ flex: 1, minHeight: 0 }}>
+          <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={1.5}
@@ -1071,9 +1254,8 @@ function Inventario() {
             ) : (
               <TableContainer
                 sx={{
-                  flex: 1,
-                  minHeight: 360,
-                  maxHeight: { xs: 620, xl: "unset" },
+                  height: { xs: 460, lg: 520 },
+                  minHeight: { xs: 460, lg: 520 },
                   borderRadius: 3,
                   overflowY: "auto",
                   overscrollBehavior: "contain",

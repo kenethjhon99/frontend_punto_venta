@@ -143,7 +143,7 @@ function Caja() {
     nota: "",
   });
 
-  const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN", "ADMIN");
+  const canSeeAllSessions = userHasRole(user, "SUPER_ADMIN");
   const canOperateCaja = userHasRole(
     user,
     "ADMIN",
@@ -152,7 +152,7 @@ function Caja() {
     "ENCARGADO_SERVICIOS"
   );
   const isReadOnly = isReadOnlyUser(user);
-  const isCajeroOnly = userHasRole(user, "CAJERO") && !canSeeAllSessions;
+  const isLimitedCajaView = !canSeeAllSessions;
   const pendientesNoCobroActivos = Number(resumenActivo?.no_cobrados_pendientes_count || 0);
   const movimientosPendientesValidacion = Number(
     resumenActivo?.movimientos_pendientes_validacion_count || 0
@@ -1471,7 +1471,7 @@ function Caja() {
 
               <Typography variant="body1" color="text.secondary">
                 {canSeeAllSessions
-                  ? "Administra aperturas, cierres, conciliacion y sesiones de caja por cajero."
+                  ? "Administra aperturas, cierres, conciliacion y sesiones de caja por usuario."
                   : "Opera tu caja, registra movimientos y controla tu cierre con diferencia."}
               </Typography>
             </Box>
@@ -1522,9 +1522,9 @@ function Caja() {
         </Alert>
       )}
 
-      {isCajeroOnly && (
+      {isLimitedCajaView && (
         <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-          Como cajero solo puedes ver y operar tu propia caja. El historial mostrado corresponde unicamente a tus aperturas y cierres.
+          Solo puedes ver y operar tu propia caja. El historial mostrado corresponde unicamente a tus aperturas, movimientos y cierres.
         </Alert>
       )}
 
@@ -1859,7 +1859,7 @@ function Caja() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {canSeeAllSessions
-                    ? "Como administrador puedes consultar sesiones de caja de todos los cajeros."
+                    ? "Como super admin puedes consultar sesiones de caja de todos los usuarios."
                     : "Aqui puedes revisar solo tus aperturas y cierres anteriores."}
                 </Typography>
               </Box>

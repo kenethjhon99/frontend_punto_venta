@@ -83,6 +83,9 @@ function Proveedores() {
       const coincideTexto =
         !texto ||
         String(proveedor.nombre_empresa || proveedor.nombre || "").toLowerCase().includes(texto) ||
+        String(proveedor.viajero_nombre_completo || "").toLowerCase().includes(texto) ||
+        String(proveedor.nombre_viajero || "").toLowerCase().includes(texto) ||
+        String(proveedor.apellido_viajero || "").toLowerCase().includes(texto) ||
         String(proveedor.correo || "").toLowerCase().includes(texto) ||
         String(proveedor.telefono_empresa || proveedor.telefono || "").toLowerCase().includes(texto) ||
         String(proveedor.direccion || "").toLowerCase().includes(texto);

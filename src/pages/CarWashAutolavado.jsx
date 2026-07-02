@@ -60,14 +60,12 @@ import NoCobroAuthorizationFields from "../components/ui/NoCobroAuthorizationFie
 import { getCajaSesionActiva } from "../services/cajaService";
 import {
   actualizarEstadoOrdenAutolavado,
-  asignarTecnicoOrdenAutolavado,
   cobrarServicioAutolavado,
   crearServicioAutolavado,
   crearTipoVehiculoAutolavado,
   editarServicioAutolavado,
   getAutolavadoCatalogo,
   getOrdenesAutolavado,
-  getTecnicosServicio,
 } from "../services/servicioService";
 
 const VEHICLE_ICON_MAP = {
@@ -139,9 +137,16 @@ const EMPTY_NO_COBRO_FORM = {
 const ESTADOS_ORDEN_OPTIONS = [
   { value: "TODOS", label: "Todos" },
   { value: "RECIBIDO", label: "Recibido" },
-  { value: "EN_REPARACION", label: "En reparacion" },
+  { value: "LAVANDO", label: "Lavando" },
   { value: "ENTREGADO", label: "Entregado" },
 ];
+
+const normalizarEstadoAutolavado = (estado) => {
+  const normalized = String(estado || "").trim().toUpperCase();
+  return ["EN_REPARACION", "EN_PROCESO", "LAVADO", "FINALIZADO"].includes(normalized)
+    ? "LAVANDO"
+    : normalized;
+};
 
 const normalizarCatalogo = (data) => {
   if (data?.data?.vehiculos && data?.data?.servicios) return data.data;
@@ -160,13 +165,10 @@ const formatDateTime = (value) => {
 };
 
 const getEstadoOrdenColor = (estado) => {
-  switch (estado) {
+  switch (normalizarEstadoAutolavado(estado)) {
     case "RECIBIDO":
       return "info";
-    case "EN_REPARACION":
-    case "EN_PROCESO":
-    case "LAVADO":
-    case "FINALIZADO":
+    case "LAVANDO":
       return "warning";
     case "ENTREGADO":
       return "success";
@@ -180,7 +182,7 @@ const isServicioPersonalizado = (servicio) =>
 
 const getSiguientesEstadosAutolavado = (estadoActual) => {
   const flujo = ESTADOS_ORDEN_OPTIONS.filter((option) => option.value !== "TODOS");
-  const actual = String(estadoActual || "").trim().toUpperCase();
+  const actual = normalizarEstadoAutolavado(estadoActual);
   const actualIndex = flujo.findIndex((option) => option.value === actual);
 
   if (actualIndex === -1) return flujo;
@@ -192,7 +194,6 @@ function CarWashAutolavado() {
   const { user } = useAuth();
   const [vehiculos, setVehiculos] = useState([]);
   const [servicios, setServicios] = useState([]);
-  const [tecnicos, setTecnicos] = useState([]);
   const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState(null);
   const [servicioSeleccionadoId, setServicioSeleccionadoId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -201,7 +202,6 @@ function CarWashAutolavado() {
   const [savingServicio, setSavingServicio] = useState(false);
   const [cobrandoServicio, setCobrandoServicio] = useState(false);
   const [actualizandoOrdenId, setActualizandoOrdenId] = useState(null);
-  const [asignandoTecnicoOrdenId, setAsignandoTecnicoOrdenId] = useState(null);
   const [imprimiendoOrdenId, setImprimiendoOrdenId] = useState(null);
   const [autoPrintServicio, setAutoPrintServicio] = useState(() =>
     readPrintPreference(user, "autolavado.autoPrint", true)
@@ -255,23 +255,15 @@ function CarWashAutolavado() {
         setLoading(true);
         setError("");
 
-        const [data, cajaResponse, tecnicosResponse] = await Promise.all([
+        const [data, cajaResponse] = await Promise.all([
           getAutolavadoCatalogo(),
           getCajaSesionActiva(),
-          getTecnicosServicio(),
         ]);
         const catalogo = normalizarCatalogo(data);
 
         setVehiculos(catalogo.vehiculos);
         setServicios(catalogo.servicios);
         setCajaActiva(cajaResponse?.sesion || null);
-          setTecnicos(
-            Array.isArray(tecnicosResponse?.data)
-              ? tecnicosResponse.data.filter(
-                  (item) => String(item?.cargo || "").trim().toUpperCase() === "CARWASH"
-                )
-              : []
-          );
 
         const nextVehiculoId =
           preferredVehiculoId && catalogo.vehiculos.some((item) => item.id_tipo_vehiculo === preferredVehiculoId)
@@ -654,35 +646,6 @@ function CarWashAutolavado() {
       setError(err.response?.data?.error || "No se pudo actualizar el estado de la orden.");
     } finally {
       setActualizandoOrdenId(null);
-    }
-  };
-
-  const asignarTecnicoOrden = async (idOrden, idTecnico) => {
-    try {
-      setAsignandoTecnicoOrdenId(idOrden);
-      setError("");
-      setSuccess("");
-
-      await asignarTecnicoOrdenAutolavado(idOrden, {
-        id_tecnico: idTecnico || null,
-      });
-
-      await cargarOrdenes(estadoFiltroOrdenes);
-
-      const tecnico = tecnicos.find(
-        (item) => String(item.id_empleado) === String(idTecnico)
-      );
-
-      setSuccess(
-        tecnico
-          ? `Tecnico ${tecnico.nombre} asignado a la orden #${idOrden}.`
-          : `Tecnico retirado de la orden #${idOrden}.`
-      );
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || "No se pudo asignar el tecnico.");
-    } finally {
-      setAsignandoTecnicoOrdenId(null);
     }
   };
 
@@ -1634,7 +1597,7 @@ function CarWashAutolavado() {
                             </Stack>
 
                             <Chip
-                              label={String(orden.estado_trabajo || "").replaceAll("_", " ")}
+                              label={normalizarEstadoAutolavado(orden.estado_trabajo).replaceAll("_", " ")}
                               color={getEstadoOrdenColor(orden.estado_trabajo)}
                               sx={{ fontWeight: 700, alignSelf: { xs: "flex-start", md: "center" } }}
                             />
@@ -1649,11 +1612,6 @@ function CarWashAutolavado() {
                             <Chip label={`Cobro Q ${Number(orden.monto_cobrado || 0).toFixed(2)}`} color="primary" variant="outlined" />
                             <Chip label={`Pago ${orden.metodo_pago}`} variant="outlined" />
                             <Chip label={`${orden.duracion_minutos || 0} min`} variant="outlined" />
-                            <Chip
-                              label={`Tecnico ${orden.tecnico_nombre || orden.tecnico_username || "Sin asignar"}`}
-                              color={orden.id_tecnico_asignado ? "secondary" : "default"}
-                              variant="outlined"
-                            />
                           </Stack>
 
                           <Box>
@@ -1688,20 +1646,6 @@ function CarWashAutolavado() {
                             Recibido el {formatDateTime(orden.fecha)} por {orden.usuario_nombre || orden.username}
                           </Typography>
 
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Tecnico asignado
-                            </Typography>
-                            <Typography fontWeight="bold">
-                              {orden.tecnico_nombre || orden.tecnico_username || "Sin asignar"}
-                            </Typography>
-                            {orden.tecnico_asignado_en && (
-                              <Typography variant="caption" color="text.secondary">
-                                Asignado el {formatDateTime(orden.tecnico_asignado_en)}
-                              </Typography>
-                            )}
-                          </Box>
-
                           {orden.observaciones && (
                             <Typography variant="body2" color="text.secondary">
                               Observaciones: {orden.observaciones}
@@ -1711,40 +1655,13 @@ function CarWashAutolavado() {
                           {canManageOrders && (
                             <Stack spacing={1.5}>
                               <FormControl fullWidth>
-                                <InputLabel id={`tecnico-orden-${orden.id_autolavado_orden}`}>
-                                  Asignar tecnico
-                                </InputLabel>
-                                <Select
-                                  labelId={`tecnico-orden-${orden.id_autolavado_orden}`}
-                                  label="Asignar tecnico"
-                                  value={orden.id_tecnico_asignado ? String(orden.id_tecnico_asignado) : ""}
-                                  onChange={(event) =>
-                                    asignarTecnicoOrden(
-                                      orden.id_autolavado_orden,
-                                      event.target.value
-                                    )
-                                  }
-                                  disabled={asignandoTecnicoOrdenId === orden.id_autolavado_orden}
-                                >
-                                  <MenuItem value="">
-                                    <em>Sin asignar</em>
-                                  </MenuItem>
-                                  {tecnicos.map((tecnico) => (
-                                    <MenuItem key={tecnico.id_empleado} value={String(tecnico.id_empleado)}>
-                                      {`${tecnico.nombre} | ${tecnico.cargo} | ${tecnico.tipo_pago}`}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-
-                              <FormControl fullWidth>
                                 <InputLabel id={`estado-orden-${orden.id_autolavado_orden}`}>
                                   Cambiar estado
                                 </InputLabel>
                                 <Select
                                   labelId={`estado-orden-${orden.id_autolavado_orden}`}
                                   label="Cambiar estado"
-                                  value={orden.estado_trabajo}
+                                  value={normalizarEstadoAutolavado(orden.estado_trabajo)}
                                   onChange={(event) =>
                                     actualizarEstadoOrden(
                                       orden.id_autolavado_orden,

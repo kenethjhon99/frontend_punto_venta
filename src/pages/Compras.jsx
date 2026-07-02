@@ -41,7 +41,6 @@ import ProveedorFormModal from "../components/ui/ProveedorFormModal";
 import DescriptionIcon from "@mui/icons-material/Description";
 import {
   buildCompraTicketHtml,
-  buildOrdenCompraHtml,
   openPrintWindow,
   openPrintDocument,
 } from "../utils/printDocuments";
@@ -278,6 +277,23 @@ function Compras() {
     setObservaciones("");
   };
 
+  const seleccionarProveedor = (idProveedor) => {
+    setProveedorId(idProveedor);
+
+    const proveedor = proveedores.find(
+      (item) => String(item.id_proveedor) === String(idProveedor)
+    );
+
+    if (!proveedor) {
+      setViajeroNombre("");
+      setViajeroApellido("");
+      return;
+    }
+
+    setViajeroNombre(proveedor.nombre_viajero || proveedor.viajero_nombre || "");
+    setViajeroApellido(proveedor.apellido_viajero || proveedor.viajero_apellido || "");
+  };
+
   const total = useMemo(() => {
     return items.reduce(
       (acc, item) => acc + item.costo_unitario * item.cantidad,
@@ -321,6 +337,8 @@ function Compras() {
         )
       );
       setProveedorId(String(proveedorCreado.id_proveedor));
+      setViajeroNombre(proveedorCreado.nombre_viajero || proveedorCreado.viajero_nombre || "");
+      setViajeroApellido(proveedorCreado.apellido_viajero || proveedorCreado.viajero_apellido || "");
       setProveedorModalOpen(false);
       setSuccess(
         `Proveedor "${
@@ -705,7 +723,7 @@ function Compras() {
                         <Select
                           fullWidth
                           value={proveedorId}
-                          onChange={(event) => setProveedorId(event.target.value)}
+                          onChange={(event) => seleccionarProveedor(event.target.value)}
                           displayEmpty
                           disabled={loadingProveedores || !canManageCompras}
                         >

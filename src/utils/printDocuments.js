@@ -11,6 +11,8 @@ const BUSINESS_INFO = {
   logoUrl: "/logo.jpeg",
 };
 
+const GT_TIME_ZONE = "America/Guatemala";
+
 export const escapeHtml = (value) =>
   String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -33,6 +35,7 @@ export const formatPrintDateTime = (value) => {
   if (Number.isNaN(date.getTime())) return String(value);
 
   return new Intl.DateTimeFormat("es-GT", {
+    timeZone: GT_TIME_ZONE,
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -183,8 +186,8 @@ const buildFormalDocument = ({
             gap: 16px;
           }
           .hero-logo {
-            width: 62px;
-            height: 62px;
+            width: 88px;
+            height: 88px;
             object-fit: contain;
             border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.22);
@@ -473,7 +476,39 @@ export const openPrintDocument = ({
   targetWindow.document.close();
   targetWindow.document.title = title;
   targetWindow.focus();
-  targetWindow.print();
+  let printed = false;
+  const printNow = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      targetWindow.focus();
+      targetWindow.print();
+    } catch {
+      // El navegador puede cerrar la ventana antes de imprimir.
+    }
+  };
+
+  const images = Array.from(targetWindow.document.images || []);
+  const pendingImages = images.filter((img) => !img.complete);
+
+  if (pendingImages.length === 0) {
+    targetWindow.setTimeout(printNow, 100);
+    return;
+  }
+
+  let settled = 0;
+  const finishOne = () => {
+    settled += 1;
+    if (settled >= pendingImages.length) {
+      targetWindow.setTimeout(printNow, 100);
+    }
+  };
+
+  pendingImages.forEach((img) => {
+    img.addEventListener("load", finishOne, { once: true });
+    img.addEventListener("error", finishOne, { once: true });
+  });
+  targetWindow.setTimeout(printNow, 1500);
 };
 
 export const buildVentaTicketHtml = (ventaData) => {
@@ -522,11 +557,22 @@ export const buildVentaTicketHtml = (ventaData) => {
       if (cantidad <= 0) return "";
 
       const descripcion = `${cantidad}.0 ${detalle.producto_nombre || "Producto"}`;
-      const subtotal = formatPrintCurrency(cantidad * Number(detalle.precio_unitario || 0));
+      const subtotal = formatPrintCurrency(detalle.subtotal ?? cantidad * Number(detalle.precio_unitario || 0));
+      const comboCantidad = Number(detalle.combo_cantidad || 0);
+      const unidadesSueltas = Number(detalle.unidades_sueltas || 0);
+      const comboInfo =
+        detalle.combo_aplicado && comboCantidad > 0
+          ? `${comboCantidad} combo(s) de ${detalle.combo_unidades}${
+              unidadesSueltas > 0 ? ` + ${unidadesSueltas} unidad(es)` : ""
+            }`
+          : "";
 
       return `
         <div class="item-row">
-          <div class="item-name">${escapeHtml(descripcion)}</div>
+          <div class="item-name">
+            <div>${escapeHtml(descripcion)}</div>
+            ${comboInfo ? `<div class="item-code">${escapeHtml(comboInfo)}</div>` : ""}
+          </div>
           <div class="item-total">${escapeHtml(subtotal)}</div>
         </div>
       `;
@@ -603,20 +649,23 @@ export const buildVentaTicketHtml = (ventaData) => {
           body {
             font-family: "Courier New", Courier, monospace;
             font-size: 12px;
+            font-weight: 700;
             line-height: 1.35;
           }
           .ticket {
             width: 80mm;
             margin: 0 auto;
             padding: 10px 8px 16px;
+            color: #000000;
+            font-weight: 700;
           }
           .center { text-align: center; }
           .ticket-logo {
-            width: 54px;
-            height: 54px;
+            width: 112px;
+            height: 112px;
             object-fit: contain;
             display: block;
-            margin: 0 auto 8px;
+            margin: 0 auto 10px;
           }
           .header-line {
             white-space: pre-wrap;
@@ -624,7 +673,7 @@ export const buildVentaTicketHtml = (ventaData) => {
           }
           .spacer { height: 10px; }
           .rule {
-            border-top: 1px dashed #111111;
+            border-top: 2px dashed #000000;
             margin: 10px 0;
           }
           .item-row,
@@ -653,13 +702,13 @@ export const buildVentaTicketHtml = (ventaData) => {
           }
           .summary-row.total {
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 900;
           }
           .meta-block {
             margin-top: 10px;
           }
           .meta-line { margin-top: 2px; }
-          .muted { color: #222222; }
+          .muted { color: #000000; }
           .footer-note {
             text-align: center;
             margin-top: 12px;
@@ -698,7 +747,7 @@ export const buildVentaTicketHtml = (ventaData) => {
               size: 80mm auto;
               margin: 0;
             }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #000000; }
             .ticket { width: 72mm; padding: 8px 6px 10px; }
           }
         </style>
@@ -858,24 +907,27 @@ export const buildReparacionReciboHtml = (reciboData) => {
           body {
             font-family: "Courier New", Courier, monospace;
             font-size: 12px;
+            font-weight: 700;
             line-height: 1.35;
           }
           .ticket {
             width: 80mm;
             margin: 0 auto;
             padding: 10px 8px 16px;
+            color: #000000;
+            font-weight: 700;
           }
           .center { text-align: center; }
           .ticket-logo {
-            width: 54px;
-            height: 54px;
+            width: 112px;
+            height: 112px;
             object-fit: contain;
             display: block;
-            margin: 0 auto 8px;
+            margin: 0 auto 10px;
           }
           .header-line { white-space: pre-wrap; word-break: break-word; font-weight: 700; }
           .spacer { height: 10px; }
-          .rule { border-top: 1px dashed #111111; margin: 10px 0; }
+          .rule { border-top: 2px dashed #000000; margin: 10px 0; }
           .item-row, .summary-row {
             display: flex;
             justify-content: space-between;
@@ -890,7 +942,7 @@ export const buildReparacionReciboHtml = (reciboData) => {
           .meta-block { margin-top: 6px; }
           .meta-block div { margin-top: 2px; }
           .label { font-weight: 700; }
-          .muted { color: #333333; }
+          .muted { color: #000000; }
           .descripcion {
             font-size: 12px;
             padding: 6px 0;
@@ -900,7 +952,7 @@ export const buildReparacionReciboHtml = (reciboData) => {
           .footer-note { text-align: center; margin-top: 12px; white-space: pre-wrap; }
           @media print {
             @page { size: 80mm auto; margin: 0; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #000000; }
             .ticket { width: 72mm; padding: 8px 6px 10px; }
           }
         </style>
@@ -1097,20 +1149,23 @@ export const buildCompraTicketHtml = (compraData) => {
           body {
             font-family: "Courier New", Courier, monospace;
             font-size: 12px;
+            font-weight: 700;
             line-height: 1.35;
           }
           .ticket {
             width: 80mm;
             margin: 0 auto;
             padding: 10px 8px 16px;
+            color: #000000;
+            font-weight: 700;
           }
           .center { text-align: center; }
           .ticket-logo {
-            width: 54px;
-            height: 54px;
+            width: 112px;
+            height: 112px;
             object-fit: contain;
             display: block;
-            margin: 0 auto 8px;
+            margin: 0 auto 10px;
           }
           .header-line {
             white-space: pre-wrap;
@@ -1119,7 +1174,7 @@ export const buildCompraTicketHtml = (compraData) => {
           }
           .spacer { height: 10px; }
           .rule {
-            border-top: 1px dashed #111111;
+            border-top: 2px dashed #000000;
             margin: 10px 0;
           }
           .item-row,
@@ -1138,8 +1193,9 @@ export const buildCompraTicketHtml = (compraData) => {
             word-break: break-word;
           }
           .item-code {
-            color: #333333;
+            color: #000000;
             font-size: 11px;
+            font-weight: 700;
             margin-top: 1px;
           }
           .item-total,
@@ -1160,7 +1216,7 @@ export const buildCompraTicketHtml = (compraData) => {
           }
           .meta-block div { margin-top: 2px; }
           .label { font-weight: 700; }
-          .muted { color: #222222; }
+          .muted { color: #000000; }
           .footer-note {
             text-align: center;
             margin-top: 12px;
@@ -1171,7 +1227,7 @@ export const buildCompraTicketHtml = (compraData) => {
               size: 80mm auto;
               margin: 0;
             }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #000000; }
             .ticket { width: 72mm; padding: 8px 6px 10px; }
           }
         </style>
@@ -1387,8 +1443,8 @@ export const buildOrdenCompraHtml = (compraData, opciones = {}) => {
             align-items: flex-start;
           }
           .oc-logo {
-            width: 66px;
-            height: 66px;
+            width: 92px;
+            height: 92px;
             object-fit: contain;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
@@ -1763,95 +1819,300 @@ export const buildOrdenCompraHtml = (compraData, opciones = {}) => {
   `;
 };
 
+const normalizeTicketEstado = (estado) => {
+  const normalized = String(estado || "").trim().toUpperCase();
+  if (["EN_REPARACION", "EN_PROCESO", "LAVADO", "FINALIZADO"].includes(normalized)) {
+    return "LAVANDO";
+  }
+  return normalized || "-";
+};
+
+const buildThermalServiceTicketHtml = ({
+  title,
+  orderNumber,
+  orden,
+  serviceLabel = "Servicio",
+  extraRows = [],
+  productRows = [],
+  notesLabel = "Observaciones",
+  notes = null,
+}) => {
+  const cliente = orden?.nombre_cliente || "Consumidor final";
+  const vehiculo = [
+    orden?.tipo_vehiculo_nombre,
+    orden?.placa ? `Placa ${orden.placa}` : "",
+    orden?.color || "",
+  ]
+    .filter(Boolean)
+    .join(" - ");
+  const usuario = orden?.usuario_nombre || orden?.username || "Usuario";
+  const tecnico = orden?.tecnico_nombre || orden?.tecnico_username || "Sin asignar";
+  const estado = normalizeTicketEstado(orden?.estado_trabajo || orden?.estado);
+  const total = Number(orden?.monto_cobrado ?? orden?.precio_servicio ?? 0);
+  const serviceAmount = Number(orden?.precio_servicio ?? orden?.precio_base ?? 0);
+  const productsTotal = Number(orden?.productos_total_cobrado || 0);
+
+  const serviceRow = `
+    <div class="item-row">
+      <div class="item-name">1 x ${escapeHtml(orden?.servicio_nombre || serviceLabel)}</div>
+      <div class="item-total">${escapeHtml(formatPrintCurrency(serviceAmount))}</div>
+    </div>
+  `;
+
+  const productsHtml = productRows
+    .map(
+      (row) => `
+        <div class="item-row">
+          <div class="item-name">${escapeHtml(row.name)}</div>
+          <div class="item-total">${escapeHtml(formatPrintCurrency(row.total))}</div>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(orderNumber)}</title>
+        <style>
+          * { box-sizing: border-box; }
+          html, body { margin: 0; padding: 0; background: #fff; color: #111; }
+          body { font-family: "Courier New", Courier, monospace; font-size: 12px; font-weight: 700; line-height: 1.35; color: #000; }
+          .ticket { width: 80mm; margin: 0 auto; padding: 10px 8px 16px; color: #000; font-weight: 700; }
+          .center { text-align: center; }
+          .ticket-logo { width: 112px; height: 112px; object-fit: contain; display: block; margin: 0 auto 12px; }
+          .header-line { white-space: pre-wrap; word-break: break-word; font-weight: 700; }
+          .rule { border-top: 2px dashed #000; margin: 10px 0; }
+          .meta-block div { margin-top: 2px; }
+          .label { font-weight: 700; }
+          .item-row, .summary-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+          .item-row + .item-row { margin-top: 4px; }
+          .item-name { flex: 1; min-width: 0; padding-right: 8px; word-break: break-word; }
+          .item-total, .summary-value { white-space: nowrap; text-align: right; }
+          .summary-row { font-size: 13px; margin-top: 2px; }
+          .summary-row.total { font-size: 15px; font-weight: 800; }
+          .notes { white-space: pre-wrap; word-break: break-word; }
+          .footer-note { text-align: center; margin-top: 12px; white-space: pre-wrap; }
+          @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #000; }
+            .ticket { width: 72mm; padding: 8px 6px 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <div class="center">
+            ${
+              BUSINESS_INFO.logoUrl
+                ? `<img class="ticket-logo" src="${escapeHtml(BUSINESS_INFO.logoUrl)}" alt="logo" onerror="this.style.display='none'" />`
+                : ""
+            }
+            ${[
+              title,
+              BUSINESS_INFO.name,
+              BUSINESS_INFO.subtitle,
+              ...(Array.isArray(BUSINESS_INFO.addressLines) ? BUSINESS_INFO.addressLines : []),
+            ]
+              .filter(Boolean)
+              .map((line) => `<div class="header-line">${escapeHtml(String(line).toUpperCase())}</div>`)
+              .join("")}
+          </div>
+
+          <div class="rule"></div>
+          <div class="meta-block">
+            <div><span class="label">Orden:</span> ${escapeHtml(orderNumber)}</div>
+            <div><span class="label">Fecha:</span> ${escapeHtml(formatPrintDateTime(orden?.fecha))}</div>
+            <div><span class="label">Usuario:</span> ${escapeHtml(usuario)}</div>
+            <div><span class="label">Tecnico:</span> ${escapeHtml(tecnico)}</div>
+            <div><span class="label">Estado:</span> ${escapeHtml(estado.replaceAll("_", " "))}</div>
+            <div><span class="label">Pago:</span> ${escapeHtml(orden?.metodo_pago || "Pendiente")}</div>
+          </div>
+
+          <div class="rule"></div>
+          <div class="meta-block">
+            <div><span class="label">Cliente:</span> ${escapeHtml(cliente.toUpperCase())}</div>
+            ${vehiculo ? `<div><span class="label">Vehiculo:</span> ${escapeHtml(vehiculo)}</div>` : ""}
+            ${extraRows
+              .filter((row) => row.value)
+              .map((row) => `<div><span class="label">${escapeHtml(row.label)}:</span> ${escapeHtml(row.value)}</div>`)
+              .join("")}
+          </div>
+
+          <div class="rule"></div>
+          ${serviceRow}
+          ${productsHtml}
+
+          <div class="rule"></div>
+          ${
+            productsTotal > 0
+              ? `
+                <div class="summary-row">
+                  <div>Servicio</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(serviceAmount))}</div>
+                </div>
+                <div class="summary-row">
+                  <div>Repuestos</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(productsTotal))}</div>
+                </div>
+              `
+              : ""
+          }
+          <div class="summary-row total">
+            <div>TOTAL</div>
+            <div class="summary-value">${escapeHtml(formatPrintCurrency(total))}</div>
+          </div>
+
+          <div class="rule"></div>
+          <div class="label">${escapeHtml(notesLabel)}</div>
+          <div class="notes">${escapeHtml(notes || "Sin observaciones")}</div>
+          <div class="footer-note">Gracias por su visita.</div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
 export const buildAutolavadoTicketHtml = (orden) =>
-  buildFormalDocument({
-    title: "Orden de autolavado",
-    subtitle: "Ticket formal de recepcion y servicio de lavado.",
-    accent: "#1d4ed8",
-    badge: `Orden #${orden?.id_autolavado_orden || "-"}`,
-    metaRows: [
-      { label: "Vehiculo", value: orden?.tipo_vehiculo_nombre || "-" },
-      { label: "Servicio", value: orden?.servicio_nombre || "-" },
-      { label: "Cliente", value: orden?.nombre_cliente || "Consumidor final" },
-      { label: "Placa", value: orden?.placa || "Sin placa" },
-      { label: "Color", value: orden?.color || "Sin color" },
-      { label: "Metodo de pago", value: orden?.metodo_pago || "-" },
-      { label: "Estado", value: String(orden?.estado_trabajo || "RECIBIDO").replaceAll("_", " ") },
-      { label: "Tecnico asignado", value: orden?.tecnico_nombre || orden?.tecnico_username || "Sin asignar" },
-      { label: "Fecha", value: formatPrintDateTime(orden?.fecha) },
-    ],
-    summaryCards: [
-      { label: "Monto cobrado", value: formatPrintCurrency(orden?.monto_cobrado) },
-      { label: "Duracion estimada", value: `${Number(orden?.duracion_minutos || 0)} min` },
-      { label: "Recibido por", value: orden?.usuario_nombre || orden?.username || "Usuario" },
-    ],
-    sections: [
-      buildSectionHtml(
-        "Datos del servicio",
-        `<div class="notes-box">
-          <div><strong>Observaciones:</strong> ${escapeHtml(orden?.observaciones || "Sin observaciones")}</div>
-        </div>`
-      ),
-    ],
-    footerNote: "Ticket generado desde el modulo de autolavado.",
+  buildThermalServiceTicketHtml({
+    title: "Ticket de autolavado",
+    orderNumber: `AUTO-${String(orden?.id_autolavado_orden || "0").padStart(5, "0")}`,
+    orden,
+    serviceLabel: "Servicio de autolavado",
+    notes: orden?.observaciones,
   });
 
 export const buildReparacionTicketHtml = (orden) =>
-  buildFormalDocument({
-    title: "Orden de reparacion",
-    subtitle: "Ticket formal de recepcion y control de trabajo mecanico.",
-    accent: "#b45309",
-    badge: `Orden #${orden?.id_reparacion_orden || "-"}`,
-    metaRows: [
-      { label: "Vehiculo", value: orden?.tipo_vehiculo_nombre || "-" },
-      { label: "Servicio", value: orden?.servicio_nombre || "-" },
-      { label: "Cliente", value: orden?.nombre_cliente || "Consumidor final" },
-      { label: "Placa", value: orden?.placa || "Sin placa" },
-      { label: "Color", value: orden?.color || "Sin color" },
-      { label: "Kilometraje", value: orden?.kilometraje || "No registrado" },
-      { label: "Estado trabajo", value: String(orden?.estado_trabajo || "RECIBIDO").replaceAll("_", " ") },
-      { label: "Estado cobro", value: orden?.estado || "PENDIENTE" },
-      { label: "Tecnico asignado", value: orden?.tecnico_nombre || orden?.tecnico_username || "Sin asignar" },
-      { label: "Metodo de pago", value: orden?.metodo_pago || "Pendiente" },
-      { label: "Fecha", value: formatPrintDateTime(orden?.fecha) },
-    ],
-    summaryCards: [
-      { label: "Mano de obra", value: formatPrintCurrency(orden?.precio_base || orden?.servicio_precio_base) },
-      { label: "Repuestos cobrados", value: formatPrintCurrency(orden?.productos_total_cobrado || 0) },
-      { label: "Total orden", value: formatPrintCurrency(orden?.monto_cobrado || 0) },
-    ],
-    sections: [
-      buildSectionHtml(
-        "Diagnostico y observaciones",
-        `<div class="notes-box">
-          <div><strong>Diagnostico inicial:</strong> ${escapeHtml(orden?.diagnostico_inicial || "Sin diagnostico")}</div>
-          <div style="margin-top:10px;"><strong>Observaciones:</strong> ${escapeHtml(orden?.observaciones || "Sin observaciones")}</div>
-        </div>`
-      ),
-      buildSectionHtml(
-        "Productos usados",
-        buildTableHtml({
-          headers: ["Producto", "Cantidad", "Precio", "Cobro", "Subtotal"],
-          rows: (orden?.productos_usados || []).map((producto) => [
-            `${producto.producto_nombre || "Producto"} (${producto.codigo_barras || "Sin codigo"})`,
-            { value: producto.cantidad || 0, align: "right" },
-            {
-              value: formatPrintCurrency(producto.precio_unitario),
-              align: "right",
-            },
-            producto.cobra_al_cliente ? "Cobrado" : "Uso interno",
-            {
-              value: formatPrintCurrency(
-                producto.cobra_al_cliente ? producto.subtotal_cobrado : 0
-              ),
-              align: "right",
-            },
-          ]),
-        })
-      ),
-    ],
-    footerNote: "Ticket generado desde el modulo de reparacion.",
+  buildThermalServiceTicketHtml({
+    title: "Ticket de reparacion",
+    orderNumber: `REP-${String(orden?.id_reparacion_orden || "0").padStart(5, "0")}`,
+    orden,
+    serviceLabel: "Servicio de reparacion",
+    extraRows: [{ label: "Km", value: orden?.kilometraje || "" }],
+    notesLabel: "Diagnostico y observaciones",
+    notes: [orden?.diagnostico_inicial, orden?.observaciones].filter(Boolean).join("\n"),
+    productRows: (orden?.productos_usados || []).map((producto) => ({
+      name: `${Number(producto.cantidad || 0)} x ${producto.producto_nombre || "Producto"}${
+        producto.cobra_al_cliente ? "" : " (uso interno)"
+      }`,
+      total: producto.cobra_al_cliente ? producto.subtotal_cobrado : 0,
+    })),
   });
+
+export const buildZgasPedidoTicketHtml = (pedido = {}) => {
+  const folio = pedido.folio || `ZG-${String(pedido.id_pedido || "0").padStart(6, "0")}`;
+  const cantidad = Number(pedido.cantidad || 0);
+  const precioUnitario = Number(
+    pedido.precio_final ?? pedido.precio_venta_usado ?? pedido.precio_venta ?? 0
+  );
+  const total = Number(pedido.venta_total ?? cantidad * precioUnitario);
+  const descuento = Number(pedido.descuento || 0);
+  const cilindro = pedido.tipo_codigo || pedido.cilindro_codigo || pedido.tipo_nombre || "Cilindro";
+  const estado = String(pedido.estado || "RECIBIDO").replaceAll("_", " ");
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(folio)}</title>
+        <style>
+          * { box-sizing: border-box; }
+          html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+          body { font-family: "Courier New", Courier, monospace; font-size: 12px; font-weight: 800; line-height: 1.35; }
+          .ticket { width: 80mm; margin: 0 auto; padding: 10px 8px 16px; color: #000; font-weight: 800; }
+          .center { text-align: center; }
+          .ticket-logo { width: 112px; height: 112px; object-fit: contain; display: block; margin: 0 auto 12px; }
+          .header-line { white-space: pre-wrap; word-break: break-word; font-weight: 900; }
+          .rule { border-top: 2px dashed #000; margin: 10px 0; }
+          .meta-block div { margin-top: 2px; word-break: break-word; }
+          .label { font-weight: 900; }
+          .item-row, .summary-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+          .item-name { flex: 1; min-width: 0; padding-right: 8px; word-break: break-word; }
+          .item-total, .summary-value { white-space: nowrap; text-align: right; }
+          .summary-row { font-size: 13px; margin-top: 2px; }
+          .summary-row.total { font-size: 16px; font-weight: 900; }
+          .notes { white-space: pre-wrap; word-break: break-word; }
+          .footer-note { text-align: center; margin-top: 12px; white-space: pre-wrap; }
+          @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #000; }
+            .ticket { width: 72mm; padding: 8px 6px 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <div class="center">
+            ${
+              BUSINESS_INFO.logoUrl
+                ? `<img class="ticket-logo" src="${escapeHtml(BUSINESS_INFO.logoUrl)}" alt="logo" onerror="this.style.display='none'" />`
+                : ""
+            }
+            ${[
+              "PEDIDO ZGAS",
+              BUSINESS_INFO.name,
+              BUSINESS_INFO.subtitle,
+              ...(Array.isArray(BUSINESS_INFO.addressLines) ? BUSINESS_INFO.addressLines : []),
+            ]
+              .filter(Boolean)
+              .map((line) => `<div class="header-line">${escapeHtml(String(line).toUpperCase())}</div>`)
+              .join("")}
+          </div>
+
+          <div class="rule"></div>
+          <div class="meta-block">
+            <div><span class="label">Pedido:</span> ${escapeHtml(folio)}</div>
+            <div><span class="label">Fecha:</span> ${escapeHtml(formatPrintDateTime(pedido.hora_llamada || pedido.created_at || new Date()))}</div>
+            <div><span class="label">Estado:</span> ${escapeHtml(estado)}</div>
+            ${pedido.repartidor_nombre ? `<div><span class="label">Repartidor:</span> ${escapeHtml(pedido.repartidor_nombre)}</div>` : ""}
+          </div>
+
+          <div class="rule"></div>
+          <div class="meta-block">
+            <div><span class="label">Cliente:</span> ${escapeHtml(pedido.nombre_cliente || "Consumidor final")}</div>
+            ${pedido.telefono ? `<div><span class="label">Telefono:</span> ${escapeHtml(pedido.telefono)}</div>` : ""}
+            <div><span class="label">Direccion:</span> ${escapeHtml(pedido.direccion || "-")}</div>
+            ${pedido.referencia_direccion ? `<div><span class="label">Referencia:</span> ${escapeHtml(pedido.referencia_direccion)}</div>` : ""}
+            <div><span class="label">Zona:</span> ${escapeHtml(pedido.zona_precio || "BODEGA")}</div>
+          </div>
+
+          <div class="rule"></div>
+          <div class="item-row">
+            <div class="item-name">${escapeHtml(cantidad)} x ${escapeHtml(cilindro)}</div>
+            <div class="item-total">${escapeHtml(formatPrintCurrency(total))}</div>
+          </div>
+          <div class="meta-block">
+            <div><span class="label">Precio unit.:</span> ${escapeHtml(formatPrintCurrency(precioUnitario))}</div>
+          </div>
+
+          <div class="rule"></div>
+          ${
+            descuento > 0
+              ? `
+                <div class="summary-row">
+                  <div>Descuento</div>
+                  <div class="summary-value">${escapeHtml(formatPrintCurrency(descuento))}</div>
+                </div>
+              `
+              : ""
+          }
+          <div class="summary-row total">
+            <div>TOTAL</div>
+            <div class="summary-value">${escapeHtml(formatPrintCurrency(total))}</div>
+          </div>
+
+          <div class="rule"></div>
+          <div class="label">Observaciones</div>
+          <div class="notes">${escapeHtml(pedido.observaciones || "Sin observaciones")}</div>
+          <div class="footer-note">Gracias por su preferencia.</div>
+        </div>
+      </body>
+    </html>
+  `;
+};
 
 export const buildCajaCorteHtml = ({ sesion, resumen, movimientos = [] }) =>
     buildFormalDocument({
@@ -2305,8 +2566,8 @@ export const buildNotaTrasladoHtml = (trasladoData, opciones = {}) => {
           }
           .tr-brand { display: flex; gap: 14px; align-items: flex-start; }
           .tr-logo {
-            width: 66px;
-            height: 66px;
+            width: 92px;
+            height: 92px;
             object-fit: contain;
             border: 1px solid #e2e8f0;
             border-radius: 10px;

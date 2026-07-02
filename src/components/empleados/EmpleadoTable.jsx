@@ -21,6 +21,10 @@ import {
 const cargoColorMap = {
   CARWASH: "primary",
   VENDEDOR: "secondary",
+  REPARTIDOR: "info",
+  RUTERO: "success",
+  CAJERA: "warning",
+  ADMINISTRATIVO: "default",
 };
 
 const tipoPagoColorMap = {
@@ -32,6 +36,7 @@ function EmpleadoTable({
   empleados = [],
   onEdit,
   onToggleActivo,
+  onCambiarEstadoOperativo,
   canManage = true,
 }) {
   const theme = useTheme();
@@ -55,6 +60,8 @@ function EmpleadoTable({
             <TableCell sx={getTableHeaderCellSx(theme)}>Nombre</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Cargo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Tipo pago</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>ZGAS</TableCell>
+            <TableCell sx={getTableHeaderCellSx(theme)}>Operativo</TableCell>
             <TableCell sx={getTableHeaderCellSx(theme)}>Estado</TableCell>
             <TableCell align="center" sx={getTableHeaderCellSx(theme)}>
               {canManage ? "Acciones" : "Modo"}
@@ -87,6 +94,28 @@ function EmpleadoTable({
               </TableCell>
               <TableCell>
                 <Chip
+                  label={empleado.puede_repartir ? "Reparte" : "No reparte"}
+                  size="small"
+                  color={empleado.puede_repartir ? "info" : "default"}
+                  variant={empleado.puede_repartir ? "filled" : "outlined"}
+                />
+              </TableCell>
+              <TableCell>
+                <Chip
+                  label={empleado.estado_operativo || "DISPONIBLE"}
+                  size="small"
+                  color={
+                    empleado.estado_operativo === "DISPONIBLE"
+                      ? "success"
+                      : empleado.estado_operativo === "DESCANSO"
+                        ? "default"
+                        : "warning"
+                  }
+                  variant="outlined"
+                />
+              </TableCell>
+              <TableCell>
+                <Chip
                   label={empleado.activo ? "Activo" : "Inactivo"}
                   color={empleado.activo ? "success" : "default"}
                   size="small"
@@ -98,6 +127,13 @@ function EmpleadoTable({
                   <Stack direction="row" spacing={1} justifyContent="center">
                     <Button size="small" variant="outlined" onClick={() => onEdit(empleado)}>
                       Editar
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => onCambiarEstadoOperativo(empleado)}
+                    >
+                      Estado
                     </Button>
                     <Button
                       size="small"

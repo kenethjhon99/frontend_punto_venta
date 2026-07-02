@@ -24,9 +24,11 @@ function VentaDetalleModal({
   loading = false,
   onPrint,
   printing = false,
+  onAnularVenta,
   onAnularDetalle,
   loadingAnulacionDetalle = false,
   detalleAnulandoId = null,
+  loadingAnulacion = false,
   canAnular = false,
 }) {
   const venta = ventaData?.venta;
@@ -48,13 +50,30 @@ function VentaDetalleModal({
             Detalle de venta
           </Typography>
 
-          <Button
-            variant="outlined"
-            onClick={() => onPrint?.()}
-            disabled={loading || !venta || printing}
-          >
-            {printing ? "Imprimiendo..." : "Imprimir comprobante"}
-          </Button>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              variant="outlined"
+              onClick={() => onPrint?.()}
+              disabled={loading || !venta || printing}
+            >
+              {printing ? "Imprimiendo..." : "Imprimir comprobante"}
+            </Button>
+
+            {canAnular && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => onAnularVenta?.(venta)}
+                disabled={loading || !venta || estado === "ANULADA" || loadingAnulacion}
+              >
+                {estado === "ANULADA"
+                  ? "Venta anulada"
+                  : loadingAnulacion
+                    ? "Anulando..."
+                    : "Anular venta"}
+              </Button>
+            )}
+          </Stack>
         </Stack>
       </DialogTitle>
 

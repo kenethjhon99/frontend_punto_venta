@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useThemeMode } from "../../hooks/useThemeMode";
-import { userHasRole } from "../../utils/roles";
+import { isServiciosManagerUser, userHasRole } from "../../utils/roles";
 
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
@@ -90,7 +90,7 @@ function Header({ showMobileMenuButton = false, onOpenMobileMenu = () => {} }) {
   const isAdminView = userHasRole(user, "SUPER_ADMIN", "ADMIN");
   const isCashierView = userHasRole(user, "CAJERO");
   const isMechanicView = userHasRole(user, "MECANICO");
-  const isServiciosManagerView = userHasRole(user, "ENCARGADO_SERVICIOS");
+  const isServiciosManagerView = isServiciosManagerUser(user);
 
   const sections = {
     "/dashboard": {

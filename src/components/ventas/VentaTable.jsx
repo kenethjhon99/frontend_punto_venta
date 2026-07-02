@@ -34,6 +34,19 @@ function VentaTable({
 }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("md"));
+  const renderComboBreakdown = (preview) => {
+    if (!preview.comboAplicado) return null;
+
+    const sueltas = Number(preview.unidadesSueltas || 0);
+    const textoSueltas = sueltas > 0 ? ` + ${sueltas} unidad(es)` : "";
+
+    return (
+      <Typography variant="caption" color="success.main">
+        {preview.comboCantidad} combo(s) de {preview.comboUnidades}
+        {textoSueltas}
+      </Typography>
+    );
+  };
 
   if (!items.length) {
     return (
@@ -68,6 +81,9 @@ function VentaTable({
               costPrice: item.precio_compra,
               quantity: item.cantidad,
               discountPercentage,
+              permiteCombo: item.permite_combo,
+              comboUnidades: item.combo_unidades,
+              comboPrecio: item.combo_precio,
             });
 
             return (
@@ -85,6 +101,7 @@ function VentaTable({
                       {item.codigo_barras}
                     </Typography>
                   )}
+                  {renderComboBreakdown(preview)}
                 </Box>
 
                 <Chip
@@ -104,6 +121,11 @@ function VentaTable({
                     <Typography fontWeight={600}>
                       Q {preview.precioFinalUnitario.toFixed(2)}
                     </Typography>
+                    {preview.comboAplicado && (
+                      <Typography variant="caption" color="text.secondary">
+                        Unidad normal Q {Number(item.precio_venta || 0).toFixed(2)}
+                      </Typography>
+                    )}
                     {preview.descuentoAplicadoUnitario > 0 && (
                       <Typography
                         variant="caption"
@@ -205,6 +227,9 @@ function VentaTable({
               costPrice: item.precio_compra,
               quantity: item.cantidad,
               discountPercentage,
+              permiteCombo: item.permite_combo,
+              comboUnidades: item.combo_unidades,
+              comboPrecio: item.combo_precio,
             });
 
             return (
@@ -241,6 +266,7 @@ function VentaTable({
                       {item.codigo_barras}
                     </Typography>
                   )}
+                  {renderComboBreakdown(preview)}
                 </Box>
               </TableCell>
 
@@ -249,6 +275,11 @@ function VentaTable({
                   <Typography fontWeight={600} noWrap>
                     Q {preview.precioFinalUnitario.toFixed(2)}
                   </Typography>
+                  {preview.comboAplicado && (
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      Unidad Q {Number(item.precio_venta || 0).toFixed(2)}
+                    </Typography>
+                  )}
                   {preview.descuentoAplicadoUnitario > 0 && (
                     <Typography
                       variant="caption"

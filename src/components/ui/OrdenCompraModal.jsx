@@ -48,18 +48,16 @@ function OrdenCompraModal({ open, onClose, compraData, loading = false, tasaIva 
     (d) => Number(d.cantidad || 0) - Number(d.cantidad_anulada || 0) > 0
   );
 
-  let subtotalSinIva = 0;
-  let totalIva = 0;
   const filas = detallesActivos.map((d) => {
     const cantidad = Number(d.cantidad || 0) - Number(d.cantidad_anulada || 0);
     const precioConIva = Number(d.precio_compra || 0);
     const precioSinIva = tasaIva > 0 ? precioConIva / (1 + tasaIva) : precioConIva;
     const subtotal = precioSinIva * cantidad;
     const total = precioConIva * cantidad;
-    subtotalSinIva += subtotal;
-    totalIva += total - subtotal;
     return { d, cantidad, precioConIva, precioSinIva, subtotal, total };
   });
+  const subtotalSinIva = filas.reduce((acc, row) => acc + row.subtotal, 0);
+  const totalIva = filas.reduce((acc, row) => acc + row.total - row.subtotal, 0);
 
   const totalFinal = Number(compra?.total ?? subtotalSinIva + totalIva);
   const diasCredito = Number(compra?.dias_credito || 0);

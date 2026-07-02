@@ -138,14 +138,14 @@ export const buildEan13Svg = (
       const x = marginX + index * moduleWidth;
       const currentHeight = guardRanges.has(index) ? guardHeight : barHeight;
 
-      return `<rect x="${x}" y="${marginY}" width="${moduleWidth}" height="${currentHeight}" rx="0.6" ry="0.6" fill="#111827" />`;
+      return `<rect x="${x}" y="${marginY}" width="${moduleWidth}" height="${currentHeight}" fill="#000000" />`;
     })
     .join("");
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Codigo de barras ${escapeHtml(
       digits
-    )}">
+    )}" shape-rendering="crispEdges">
       <rect width="${width}" height="${height}" rx="16" ry="16" fill="#ffffff" />
       ${bars}
       <text
@@ -154,9 +154,9 @@ export const buildEan13Svg = (
         text-anchor="middle"
         font-family="Arial, Helvetica, sans-serif"
         font-size="${fontSize}"
-        font-weight="700"
+        font-weight="900"
         letter-spacing="1.8"
-        fill="#111827"
+        fill="#000000"
       >${escapeHtml(digits)}</text>
     </svg>
   `;
@@ -168,7 +168,14 @@ export const buildBarcodeLabelHtml = ({
   descripcion = "",
   subtitle = "Codigo interno generado por el sistema",
 }) => {
-  const svg = buildEan13Svg(codigo);
+  const svg = buildEan13Svg(codigo, {
+    moduleWidth: 1.22,
+    barHeight: 28,
+    guardHeight: 34,
+    fontSize: 8,
+    marginX: 5,
+    marginY: 4,
+  });
   const productName = String(nombre || "").trim() || "Producto";
 
   if (!svg) {
@@ -185,101 +192,178 @@ export const buildBarcodeLabelHtml = ({
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            padding: 24px;
+            padding: 8px;
             background: #f5f7fb;
             font-family: "Segoe UI", Arial, sans-serif;
-            color: #111827;
+            color: #000000;
+            font-weight: 700;
           }
           .sheet {
-            width: 72mm;
+            width: 50mm;
+            min-height: 28mm;
             margin: 0 auto;
-            padding: 12px;
-            border-radius: 18px;
+            padding: 3mm 2.5mm;
+            border-radius: 8px;
             background: #ffffff;
             border: 1px solid #dbe4ff;
-            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.10);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.10);
+            color: #000000;
           }
           .kicker {
-            font-size: 10px;
-            letter-spacing: 0.14em;
+            font-size: 7px;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #2563eb;
             font-weight: 800;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
             text-align: center;
           }
           .eyebrow {
-            font-size: 10px;
-            letter-spacing: 0.18em;
+            font-size: 7px;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
             color: #475569;
             font-weight: 800;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             text-align: center;
           }
           h1 {
-            margin: 0 0 6px;
-            font-size: 17px;
+            margin: 0 0 1mm;
+            font-size: 15px;
+            font-weight: 900;
             text-align: center;
-            line-height: 1.25;
+            line-height: 1.14;
+            overflow-wrap: anywhere;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
           }
           p {
             margin: 0;
             text-align: center;
-            color: #64748b;
-            font-size: 12px;
+            color: #000000;
+            font-size: 12.5px;
+            font-weight: 800;
+            line-height: 1.16;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
           }
           .svg-wrap {
-            margin: 14px 0 10px;
-            padding: 8px;
-            border-radius: 16px;
+            margin: 1mm 0 0.5mm;
+            padding: 1mm;
+            border-radius: 6px;
             background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
             border: 1px solid #e5e7eb;
           }
+          .svg-wrap svg {
+            display: block;
+            width: 100%;
+            max-width: 45mm;
+            height: auto;
+            margin: 0 auto;
+            shape-rendering: crispEdges;
+          }
           .code {
-            margin-top: 8px;
+            margin-top: 0.5mm;
             text-align: center;
-            font-size: 15px;
-            font-weight: 800;
-            letter-spacing: 0.16em;
+            font-size: 11.5px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
           }
           .meta {
-            margin-top: 10px;
+            margin-top: 6px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            font-size: 10px;
-            color: #64748b;
+            gap: 6px;
+            font-size: 13.5px;
+            color: #000000;
+            font-weight: 800;
           }
           .meta strong {
             display: block;
-            margin-top: 2px;
-            font-size: 11px;
-            color: #0f172a;
+            margin-top: 1px;
+            font-size: 15px;
+            color: #000000;
           }
           .note {
-            margin-top: 10px;
-            padding-top: 10px;
+            margin-top: 6px;
+            padding-top: 6px;
             border-top: 1px dashed #cbd5e1;
-            font-size: 11px;
+            font-size: 8px;
             color: #64748b;
             text-align: center;
           }
           @media print {
             @page {
-              size: 72mm auto;
+              size: 50mm auto;
               margin: 0;
             }
             body {
               padding: 0;
               background: #ffffff;
+              color: #000000;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
             .sheet {
               box-shadow: none;
               border: none;
               border-radius: 0;
-              width: 72mm;
-              padding: 8px;
+              width: 50mm;
+              min-height: 28mm;
+              height: auto;
+              padding: 2mm 2mm 1.5mm;
+              overflow: hidden;
+            }
+            .eyebrow,
+            .kicker,
+            .note {
+              display: none;
+            }
+            h1 {
+              margin-bottom: 0.7mm;
+              font-size: 13.5px;
+              font-weight: 900;
+              line-height: 1.14;
+            }
+            p {
+              font-size: 11.5px;
+              line-height: 1.12;
+              color: #000000;
+              font-weight: 800;
+            }
+            .svg-wrap {
+              margin: 0.6mm 0 0;
+              padding: 0;
+              border: none;
+              background: #ffffff;
+            }
+            .svg-wrap svg {
+              max-width: 46mm;
+              shape-rendering: crispEdges;
+            }
+            .code {
+              margin-top: 0.35mm;
+              font-size: 11px;
+              font-weight: 900;
+            }
+            .meta {
+              margin-top: 1mm;
+              padding-top: 1mm;
+              border-top: 1px dashed #cbd5e1;
+              gap: 3mm;
+              font-size: 11.5px;
+              color: #000000;
+              font-weight: 800;
+              line-height: 1;
+            }
+            .meta strong {
+              margin-top: 0.4mm;
+              font-size: 13px;
+              line-height: 1;
             }
           }
         </style>

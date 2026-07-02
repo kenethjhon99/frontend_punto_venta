@@ -8,10 +8,19 @@ export const getUserRoleNames = (user) => {
         return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
       }
 
-      const normalized = String(rol?.nombre_rol || "")
+      const normalized = String(
+        rol?.nombre_rol || rol?.nombre || rol?.rol || rol?.role || ""
+      )
         .trim()
         .toUpperCase();
       return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
+    })
+    .map((role) => {
+      if (role === "ADMINISTRADOR") return "ADMIN";
+      if (role === "VENDEDOR") return "CAJERO";
+      if (role === "CAJERA") return "CAJERO";
+      if (role === "ENCARGADO_SERVICIO") return "ENCARGADO_SERVICIOS";
+      return role;
     })
     .filter(Boolean);
 };
@@ -26,7 +35,8 @@ export const userHasRole = (user, ...allowedRoles) => {
 };
 
 export const isServiciosManagerUser = (user) =>
-  userHasRole(user, "ENCARGADO_SERVICIOS");
+  userHasRole(user, "ENCARGADO_SERVICIOS") &&
+  !userHasRole(user, "SUPER_ADMIN", "ADMIN");
 
 const OPERATIVE_ROLES = [
   "SUPER_ADMIN",

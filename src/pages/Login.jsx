@@ -62,13 +62,9 @@ function Login() {
       navigate(getDefaultRoute(user));
     } catch (err) {
       const networkError = !err.response;
-      const productionApiMissing = !import.meta.env.DEV && !import.meta.env.VITE_API_URL;
-
       if (networkError) {
         setError(
-          productionApiMissing
-            ? "No se pudo conectar con el servidor. Configura VITE_API_URL en Vercel."
-            : "No se pudo conectar con el servidor. Revisa la URL del API y CORS del backend."
+          "No se pudo conectar con el servidor. Revisa la URL del API y CORS del backend."
         );
       } else {
         setError(err.response?.data?.error || "Error al iniciar sesion");

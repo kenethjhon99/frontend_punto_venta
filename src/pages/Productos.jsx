@@ -19,10 +19,6 @@ import {
   Alert,
   CircularProgress,
   Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -38,7 +34,7 @@ function Productos() {
   const isServiciosManager = useMemo(() => isServiciosManagerUser(user), [user]);
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [scopeFiltro, setScopeFiltro] = useState("TIENDA");
+  const [scopeFiltro, setScopeFiltro] = useState("GENERAL");
   const [modalOpen, setModalOpen] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -80,8 +76,8 @@ function Productos() {
       return;
     }
 
-    if (!canFilterScopes && scopeFiltro !== "TIENDA") {
-      setScopeFiltro("TIENDA");
+    if (!canFilterScopes && !isServiciosManager && scopeFiltro !== "GENERAL") {
+      setScopeFiltro("GENERAL");
       return;
     }
 
@@ -205,10 +201,25 @@ function Productos() {
         </Alert>
       )}
 
-      <Paper elevation={2} sx={(theme) => getFilterPanelSx(theme, { mb: 3 })}>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+      <Paper
+        elevation={2}
+        sx={(theme) => ({
+          ...getFilterPanelSx(theme, { mb: 3 }),
+          overflow: "visible",
+          position: "relative",
+          zIndex: theme.zIndex.appBar,
+        })}
+      >
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          alignItems={{ xs: "stretch", md: "center" }}
+          spacing={2}
+        >
           <TextField
-            fullWidth={!canFilterScopes}
+            fullWidth
+            sx={{
+              maxWidth: { xs: "100%", md: canFilterScopes ? 320 : "100%" },
+            }}
             label="Buscar producto"
             placeholder="Buscar por nombre, descripcion o codigo..."
             value={busqueda}
@@ -216,21 +227,21 @@ function Productos() {
           />
 
           {canFilterScopes && (
-            <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
-              <InputLabel id="productos-catalogo-label">Catalogo</InputLabel>
-              <Select
-                labelId="productos-catalogo-label"
-                label="Catalogo"
-                value={scopeFiltro}
-                onChange={(e) => setScopeFiltro(e.target.value)}
-              >
-                {CATALOGO_FILTER_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              SelectProps={{ native: true }}
+              sx={{ width: { xs: "100%", sm: 280, md: 280 } }}
+              label="Catalogo"
+              value={scopeFiltro}
+              onChange={(e) => setScopeFiltro(e.target.value)}
+            >
+              {CATALOGO_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </TextField>
           )}
         </Stack>
       </Paper>

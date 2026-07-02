@@ -2,19 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   Alert,
+  Box,
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -47,6 +46,9 @@ const initialState = {
   stock_minimo: "",
   ubicacion: "",
   catalogo: "GENERAL",
+  permite_combo: false,
+  combo_unidades: "",
+  combo_precio: "",
 };
 
 const buildFormState = (productoEditando) => {
@@ -64,6 +66,9 @@ const buildFormState = (productoEditando) => {
     stock_minimo: productoEditando.stock_minimo ?? 0,
     ubicacion: productoEditando.ubicacion || "",
     catalogo: resolverCatalogo(productoEditando),
+    permite_combo: Boolean(productoEditando.permite_combo),
+    combo_unidades: productoEditando.combo_unidades ?? "",
+    combo_precio: productoEditando.combo_precio ?? "",
   };
 };
 
@@ -102,13 +107,27 @@ function ProductoFormModal({
   );
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { checked, name, type, value } = event.target;
 
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+  const comboActivo = Boolean(form.permite_combo);
+  const comboUnidadesNumero = Number(form.combo_unidades);
+  const comboPrecioNumero = Number(form.combo_precio);
+  const precioVentaNumero = Number(form.precio_venta);
+  const comboInvalido =
+    comboActivo &&
+    (!Number.isInteger(comboUnidadesNumero) ||
+      comboUnidadesNumero <= 1 ||
+      !Number.isFinite(comboPrecioNumero) ||
+      comboPrecioNumero <= 0 ||
+      (Number.isFinite(precioVentaNumero) &&
+        precioVentaNumero > 0 &&
+        comboPrecioNumero >= comboUnidadesNumero * precioVentaNumero));
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -123,6 +142,9 @@ function ProductoFormModal({
       stock_minimo: Number(form.stock_minimo || 0),
       ubicacion: form.ubicacion || null,
       catalogo,
+      permite_combo: comboActivo,
+      combo_unidades: comboActivo ? comboUnidadesNumero : null,
+      combo_precio: comboActivo ? comboPrecioNumero : null,
     });
   };
 
@@ -180,8 +202,8 @@ function ProductoFormModal({
                 ? "Codigo generado internamente para tienda"
                 : "Codigo generado internamente para inventario",
         }),
-        width: 420,
-        height: 520,
+        width: 760,
+        height: 720,
       });
     } catch (error) {
       console.error(error);
@@ -288,28 +310,29 @@ function ProductoFormModal({
               onChange={handleChange}
               fullWidth
               required
+              inputProps={{ maxLength: 180 }}
+              helperText={`${String(form.nombre || "").length}/180 caracteres`}
             />
           </Grid>
 
           {!ocultarSelector ? (
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel id="producto-catalogo-label">Catalogo</InputLabel>
-                <Select
-                  labelId="producto-catalogo-label"
-                  name="catalogo"
-                  label="Catalogo"
-                  value={catalogo}
-                  onChange={handleChange}
-                  disabled={Boolean(catalogoForzado)}
-                >
-                  {CATALOGO_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                fullWidth
+                SelectProps={{ native: true }}
+                name="catalogo"
+                label="Catalogo"
+                value={catalogo}
+                onChange={handleChange}
+                disabled={Boolean(catalogoForzado)}
+              >
+                {CATALOGO_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </TextField>
             </Grid>
           ) : null}
 
@@ -321,6 +344,8 @@ function ProductoFormModal({
               onChange={handleChange}
               fullWidth
               placeholder="Ej. Estante A-1"
+              inputProps={{ maxLength: 120 }}
+              helperText={`${String(form.ubicacion || "").length}/120 caracteres`}
             />
           </Grid>
 
@@ -333,6 +358,7 @@ function ProductoFormModal({
               fullWidth
               multiline
               rows={3}
+              helperText="Puedes escribir una descripcion amplia del producto."
             />
           </Grid>
 
@@ -360,6 +386,71 @@ function ProductoFormModal({
               inputProps={{ step: "0.01" }}
               required
             />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                border: "1px solid",
+                borderColor: comboActivo ? "primary.light" : "divider",
+                borderRadius: 2,
+                p: 2,
+              }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="permite_combo"
+                    checked={comboActivo}
+                    onChange={handleChange}
+                  />
+                }
+                label="Permitir venta por combo"
+              />
+
+              {comboActivo ? (
+                <Grid container spacing={2} mt={0.5}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="Unidades por combo"
+                      name="combo_unidades"
+                      type="number"
+                      value={form.combo_unidades}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      inputProps={{ min: 2, step: 1 }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="Precio del combo"
+                      name="combo_precio"
+                      type="number"
+                      value={form.combo_precio}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      inputProps={{ min: 0.01, step: "0.01" }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography
+                      variant="body2"
+                      color={comboInvalido ? "error.main" : "text.secondary"}
+                    >
+                      Ejemplo: {comboUnidadesNumero || 6} unidades por Q{" "}
+                      {Number.isFinite(comboPrecioNumero) && comboPrecioNumero > 0
+                        ? comboPrecioNumero.toFixed(2)
+                        : "50.00"}
+                      . El precio del combo debe ser menor que vender las unidades por separado.
+                    </Typography>
+                  </Grid>
+                </Grid>
+              ) : null}
+            </Box>
           </Grid>
 
           <Grid item xs={12} md={6}>
@@ -394,7 +485,7 @@ function ProductoFormModal({
           Cancelar
         </Button>
 
-        <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+        <Button variant="contained" onClick={handleSubmit} disabled={loading || comboInvalido}>
           {loading ? (
             <CircularProgress size={24} color="inherit" />
           ) : productoEditando ? (

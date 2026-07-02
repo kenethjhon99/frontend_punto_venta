@@ -5,6 +5,11 @@ export const getProductos = async (params = {}) => {
   return res.data;
 };
 
+export const buscarProductosVenta = async (params = {}) => {
+  const res = await api.get("/productos/venta/buscar", { params });
+  return res.data;
+};
+
 export const crearProducto = async (data) => {
   const res = await api.post("/productos", data);
   return res.data;

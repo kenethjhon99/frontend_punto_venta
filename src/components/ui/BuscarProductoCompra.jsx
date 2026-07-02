@@ -200,6 +200,18 @@ function BuscarProductoCompra({ productos, onAgregar, loading, disabled = false 
                                 <Typography component="span" variant="body2" color="text.secondary">
                                   Codigo: {producto.codigo_barras || "Sin codigo"}
                                 </Typography>
+                                {producto.descripcion ? (
+                                  <>
+                                    <br />
+                                    <Typography
+                                      component="span"
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
+                                      Descripcion: {producto.descripcion}
+                                    </Typography>
+                                  </>
+                                ) : null}
                                 <br />
                                 <Typography component="span" variant="body2" color="text.secondary">
                                   Costo sugerido: Q {costoBase.toFixed(2)}

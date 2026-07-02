@@ -17,6 +17,8 @@ const initialState = {
   nit: "",
   correo: "",
   direccion: "",
+  nombre_viajero: "",
+  apellido_viajero: "",
 };
 
 const buildFormState = (proveedorEditando) => {
@@ -32,6 +34,8 @@ const buildFormState = (proveedorEditando) => {
     nit: proveedorEditando.nit || "",
     correo: proveedorEditando.correo || "",
     direccion: proveedorEditando.direccion || "",
+    nombre_viajero: proveedorEditando.nombre_viajero || proveedorEditando.viajero_nombre || "",
+    apellido_viajero: proveedorEditando.apellido_viajero || proveedorEditando.viajero_apellido || "",
   };
 };
 
@@ -68,6 +72,8 @@ function ProveedorFormModal({
       nit: form.nit.trim(),
       correo: form.correo.trim(),
       direccion: form.direccion.trim(),
+      nombre_viajero: form.nombre_viajero.trim(),
+      apellido_viajero: form.apellido_viajero.trim(),
     });
   };
 
@@ -139,6 +145,34 @@ function ProveedorFormModal({
               value={form.direccion}
               onChange={handleChange}
               placeholder="Zona, calle o referencia"
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" color="text.secondary" mt={1}>
+              Datos del viajero
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Nombre del viajero"
+              name="nombre_viajero"
+              value={form.nombre_viajero}
+              onChange={handleChange}
+              placeholder="Nombre"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Apellido del viajero"
+              name="apellido_viajero"
+              value={form.apellido_viajero}
+              onChange={handleChange}
+              placeholder="Apellido"
             />
           </Grid>
         </Grid>

@@ -40,7 +40,7 @@ function ProductoTable({
   showStockSplit = false,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("md"));
+  const esMovil = useMediaQuery(theme.breakpoints.down("lg"));
 
   const renderCatalogoChip = (producto) => {
     const props = getCatalogoChipProps(producto);
@@ -50,6 +50,19 @@ function ProductoTable({
         color={props.chipColor}
         variant={props.chipVariant}
         label={props.label}
+      />
+    );
+  };
+
+  const renderComboChip = (producto) => {
+    if (!producto.permite_combo) return null;
+
+    return (
+      <Chip
+        size="small"
+        color="success"
+        variant="outlined"
+        label={`Combo ${producto.combo_unidades} x Q ${Number(producto.combo_precio || 0).toFixed(2)}`}
       />
     );
   };
@@ -152,7 +165,10 @@ function ProductoTable({
                       <Typography variant="body2" color="text.secondary">
                         Catalogo
                       </Typography>
-                      <Box mt={0.5}>{renderCatalogoChip(producto)}</Box>
+                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap mt={0.5}>
+                        {renderCatalogoChip(producto)}
+                        {renderComboChip(producto)}
+                      </Stack>
                     </Box>
                   )}
 
@@ -182,6 +198,7 @@ function ProductoTable({
                       <Typography fontWeight={600} color="primary.main">
                         Q {Number(producto.precio_venta).toFixed(2)}
                       </Typography>
+                      {renderComboChip(producto)}
                     </Box>
                   </Box>
 
@@ -287,7 +304,12 @@ function ProductoTable({
                   <Typography fontWeight={600}>{producto.nombre}</Typography>
                 </TableCell>
                 {showModulo && (
-                  <TableCell>{renderCatalogoChip(producto)}</TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                      {renderCatalogoChip(producto)}
+                      {renderComboChip(producto)}
+                    </Stack>
+                  </TableCell>
                 )}
                 <TableCell>{producto.descripcion || "-"}</TableCell>
                 <TableCell>Q {Number(producto.precio_compra).toFixed(2)}</TableCell>
@@ -295,6 +317,7 @@ function ProductoTable({
                   <Typography fontWeight={600}>
                     Q {Number(producto.precio_venta).toFixed(2)}
                   </Typography>
+                  {renderComboChip(producto)}
                 </TableCell>
                 <TableCell>
                   <Chip

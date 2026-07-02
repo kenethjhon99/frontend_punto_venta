@@ -53,7 +53,7 @@ import {
   getSectionPanelSx,
   getSummaryCardSx,
 } from "../utils/summaryCardStyles";
-import { getProductos } from "../services/productoService";
+import { buscarProductosVenta } from "../services/productoService";
 import {
   anularDetalleVenta,
   anularVenta,
@@ -77,20 +77,6 @@ const normalizarColeccion = (data) => {
 
   return raw.filter(isPlainObject);
 };
-
-const normalizarProductos = (data) =>
-  normalizarColeccion(data)
-    .filter((producto) => Number.isInteger(Number(producto.id_producto)))
-    .map((producto) => ({
-      ...producto,
-      id_producto: Number(producto.id_producto),
-      nombre: String(producto.nombre || "Producto sin nombre"),
-      codigo_barras: producto.codigo_barras ? String(producto.codigo_barras) : "",
-      descripcion: producto.descripcion ? String(producto.descripcion) : "",
-      precio_venta: Number(producto.precio_venta || 0),
-      precio_compra: Number(producto.precio_compra || 0),
-      stock: Number(producto.stock ?? producto.existencia ?? 0),
-    }));
 
 const normalizarClientes = (data) => {
   return normalizarColeccion(data)
@@ -162,7 +148,6 @@ const obtenerUltimoCodigoCliente = (clientes = []) => {
 
 function Ventas() {
   const { user } = useAuth();
-  const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [ventasRecientes, setVentasRecientes] = useState([]);
   const [items, setItems] = useState([]);
@@ -183,7 +168,6 @@ function Ventas() {
   const [fechaDesdeVentas, setFechaDesdeVentas] = useState("");
   const [fechaHastaVentas, setFechaHastaVentas] = useState("");
   const [estadoFiltroVentas, setEstadoFiltroVentas] = useState("TODOS");
-  const [loadingProductos, setLoadingProductos] = useState(true);
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [loadingComprobantes, setLoadingComprobantes] = useState(true);
   const [loadingVentasRecientes, setLoadingVentasRecientes] = useState(true);
@@ -204,19 +188,6 @@ function Ventas() {
   const [cajaActiva, setCajaActiva] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const cargarProductos = useCallback(async () => {
-    try {
-      setLoadingProductos(true);
-      const data = await getProductos({ scope: "GENERAL" });
-      setProductos(normalizarProductos(data));
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || "No se pudieron cargar los productos");
-    } finally {
-      setLoadingProductos(false);
-    }
-  }, []);
 
   const cargarClientes = useCallback(async () => {
     try {
@@ -295,12 +266,11 @@ function Ventas() {
 
   useEffect(() => {
     setError("");
-    cargarProductos();
     cargarClientes();
     cargarComprobantes();
     cargarVentasRecientes();
     cargarCajaActiva();
-  }, [cargarCajaActiva, cargarClientes, cargarComprobantes, cargarProductos, cargarVentasRecientes]);
+  }, [cargarCajaActiva, cargarClientes, cargarComprobantes, cargarVentasRecientes]);
 
   useEffect(() => {
     setAutoPrintVenta(readPrintPreference(user, "ventas.autoPrint", true));
@@ -346,6 +316,9 @@ function Ventas() {
           codigo_barras: producto.codigo_barras,
           precio_venta: Number(producto.precio_venta),
           precio_compra: Number(producto.precio_compra || 0),
+          permite_combo: Boolean(producto.permite_combo),
+          combo_unidades: producto.combo_unidades,
+          combo_precio: producto.combo_precio,
           cantidad,
           stock,
         },
@@ -366,10 +339,6 @@ function Ventas() {
   const eliminarItem = (id) => {
     setItems((prev) => prev.filter((item) => item.id_producto !== id));
   };
-
-  const total = useMemo(() => {
-    return items.reduce((acc, item) => acc + item.precio_venta * item.cantidad, 0);
-  }, [items]);
 
   const descuentoPorcentajeNormalizado = useMemo(
     () => normalizeDiscountPercentage(descuentoPorcentaje),
@@ -430,7 +399,14 @@ function Ventas() {
   }, [comprobantes, tipoComprobante]);
 
   const canAnularVentas = useMemo(() => {
-    return userHasRole(user, "ADMIN");
+    return userHasRole(
+      user,
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CAJERO",
+      "ENCARGADO_SERVICIO",
+      "ENCARGADO_SERVICIOS"
+    );
   }, [user]);
 
   const canOperarVentas = useMemo(() => {
@@ -581,7 +557,7 @@ function Ventas() {
       setSuccess("");
 
       await anularVenta(ventaSeleccionada.id_venta, { motivo });
-      await Promise.all([cargarProductos(), cargarVentasRecientes()]);
+      await cargarVentasRecientes();
 
       setSuccess(`Venta #${ventaSeleccionada.id_venta} anulada correctamente.`);
       resetForm();
@@ -611,11 +587,7 @@ function Ventas() {
         motivo,
       });
 
-      await Promise.all([
-        cargarProductos(),
-        cargarVentasRecientes(),
-        cargarDetalleVenta(ventaId),
-      ]);
+      await Promise.all([cargarVentasRecientes(), cargarDetalleVenta(ventaId)]);
 
       setSuccess(
         `Detalle de la venta #${ventaId} anulado correctamente por ${cantidad} unidad(es).`
@@ -758,7 +730,6 @@ function Ventas() {
             : "Venta registrada correctamente."
         );
         await Promise.all([
-          cargarProductos(),
           cargarComprobantes(),
           cargarVentasRecientes(),
           cargarCajaActiva(),
@@ -812,7 +783,7 @@ function Ventas() {
               <Chip
                 color="info"
                 variant="outlined"
-                label={`${productos.length} productos`}
+                label="Busqueda en servidor"
                 sx={{ fontWeight: 700 }}
               />
               <Chip
@@ -973,9 +944,8 @@ function Ventas() {
               </Typography>
 
               <BuscarProducto
-                productos={productos}
+                onBuscar={buscarProductosVenta}
                 onAgregar={agregarProducto}
-                loading={loadingProductos}
                 disabled={!canOperarVentas}
               />
             </Paper>
@@ -1072,7 +1042,7 @@ function Ventas() {
                     onEmpleadoChange={setEmpleadoCreditoId}
                     observacion={observacionCredito}
                     onObservacionChange={setObservacionCredito}
-                    totalVenta={total}
+                    totalVenta={totalConDescuento}
                     disabled={loadingVenta}
                   />
                 ) : (
@@ -1530,7 +1500,7 @@ function Ventas() {
               <Typography variant="body2" color="text.secondary">
                 {canAnularVentas
                   ? "Puedes anular una venta completa indicando el motivo."
-                  : "Puedes consultar el historial y el detalle de ventas. Solo un administrador puede anular."}
+                  : "Puedes consultar el historial y el detalle de ventas."}
               </Typography>
             </Box>
           </Stack>
@@ -1623,7 +1593,9 @@ function Ventas() {
         loading={loadingDetalleVenta}
         onPrint={() => imprimirVenta(ventaDetalle?.venta?.id_venta, ventaDetalle)}
         printing={printingVentaId === ventaDetalle?.venta?.id_venta}
+        onAnularVenta={abrirAnulacionVenta}
         onAnularDetalle={abrirAnulacionDetalleVenta}
+        loadingAnulacion={loadingAnulacion}
         loadingAnulacionDetalle={loadingAnulacionDetalle}
         detalleAnulandoId={detalleVentaSeleccionado?.id_detalle ?? null}
         canAnular={canAnularVentas}

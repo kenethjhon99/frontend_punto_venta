@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
 import { userHasRole } from "../utils/roles";
 import { getAlertasCreditoEmpleado } from "../services/creditoEmpleadoService";
@@ -31,7 +31,6 @@ export function useCreditoEmpleadoAlertas({
   const [data, setData] = useState(EMPTY_ALERTAS);
   const [loading, setLoading] = useState(puedeVer);
   const [error, setError] = useState("");
-  const abortRef = useRef(null);
 
   const fetchAlertas = useCallback(async () => {
     if (!puedeVer) {
@@ -110,7 +109,6 @@ export function useCreditoEmpleadoAlertas({
       cancelado = true;
       stop();
       document.removeEventListener("visibilitychange", handleVisibility);
-      if (abortRef.current) abortRef.current.abort();
     };
   }, [puedeVer, intervalMs, fetchAlertas]);
 

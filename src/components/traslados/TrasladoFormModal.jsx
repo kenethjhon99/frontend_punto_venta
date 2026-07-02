@@ -158,6 +158,15 @@ function TrasladoFormModal({
                             <Typography variant="caption" color="text.secondary">
                               {producto.codigo_barras || "Sin codigo"}
                             </Typography>
+                            {producto.descripcion ? (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                display="block"
+                              >
+                                {producto.descripcion}
+                              </Typography>
+                            ) : null}
                           </TableCell>
                           <TableCell align="right">{producto.existencia}</TableCell>
                           <TableCell align="center">

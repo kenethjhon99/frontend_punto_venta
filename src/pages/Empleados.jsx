@@ -20,6 +20,7 @@ import { getFilterPanelSx } from "../utils/filterPanelStyles";
 import { userHasRole } from "../utils/roles";
 import {
   activarEmpleado,
+  cambiarEstadoOperativoEmpleado,
   crearEmpleado,
   desactivarEmpleado,
   editarEmpleado,
@@ -38,6 +39,7 @@ function Empleados() {
   const [busqueda, setBusqueda] = useState("");
   const [cargoFiltro, setCargoFiltro] = useState("TODOS");
   const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
+  const [operativoFiltro, setOperativoFiltro] = useState("TODOS");
   const [modalOpen, setModalOpen] = useState(false);
   const [empleadoEditando, setEmpleadoEditando] = useState(null);
   const [loadingLista, setLoadingLista] = useState(true);
@@ -76,7 +78,8 @@ function Empleados() {
         !texto ||
         String(empleado.nombre || "").toLowerCase().includes(texto) ||
         String(empleado.cargo || "").toLowerCase().includes(texto) ||
-        String(empleado.tipo_pago || "").toLowerCase().includes(texto);
+        String(empleado.tipo_pago || "").toLowerCase().includes(texto) ||
+        String(empleado.estado_operativo || "").toLowerCase().includes(texto);
 
       const coincideCargo =
         cargoFiltro === "TODOS" || empleado.cargo === cargoFiltro;
@@ -86,9 +89,13 @@ function Empleados() {
         (estadoFiltro === "ACTIVOS" && empleado.activo) ||
         (estadoFiltro === "INACTIVOS" && !empleado.activo);
 
-      return coincideTexto && coincideCargo && coincideEstado;
+      const coincideOperativo =
+        operativoFiltro === "TODOS" ||
+        empleado.estado_operativo === operativoFiltro;
+
+      return coincideTexto && coincideCargo && coincideEstado && coincideOperativo;
     });
-  }, [empleados, busqueda, cargoFiltro, estadoFiltro]);
+  }, [empleados, busqueda, cargoFiltro, estadoFiltro, operativoFiltro]);
 
   const resumen = useMemo(() => {
     return empleados.reduce(
@@ -97,9 +104,11 @@ function Empleados() {
         if (empleado.activo) acc.activos += 1;
         if (empleado.cargo === "CARWASH") acc.carwash += 1;
         if (empleado.cargo === "VENDEDOR") acc.vendedores += 1;
+        if (empleado.puede_repartir) acc.reparten += 1;
+        if (empleado.estado_operativo === "DISPONIBLE") acc.disponibles += 1;
         return acc;
       },
-      { total: 0, activos: 0, carwash: 0, vendedores: 0 }
+      { total: 0, activos: 0, carwash: 0, vendedores: 0, reparten: 0, disponibles: 0 }
     );
   }, [empleados]);
 
@@ -169,6 +178,25 @@ function Empleados() {
     }
   };
 
+  const cambiarEstadoOperativo = async (empleado) => {
+    const estado = window.prompt(
+      `Nuevo estado operativo para ${empleado.nombre}`,
+      empleado.estado_operativo || "DISPONIBLE"
+    );
+    if (!estado) return;
+
+    try {
+      setError("");
+      setSuccess("");
+      await cambiarEstadoOperativoEmpleado(empleado.id_empleado, estado);
+      setSuccess("Estado operativo actualizado correctamente.");
+      await cargarEmpleados();
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "No se pudo actualizar el estado operativo");
+    }
+  };
+
   return (
     <Box>
       <Stack
@@ -230,6 +258,22 @@ function Empleados() {
             <MenuItem value="TODOS">Todos los cargos</MenuItem>
             <MenuItem value="CARWASH">CARWASH</MenuItem>
             <MenuItem value="VENDEDOR">VENDEDOR</MenuItem>
+            <MenuItem value="REPARTIDOR">REPARTIDOR</MenuItem>
+            <MenuItem value="RUTERO">RUTERO</MenuItem>
+            <MenuItem value="CAJERA">CAJERA</MenuItem>
+            <MenuItem value="ADMINISTRATIVO">ADMINISTRATIVO</MenuItem>
+          </Select>
+          <Select
+            value={operativoFiltro}
+            onChange={(event) => setOperativoFiltro(event.target.value)}
+            sx={{ minWidth: { xs: "100%", md: 210 } }}
+          >
+            <MenuItem value="TODOS">Todos los estados operativos</MenuItem>
+            <MenuItem value="DISPONIBLE">DISPONIBLE</MenuItem>
+            <MenuItem value="EN_REPARTO">EN_REPARTO</MenuItem>
+            <MenuItem value="EN_RUTA">EN_RUTA</MenuItem>
+            <MenuItem value="EN_CARWASH">EN_CARWASH</MenuItem>
+            <MenuItem value="DESCANSO">DESCANSO</MenuItem>
           </Select>
           <Select
             value={estadoFiltro}
@@ -280,6 +324,22 @@ function Empleados() {
             {resumen.vendedores}
           </Typography>
         </Paper>
+        <Paper elevation={2} sx={{ p: 2.5, borderRadius: 3, minWidth: 180 }}>
+          <Typography variant="overline" color="text.secondary">
+            Reparten ZGAS
+          </Typography>
+          <Typography variant="h4" fontWeight={800} color="info.main">
+            {resumen.reparten}
+          </Typography>
+        </Paper>
+        <Paper elevation={2} sx={{ p: 2.5, borderRadius: 3, minWidth: 180 }}>
+          <Typography variant="overline" color="text.secondary">
+            Disponibles
+          </Typography>
+          <Typography variant="h4" fontWeight={800} color="success.main">
+            {resumen.disponibles}
+          </Typography>
+        </Paper>
       </Stack>
 
       {error && (
@@ -315,6 +375,7 @@ function Empleados() {
             empleados={empleadosFiltrados}
             onEdit={abrirEditar}
             onToggleActivo={toggleActivoEmpleado}
+            onCambiarEstadoOperativo={cambiarEstadoOperativo}
             canManage={canManageEmpleados}
           />
         </Paper>

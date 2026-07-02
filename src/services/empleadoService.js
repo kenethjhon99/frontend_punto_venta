@@ -24,3 +24,10 @@ export const activarEmpleado = async (id) => {
   const res = await api.patch(`/empleados/${id}/activar`);
   return res.data;
 };
+
+export const cambiarEstadoOperativoEmpleado = async (id, estado_operativo) => {
+  const res = await api.patch(`/empleados/${id}/estado-operativo`, {
+    estado_operativo,
+  });
+  return res.data;
+};
