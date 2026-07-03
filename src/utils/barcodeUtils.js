@@ -169,12 +169,12 @@ export const buildBarcodeLabelHtml = ({
   subtitle = "Codigo interno generado por el sistema",
 }) => {
   const svg = buildEan13Svg(codigo, {
-    moduleWidth: 1.22,
-    barHeight: 28,
-    guardHeight: 34,
-    fontSize: 8,
-    marginX: 5,
-    marginY: 4,
+    moduleWidth: 1.02,
+    barHeight: 17,
+    guardHeight: 21,
+    fontSize: 7,
+    marginX: 3,
+    marginY: 1,
   });
   const productName = String(nombre || "").trim() || "Producto";
 
@@ -192,18 +192,18 @@ export const buildBarcodeLabelHtml = ({
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            padding: 8px;
+            padding: 4px;
             background: #f5f7fb;
             font-family: "Segoe UI", Arial, sans-serif;
             color: #000000;
             font-weight: 700;
           }
           .sheet {
-            width: 50mm;
-            min-height: 28mm;
+            width: 50.8mm;
+            min-height: 25.4mm;
             margin: 0 auto;
-            padding: 3mm 2.5mm;
-            border-radius: 8px;
+            padding: 1.4mm 1.6mm 1mm;
+            border-radius: 6px;
             background: #ffffff;
             border: 1px solid #dbe4ff;
             box-shadow: 0 10px 20px rgba(15, 23, 42, 0.10);
@@ -228,11 +228,11 @@ export const buildBarcodeLabelHtml = ({
             text-align: center;
           }
           h1 {
-            margin: 0 0 1mm;
-            font-size: 15px;
+            margin: 0 0 0.35mm;
+            font-size: 10.5px;
             font-weight: 900;
             text-align: center;
-            line-height: 1.14;
+            line-height: 1.06;
             overflow-wrap: anywhere;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -243,50 +243,28 @@ export const buildBarcodeLabelHtml = ({
             margin: 0;
             text-align: center;
             color: #000000;
-            font-size: 12.5px;
+            font-size: 8.5px;
             font-weight: 800;
-            line-height: 1.16;
+            line-height: 1.05;
             display: -webkit-box;
             -webkit-line-clamp: 1;
             -webkit-box-orient: vertical;
             overflow: hidden;
           }
           .svg-wrap {
-            margin: 1mm 0 0.5mm;
-            padding: 1mm;
-            border-radius: 6px;
+            margin: 0.45mm 0 0;
+            padding: 0;
+            border-radius: 4px;
             background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-            border: 1px solid #e5e7eb;
+            border: none;
           }
           .svg-wrap svg {
             display: block;
             width: 100%;
-            max-width: 45mm;
+            max-width: 43mm;
             height: auto;
             margin: 0 auto;
             shape-rendering: crispEdges;
-          }
-          .code {
-            margin-top: 0.5mm;
-            text-align: center;
-            font-size: 11.5px;
-            font-weight: 900;
-            letter-spacing: 0.04em;
-          }
-          .meta {
-            margin-top: 6px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            font-size: 13.5px;
-            color: #000000;
-            font-weight: 800;
-          }
-          .meta strong {
-            display: block;
-            margin-top: 1px;
-            font-size: 15px;
-            color: #000000;
           }
           .note {
             margin-top: 6px;
@@ -298,7 +276,7 @@ export const buildBarcodeLabelHtml = ({
           }
           @media print {
             @page {
-              size: 50mm auto;
+              size: 50.8mm 25.4mm;
               margin: 0;
             }
             body {
@@ -312,10 +290,10 @@ export const buildBarcodeLabelHtml = ({
               box-shadow: none;
               border: none;
               border-radius: 0;
-              width: 50mm;
-              min-height: 28mm;
-              height: auto;
-              padding: 2mm 2mm 1.5mm;
+              width: 50.8mm;
+              min-height: 25.4mm;
+              height: 25.4mm;
+              padding: 1.4mm 1.6mm 0.8mm;
               overflow: hidden;
             }
             .eyebrow,
@@ -324,46 +302,26 @@ export const buildBarcodeLabelHtml = ({
               display: none;
             }
             h1 {
-              margin-bottom: 0.7mm;
-              font-size: 13.5px;
+              margin-bottom: 0.35mm;
+              font-size: 10.2px;
               font-weight: 900;
-              line-height: 1.14;
+              line-height: 1.05;
             }
             p {
-              font-size: 11.5px;
-              line-height: 1.12;
+              font-size: 8.4px;
+              line-height: 1.05;
               color: #000000;
               font-weight: 800;
             }
             .svg-wrap {
-              margin: 0.6mm 0 0;
+              margin: 0.4mm 0 0;
               padding: 0;
               border: none;
               background: #ffffff;
             }
             .svg-wrap svg {
-              max-width: 46mm;
+              max-width: 43mm;
               shape-rendering: crispEdges;
-            }
-            .code {
-              margin-top: 0.35mm;
-              font-size: 11px;
-              font-weight: 900;
-            }
-            .meta {
-              margin-top: 1mm;
-              padding-top: 1mm;
-              border-top: 1px dashed #cbd5e1;
-              gap: 3mm;
-              font-size: 11.5px;
-              color: #000000;
-              font-weight: 800;
-              line-height: 1;
-            }
-            .meta strong {
-              margin-top: 0.4mm;
-              font-size: 13px;
-              line-height: 1;
             }
           }
         </style>
@@ -375,17 +333,6 @@ export const buildBarcodeLabelHtml = ({
           <h1>${escapeHtml(productName)}</h1>
           ${descripcion ? `<p>${escapeHtml(descripcion)}</p>` : ""}
           <div class="svg-wrap">${svg}</div>
-          <div class="code">${escapeHtml(codigo)}</div>
-          <div class="meta">
-            <div>
-              Tipo
-              <strong>EAN-13</strong>
-            </div>
-            <div>
-              Origen
-              <strong>Interno</strong>
-            </div>
-          </div>
           <div class="note">Etiqueta generada desde el modulo de productos con el nombre del producto.</div>
         </article>
       </body>

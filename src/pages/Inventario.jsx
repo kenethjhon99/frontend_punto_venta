@@ -156,7 +156,6 @@ const buildInventarioHtml = ({ productos, totalGeneral, filtros }) => {
         <tr>
           <td>${escapeHtml(producto.codigo_barras || "Sin codigo")}</td>
           <td>${escapeHtml(producto.nombre || "Producto")}</td>
-          <td>${escapeHtml(formatDateOnly(producto.fecha_ingreso))}</td>
           <td class="number">${cantidad}</td>
           <td class="money">${formatPrintCurrency(costo)}</td>
           <td class="money">${formatPrintCurrency(total)}</td>
@@ -256,7 +255,6 @@ const buildInventarioHtml = ({ productos, totalGeneral, filtros }) => {
             <tr>
               <th style="width: 18%;">Codigo</th>
               <th>Nombre</th>
-              <th style="width: 12%;">Fecha ingreso</th>
               <th style="width: 11%;">Cantidad</th>
               <th style="width: 14%;">Precio costo</th>
               <th style="width: 14%;">Total</th>
@@ -265,7 +263,7 @@ const buildInventarioHtml = ({ productos, totalGeneral, filtros }) => {
           <tbody>
             ${rows}
             <tr class="total-row">
-              <td colspan="5" class="money">TOTAL INVENTARIO</td>
+              <td colspan="4" class="money">TOTAL INVENTARIO</td>
               <td class="money">${formatPrintCurrency(totalGeneral)}</td>
             </tr>
           </tbody>
@@ -569,20 +567,19 @@ function Inventario() {
       }, 0);
 
       const lines = [
-        ["CODIGO", "NOMBRE", "FECHA INGRESO", "CANTIDAD", "PRECIO COSTO", "TOTAL"],
+        ["CODIGO", "NOMBRE", "CANTIDAD", "PRECIO COSTO", "TOTAL"],
         ...productosExportables.map((producto) => {
           const cantidad = Number(producto.stock_total ?? producto.existencia ?? 0);
           const costo = Number(producto.precio_compra || 0);
           return [
             producto.codigo_barras || "Sin codigo",
             producto.nombre || "Producto",
-            formatDateOnly(producto.fecha_ingreso),
             cantidad,
             costo.toFixed(2),
             (cantidad * costo).toFixed(2),
           ];
         }),
-        ["", "", "", "", "TOTAL INVENTARIO", totalGeneral.toFixed(2)],
+        ["", "", "", "TOTAL INVENTARIO", totalGeneral.toFixed(2)],
       ];
 
       const csv = buildExcelCsv(lines);
